@@ -70,10 +70,10 @@ export default function HomePage() {
           targetDurationMinutes: 60,
           leadHeroName: 'เซียวเฉิน',
           leadHeroAnchor:
-            'handsome 20yo cultivation master, long silver-white hair tied with ancient jade hairpin, flowing deep black and gold embroidered daoist martial robe, calm piercing amber eyes, carrying ancient glowing azure divine sword on back, 3d chinese donghua UE5 render',
+            'จอมยุทธ์หนุ่มรูปงาม ผมยาวสีขาวเงินเกล้ามวยด้วยปิ่นหยกขาว สวมชุดคลุมเต๋าผ้าไหมสีดำปักดิ้นทอง แววตาสีอำพัน สะพายกระบี่เทพโบราณสีครามไว้ด้านหลัง สไตล์อนิเมะจีน 3D สวยสง่า',
           antagonistName: 'จ้าวอสูรโลหิต',
           antagonistAnchor:
-            'formidable demon warlord, glowing crimson eyes, heavy obsidian spiky armor, dark red demonic aura swirling around',
+            'จ้าวอสูรผู้เกรงขาม แววตาสีแดงเพลิงเรืองรอง สวมชุดเกราะหนามสีดำทมิฬ มีไอหมอกมารสีเลือดแผ่ออกมารอบตัว สไตล์อนิเมะจีน 3D น่าเกรงขาม',
         }),
       });
       const data = await res.json();

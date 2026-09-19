@@ -297,7 +297,7 @@ export default function SceneCard({
             <div className="p-2.5 border-b border-studio-800/80 flex items-center justify-between text-xs">
               <span className="font-semibold text-gray-300 flex items-center gap-1.5">
                 <Database className="w-3.5 h-3.5 text-emerald-400" />
-                รูปภาพฉาก (จัดเก็บใน Atlas Cloud)
+                รูปภาพประจำฉาก (จัดเก็บในคลาวด์ Atlas ทันที)
               </span>
 
               {scene.mediaUrl && (
@@ -305,7 +305,7 @@ export default function SceneCard({
                   onClick={handleRemoveImage}
                   className="text-gray-500 hover:text-red-400 text-[11px]"
                 >
-                  ลบรูป
+                  ลบรูปภาพ
                 </button>
               )}
             </div>
@@ -319,7 +319,7 @@ export default function SceneCard({
                   className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300"
                 />
                 <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded bg-black/70 backdrop-blur-sm text-[10px] text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
-                  <Database className="w-3 h-3" /> MongoDB Atlas GridFS
+                  <Database className="w-3 h-3" /> บันทึกในคลาวด์ Atlas แล้ว
                 </div>
               </div>
             ) : (
@@ -330,7 +330,7 @@ export default function SceneCard({
                 <div>
                   <p className="text-xs text-gray-300 font-medium">ยังไม่มีรูปภาพสำหรับฉากนี้</p>
                   <p className="text-[11px] text-gray-500 mt-0.5">
-                    นำรูปที่เจนจาก AI มาอัปโหลด ไฟล์จะถูกส่งเข้า MongoDB Atlas Cloud ทันที
+                    นำรูปที่สร้างจาก AI มาอัปโหลด ไฟล์จะถูกส่งเข้า MongoDB Atlas Cloud ทันที
                   </p>
                 </div>
                 <label className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-studio-800 hover:bg-studio-700 text-gray-200 text-xs font-semibold cursor-pointer border border-studio-700 transition-colors">
@@ -348,106 +348,146 @@ export default function SceneCard({
             )}
           </div>
 
-          {/* Camera and Lighting Controls */}
-          <div className="grid grid-cols-2 gap-2 text-xs">
+          {/* Camera and Lighting Controls (100% ภาษาไทย) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
             <div>
-              <label className="text-gray-400 block mb-1 flex items-center gap-1 text-[11px]">
-                <Camera className="w-3 h-3 text-cyan-400" /> มุมกล้อง (Camera)
+              <label className="text-gray-300 block mb-1 flex items-center gap-1 text-[11px] font-medium">
+                <Camera className="w-3 h-3 text-cyan-400" /> ทิศทางมุมกล้อง
               </label>
-              <input
-                type="text"
+              <select
                 value={scene.cameraMovement}
                 onChange={(e) => onUpdate({ ...scene, cameraMovement: e.target.value })}
-                className="w-full px-2.5 py-1.5 rounded-lg bg-studio-950 border border-studio-800 text-gray-200 text-xs"
-                placeholder="Cinematic angle"
-              />
+                className="w-full px-2.5 py-1.5 rounded-lg bg-studio-950 border border-studio-800 text-gray-200 text-xs focus:outline-none focus:border-cyan-500"
+              >
+                <option value={scene.cameraMovement}>{scene.cameraMovement}</option>
+                <option value="มุมกว้างพิเศษแบบภาพยนตร์ เคลื่อนกล้องช้าๆ ผ่านยอดเขาหมอกสวรรค์แล้วซูมเข้า">
+                  มุมกว้างพิเศษ ซูมเข้าช้าๆ
+                </option>
+                <option value="มุมช้อนต่ำจากพื้น ค่อยๆ เงยกล้องขึ้นมองอย่างยิ่งใหญ่อลังการ">
+                  มุมช้อนต่ำ เงยกล้องขึ้นทรงพลัง
+                </option>
+                <option value="หมุนกล้อง 360 องศารอบตัวเอกที่กำลังปลดปล่อยพลังปราณ">
+                  หมุนกล้อง 360 องศารอบตัวเอก
+                </option>
+                <option value="ภาพสโลว์โมชั่นเคลื่อนกล้องตามหลังตัวเอกอย่างสง่างาม">
+                  สโลว์โมชั่น เคลื่อนกล้องตามหลัง
+                </option>
+                <option value="มุมมองมุมสูงแบบโดรนเปิดกว้าง เห็นทะเลหมอกสุดลูกหูลูกตา">
+                  มุมสูงแบบโดรน เปิดกว้างตระการตา
+                </option>
+                <option value="เคลื่อนกล้องรวดเร็วติดตามวิถีการบินของกระบี่พุ่งทะลวง">
+                  กล้องตามติดกระบี่บินความเร็วสูง
+                </option>
+                <option value="มุมมองข้ามไหล่ ตัดสลับระหว่างคู่ต่อสู้อย่างดุเดือด">
+                  มุมมองข้ามไหล่ สลับหน้าคู่ต่อสู้
+                </option>
+              </select>
             </div>
+
             <div>
-              <label className="text-gray-400 block mb-1 flex items-center gap-1 text-[11px]">
-                <Sun className="w-3 h-3 text-amber-400" /> แสงเงา (Lighting)
+              <label className="text-gray-300 block mb-1 flex items-center gap-1 text-[11px] font-medium">
+                <Sun className="w-3 h-3 text-amber-400" /> แสงเงาและบรรยากาศ
               </label>
-              <input
-                type="text"
+              <select
                 value={scene.lighting}
                 onChange={(e) => onUpdate({ ...scene, lighting: e.target.value })}
-                className="w-full px-2.5 py-1.5 rounded-lg bg-studio-950 border border-studio-800 text-gray-200 text-xs"
-                placeholder="Lighting mood"
-              />
+                className="w-full px-2.5 py-1.5 rounded-lg bg-studio-950 border border-studio-800 text-gray-200 text-xs focus:outline-none focus:border-amber-500"
+              >
+                <option value={scene.lighting}>{scene.lighting}</option>
+                <option value="แสงจันทร์สีเลือดสาดส่องผ่านหมู่เมฆพายุ เปล่งประกายออร่าพลังปราณสีครามเรืองรอง">
+                  แสงจันทร์สีเลือด ออร่าปราณสีคราม
+                </option>
+                <option value="แสงอาทิตย์สีทองยามเช้าสาดส่องทะลุผ่านม่านหมอกอย่างอบอุ่นและยิ่งใหญ่">
+                  แสงอาทิตย์สีทอง สาดส่องทะลุหมอก
+                </option>
+                <option value="แสงเรืองรองสีฟ้าครามและสีทองสว่างวาบออกมาจากอักขระโบราณ">
+                  แสงอักขระโบราณสีทองและฟ้าคราม
+                </option>
+                <option value="แสงไฟเพลิงทมิฬสีแดงดำ ปะทะกับแสงออร่ามังกรฟ้าสีครามสว่างจ้า">
+                  เพลิงทมิฬ ปะทะ ออร่ามังกรฟ้า
+                </option>
+                <option value="ลำแสงสวรรค์สีทองส่องลอดผ่านม่านเมฆหลังพายุสงบอย่างงดงาม">
+                  ลำแสงสวรรค์สีทอง ส่องลอดม่านเมฆ
+                </option>
+                <option value="แสงไฟนีออนสะท้อนพื้นถนนเปียกน้ำ ตัดกับเงามืดลึกแบบภาพยนตร์">
+                  แสงนีออนสะท้อนพื้นเปียกน้ำ
+                </option>
+              </select>
             </div>
           </div>
 
-          {/* Visual AI Prompts with 1-Click Copy */}
+          {/* Visual AI Prompts with 1-Click Copy (100% ภาษาไทย) */}
           <div className="space-y-2 pt-1">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-gray-300">
-                พร้อมต์ภาพ &amp; วิดีโอต่อเนื่อง (Continuity Prompts)
+              <span className="text-xs font-bold text-gray-200">
+                คำสั่งสร้างภาพและวิดีโอต่อเนื่อง (ภาษาไทย)
               </span>
               <button
                 type="button"
                 onClick={handleRegeneratePrompts}
                 disabled={regenerating}
                 className="text-[11px] text-amber-400 hover:text-amber-300 flex items-center gap-1"
-                title="รีเฟรชพร้อมต์ตามบทและมุมกล้องใหม่"
+                title="สร้างคำสั่งใหม่ตามบทและมุมกล้องล่าสุด"
               >
                 <RefreshCw className={`w-3 h-3 ${regenerating ? 'animate-spin' : ''}`} />
-                <span>รีเจนพร้อมต์</span>
+                <span>สร้างคำสั่งใหม่</span>
               </button>
             </div>
 
-            {/* Image Prompt (Midjourney / Flux / SD) */}
+            {/* Image Prompt (คำสั่งภาพนิ่งภาษาไทย) */}
             <div className="p-2.5 rounded-xl bg-studio-950 border border-studio-800 space-y-1.5">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-semibold text-amber-400 flex items-center gap-1">
-                  🎨 พร้อมต์ภาพนิ่ง (Midjourney / Flux)
+                  🎨 คำสั่งสร้างภาพนิ่ง (ภาษาไทย)
                 </span>
                 <button
                   type="button"
                   onClick={() => handleCopy(scene.imagePrompt, 'image')}
-                  className="px-2 py-0.5 rounded bg-studio-900 border border-studio-700 text-gray-300 hover:text-white text-[10px] flex items-center gap-1"
+                  className="px-2.5 py-1 rounded-lg bg-studio-900 hover:bg-studio-800 border border-studio-700 text-gray-200 hover:text-white text-[10px] font-medium flex items-center gap-1 transition-colors"
                 >
                   {copiedPrompt === 'image' ? (
                     <>
                       <Check className="w-3 h-3 text-emerald-400" />
-                      <span className="text-emerald-400">คัดลอกแล้ว</span>
+                      <span className="text-emerald-400 font-bold">คัดลอกสำเร็จ!</span>
                     </>
                   ) : (
                     <>
-                      <Copy className="w-3 h-3" />
-                      <span>คัดลอก</span>
+                      <Copy className="w-3 h-3 text-amber-400" />
+                      <span>คัดลอกคำสั่ง</span>
                     </>
                   )}
                 </button>
               </div>
-              <p className="text-[11px] text-gray-400 font-mono line-clamp-3 select-all">
+              <p className="text-[11px] text-gray-300 leading-relaxed line-clamp-3 select-all">
                 {scene.imagePrompt}
               </p>
             </div>
 
-            {/* Video Motion Prompt (Kling AI / Runway Gen-3 / Luma) */}
+            {/* Video Motion Prompt (คำสั่งวิดีโอต่อเนื่องภาษาไทย) */}
             <div className="p-2.5 rounded-xl bg-studio-950 border border-studio-800 space-y-1.5">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-semibold text-cyan-400 flex items-center gap-1">
-                  <Video className="w-3 h-3" /> พร้อมต์วิดีโอต่อเนื่อง (Kling / Runway)
+                  <Video className="w-3 h-3" /> คำสั่งสร้างวิดีโอภาพต่อเนื่อง (ภาษาไทย)
                 </span>
                 <button
                   type="button"
                   onClick={() => handleCopy(scene.videoMotionPrompt, 'video')}
-                  className="px-2 py-0.5 rounded bg-studio-900 border border-studio-700 text-gray-300 hover:text-white text-[10px] flex items-center gap-1"
+                  className="px-2.5 py-1 rounded-lg bg-studio-900 hover:bg-studio-800 border border-studio-700 text-gray-200 hover:text-white text-[10px] font-medium flex items-center gap-1 transition-colors"
                 >
                   {copiedPrompt === 'video' ? (
                     <>
                       <Check className="w-3 h-3 text-emerald-400" />
-                      <span className="text-emerald-400">คัดลอกแล้ว</span>
+                      <span className="text-emerald-400 font-bold">คัดลอกสำเร็จ!</span>
                     </>
                   ) : (
                     <>
-                      <Copy className="w-3 h-3" />
-                      <span>คัดลอก</span>
+                      <Copy className="w-3 h-3 text-cyan-400" />
+                      <span>คัดลอกคำสั่ง</span>
                     </>
                   )}
                 </button>
               </div>
-              <p className="text-[11px] text-gray-400 font-mono line-clamp-3 select-all">
+              <p className="text-[11px] text-gray-300 leading-relaxed line-clamp-3 select-all">
                 {scene.videoMotionPrompt}
               </p>
             </div>

@@ -267,7 +267,7 @@ export default function ProjectStudioPage() {
                   : 'text-gray-400 hover:text-white'
               }`}
             >
-              🎨 การ์ตูน 3D
+              🎨 การ์ตูน/อนิเมะ 3D
             </button>
             <button
               onClick={() => handleToggleMedium('live_action')}
@@ -277,7 +277,7 @@ export default function ProjectStudioPage() {
                   : 'text-gray-400 hover:text-white'
               }`}
             >
-              🎬 คนจริง Cinema
+              🎬 ภาพยนตร์คนจริง
             </button>
           </div>
 
@@ -287,7 +287,7 @@ export default function ProjectStudioPage() {
             className="px-3 py-2 rounded-xl bg-studio-900 border border-studio-700 text-gray-300 hover:text-white hover:border-studio-600 text-xs font-semibold flex items-center gap-1.5 transition-colors"
           >
             <User className="w-3.5 h-3.5 text-amber-400" />
-            <span>ตัวละคร ({project.characters.length})</span>
+            <span>สมุดคุมตัวละคร ({project.characters.length})</span>
           </button>
 
           {/* Export Button */}
@@ -296,7 +296,7 @@ export default function ProjectStudioPage() {
             className="px-3 py-2 rounded-xl bg-studio-900 border border-studio-700 text-gray-300 hover:text-white hover:border-studio-600 text-xs font-semibold flex items-center gap-1.5 transition-colors"
           >
             <Download className="w-3.5 h-3.5 text-cyan-400" />
-            <span>ส่งออกสคริปต์/SRT</span>
+            <span>ส่งออกสคริปต์</span>
           </Link>
 
           {/* Save Button */}
@@ -312,12 +312,12 @@ export default function ProjectStudioPage() {
             {savedSuccess ? (
               <>
                 <CheckCircle className="w-4 h-4" />
-                <span>บันทึกลง Atlas แล้ว!</span>
+                <span>บันทึกลงคลาวด์แล้ว!</span>
               </>
             ) : (
               <>
                 <Save className="w-4 h-4" />
-                <span>{saving ? 'กำลังบันทึก...' : 'บันทึกลง Atlas Cloud'}</span>
+                <span>{saving ? 'กำลังบันทึก...' : 'บันทึกข้อมูล'}</span>
               </>
             )}
           </button>

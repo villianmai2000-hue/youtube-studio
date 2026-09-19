@@ -21,11 +21,11 @@ export default function NewProjectModal({ isOpen, onClose, onCreated }: NewProje
   // Characters
   const [leadHeroName, setLeadHeroName] = useState('เซียวเฉิน');
   const [leadHeroAnchor, setLeadHeroAnchor] = useState(
-    'handsome young cultivation master, long silver-white hair with jade hairpin, flowing black and gold daoist robe, calm piercing amber eyes, carrying ancient divine sword on back'
+    'จอมยุทธ์หนุ่มรูปงาม ผมยาวสีขาวเงินเกล้ามวยด้วยปิ่นหยกขาว สวมชุดคลุมเต๋าผ้าไหมสีดำปักดิ้นทอง แววตาสีอำพัน สะพายกระบี่เทพโบราณสีครามไว้ด้านหลัง สไตล์อนิเมะจีน 3D สวยสง่า'
   );
   const [antagonistName, setAntagonistName] = useState('จ้าวอสูรโลหิต');
   const [antagonistAnchor, setAntagonistAnchor] = useState(
-    'formidable demon overlord, glowing crimson eyes, sharp obsidian spiky battle armor, aura of dark demonic mist'
+    'จ้าวอสูรผู้เกรงขาม แววตาสีแดงเพลิงเรืองรอง สวมชุดเกราะหนามสีดำทมิฬ มีไอหมอกมารสีเลือดแผ่ออกมารอบตัว สไตล์อนิเมะจีน 3D น่าเกรงขาม'
   );
 
   const [loading, setLoading] = useState(false);
@@ -38,10 +38,10 @@ export default function NewProjectModal({ isOpen, onClose, onCreated }: NewProje
     setVisualMedium(medium);
     if (medium === 'live_action') {
       setStylePreset('hollywood_cinematic');
-      setLeadHeroAnchor('handsome Asian 20yo martial artist actor, photorealistic human skin texture, sharp jawline, 35mm film still');
+      setLeadHeroAnchor('นักแสดงชายเอเชียหนุ่มรูปงาม ผิวหนังสมจริง คมชัดระดับภาพยนตร์ เลนส์ 35 มม.');
     } else {
       setStylePreset('donghua_3d');
-      setLeadHeroAnchor('handsome young cultivation master, long silver-white hair with jade hairpin, flowing black and gold daoist robe, calm piercing amber eyes, 3d chinese donghua UE5 render');
+      setLeadHeroAnchor('จอมยุทธ์หนุ่มรูปงาม ผมยาวสีขาวเงินเกล้ามวยด้วยปิ่นหยกขาว สวมชุดคลุมเต๋าผ้าไหมสีดำปักดิ้นทอง แววตาสีอำพัน สะพายกระบี่เทพโบราณสีคราม สไตล์อนิเมะจีน 3D สวยสง่า');
     }
   };
 
@@ -266,18 +266,18 @@ export default function NewProjectModal({ isOpen, onClose, onCreated }: NewProje
                 {visualMedium === 'animation' ? (
                   <>
                     <option value="donghua_3d">
-                      🔥 3D Chinese Donghua (UE5 Octane - SAN1 Style)
+                      🔥 อนิเมะจีน 3D กำลังภายใน (สไตล์ เพื่อนที่ดีที่สุด SAN1)
                     </option>
-                    <option value="anime_2d">🌸 2D Japanese Anime (Ufotable / Shinkai)</option>
-                    <option value="western_3d">🎭 3D Western Animation (Arcane / Pixar)</option>
-                    <option value="manhwa_action">⚡ Manhwa Action Webtoon (Solo Leveling)</option>
+                    <option value="anime_2d">🌸 อนิเมะญี่ปุ่น 2D ระดับโรงภาพยนตร์</option>
+                    <option value="western_3d">🎭 แอนิเมชัน 3D ระดับโลก (สไตล์ฮอลลีวูด)</option>
+                    <option value="manhwa_action">⚡ มันฮวาเกาหลี แอ็กชันดาร์กแฟนตาซี</option>
                   </>
                 ) : (
                   <>
-                    <option value="hollywood_cinematic">🎞️ Hollywood 35mm Chiaroscuro</option>
-                    <option value="imax_70mm">🎥 IMAX 70mm Photorealistic Real Human</option>
-                    <option value="dark_noir">🌧️ Dark Neo-Noir Wet Street</option>
-                    <option value="vintage_film">📼 Vintage Kodak 35mm Film</option>
+                    <option value="hollywood_cinematic">🎞️ ภาพยนตร์คนจริง เลนส์ 35 มม. แสงเงาลุ่มลึก</option>
+                    <option value="imax_70mm">🎥 ภาพยนตร์คนจริง กล้องยักษ์ IMAX 70 มม. คมชัดสูงสุด</option>
+                    <option value="dark_noir">🌧️ ภาพยนตร์คนจริง ดาร์กฟิล์มนัวร์ ถนนเปียกฝน นีออน</option>
+                    <option value="vintage_film">📼 ภาพยนตร์คนจริง สไตล์ฟิล์มย้อนยุคคลาสสิก</option>
                   </>
                 )}
               </select>
