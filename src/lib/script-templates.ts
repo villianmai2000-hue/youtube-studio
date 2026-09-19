@@ -60,9 +60,8 @@ export function generateActTemplateScenes(options: GenerateScriptOptions): Scrip
       sceneNumber: sceneNum,
     });
 
-    // Estimate speaking duration: approx 130 words per min in Thai (~2.1 words per sec)
-    const totalWords = (blueprint.narration + blueprint.dialogues.map((d) => d.text).join('')).length / 4;
-    const durationSec = Math.max(25, Math.round(totalWords * 1.5));
+    // แต่ละฉากกำหนดระยะเวลา 10 วินาทีตามที่ผู้ใช้กำหนด (มาตรฐานช็อตวิดีโอ AI)
+    const durationSec = 10;
 
     return {
       id: `scene-${Date.now()}-${sceneNum}`,

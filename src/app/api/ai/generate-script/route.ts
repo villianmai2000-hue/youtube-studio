@@ -182,7 +182,7 @@ ${charactersStr || 'ตัวเอกจอมยุทธ์ และ ศั�
       imagePrompt: prompts.imagePrompt,
       videoMotionPrompt: prompts.videoMotionPrompt,
       negativePrompt: prompts.negativePrompt,
-      estimatedDurationSec: Math.max(30, Math.round(item.narration.length / 4 * 1.5)),
+      estimatedDurationSec: 10,
       createdAt: new Date().toISOString(),
     };
   });

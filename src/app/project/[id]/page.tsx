@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Project, ScriptScene, VisualMedium, StylePreset, CharacterBible } from '@/lib/types';
 import SceneCard from '@/components/SceneCard';
 import CharacterBibleModal from '@/components/CharacterBibleModal';
+import VideoTimelinePlayer from '@/components/VideoTimelinePlayer';
 import {
   Film,
   Sparkles,
@@ -20,6 +21,11 @@ import {
   Database,
   CheckCircle,
   PlayCircle,
+  CheckSquare,
+  Square,
+  Play,
+  Copy,
+  Check,
 } from 'lucide-react';
 
 export default function ProjectStudioPage() {
@@ -33,8 +39,15 @@ export default function ProjectStudioPage() {
   const [savedSuccess, setSavedSuccess] = useState(false);
   
   // Act Filter
-  const [selectedAct, setSelectedAct] = useState<number | 'all'>(1);
+  const [selectedAct, setSelectedAct] = useState<number | 'all'>('all');
   
+  // Multi-scene Selection for Video Stitching & Batch Generation
+  const [selectedSceneIds, setSelectedSceneIds] = useState<string[]>([]);
+  const [isTimelinePlayerOpen, setIsTimelinePlayerOpen] = useState(false);
+  const [batchGenerating, setBatchGenerating] = useState(false);
+  const [batchProgress, setBatchProgress] = useState({ current: 0, total: 0 });
+  const [batchCopied, setBatchCopied] = useState(false);
+
   // Character Bible Modal
   const [isCharModalOpen, setIsCharModalOpen] = useState(false);
 
@@ -190,7 +203,103 @@ export default function ProjectStudioPage() {
     }
   };
 
-  // Word Count & Duration Metrics
+  // Toggle selection for a scene
+  const handleToggleSelectScene = (sceneId: string) => {
+    setSelectedSceneIds((prev) =>
+      prev.includes(sceneId) ? prev.filter((id) => id !== sceneId) : [...prev, sceneId]
+    );
+  };
+
+  // Select all / Deselect all
+  const handleSelectAll = () => {
+    if (selectedSceneIds.length === filteredScenes.length) {
+      setSelectedSceneIds([]);
+    } else {
+      setSelectedSceneIds(filteredScenes.map((s) => s.id));
+    }
+  };
+
+  // Batch Generate Images for all selected scenes
+  const handleBatchGenerateImages = async () => {
+    if (!project || selectedSceneIds.length === 0) {
+      alert('กรุณาติ๊กเลือกฉากที่ต้องการสร้างภาพก่อน');
+      return;
+    }
+
+    setBatchGenerating(true);
+    setBatchProgress({ current: 0, total: selectedSceneIds.length });
+
+    let updatedScenes = [...project.scenes];
+
+    for (let i = 0; i < selectedSceneIds.length; i++) {
+      const sceneId = selectedSceneIds[i];
+      const targetScene = updatedScenes.find((s) => s.id === sceneId);
+      if (!targetScene) continue;
+
+      setBatchProgress({ current: i + 1, total: selectedSceneIds.length });
+
+      try {
+        const res = await fetch('/api/ai/generate-image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sceneId: targetScene.id,
+            projectId: project.id,
+            prompt: targetScene.imagePrompt || targetScene.title,
+            visualMedium: project.visualMedium,
+            stylePreset: project.stylePreset,
+          }),
+        });
+        const data = await res.json();
+        if (data.success && data.mediaUrl) {
+          updatedScenes = updatedScenes.map((s) =>
+            s.id === sceneId
+              ? { ...s, mediaFileId: data.fileId, mediaUrl: data.mediaUrl }
+              : s
+          );
+          setProject({ ...project, scenes: updatedScenes });
+        }
+      } catch (err) {
+        console.error('Batch image error for scene:', sceneId, err);
+      }
+    }
+
+    const finalProject = { ...project, scenes: updatedScenes };
+    setProject(finalProject);
+    await handleSave(finalProject);
+    setBatchGenerating(false);
+    alert('สร้างภาพสำหรับทุกฉากที่เลือกเรียบร้อยแล้ว และส่งเข้าคลาวด์ Atlas ทันที!');
+  };
+
+  // Copy merged script of selected scenes
+  const handleCopySelectedMerged = () => {
+    if (!project) return;
+    const targets = project.scenes.filter((s) => selectedSceneIds.includes(s.id));
+    if (targets.length === 0) return;
+
+    let merged = `🎬 รวมฉากและวิดีโอต่อเนื่อง (${targets.length} ฉาก, ฉากละ 10 วินาที รวม ${targets.length * 10} วินาที)\n`;
+    merged += `เรื่อง: ${project.title}\n\n`;
+
+    targets.forEach((s) => {
+      merged += `=== [ฉากที่ ${s.sceneNumber}] (10 วินาที) : ${s.title} ===\n`;
+      merged += `มุมกล้อง: ${s.cameraMovement}\n`;
+      merged += `แสงเงา: ${s.lighting}\n`;
+      merged += `บทบรรยาย: ${s.narration}\n`;
+      if (s.dialogues.length > 0) {
+        merged += `บทสนทนา:\n`;
+        s.dialogues.forEach((d) => {
+          merged += `  - ${d.speaker} (${d.emotion}): "${d.text}"\n`;
+        });
+      }
+      merged += `คำสั่งวิดีโอต่อเนื่อง: ${s.videoMotionPrompt}\n\n`;
+    });
+
+    navigator.clipboard.writeText(merged);
+    setBatchCopied(true);
+    setTimeout(() => setBatchCopied(false), 2000);
+  };
+
+  // Word Count & Duration Metrics (ปรับเป็น 10 วินาทีต่อฉากตามที่ผู้ใช้กำหนด!)
   const metrics = useMemo(() => {
     if (!project) return { totalWords: 0, totalSeconds: 0, durationMinutes: 0, progressPercent: 0 };
     let totalText = '';
@@ -202,7 +311,7 @@ export default function ProjectStudioPage() {
     });
 
     const words = Math.round(totalText.replace(/\s+/g, '').length / 4); // Thai word approx
-    const totalSeconds = project.scenes.reduce((sum, s) => sum + (s.estimatedDurationSec || 0), 0);
+    const totalSeconds = project.scenes.length * 10; // ฉากละ 10 วินาที!
     const durationMinutes = Math.round((totalSeconds / 60) * 10) / 10;
     const progressPercent = Math.min(100, Math.round((durationMinutes / (project.targetDurationMinutes || 60)) * 100));
 
@@ -433,6 +542,89 @@ export default function ProjectStudioPage() {
         </div>
       )}
 
+      {/* Multi-Scene Selection & Action Bar (ติ๊กเลือกฉากรวมวิดีโอ & สร้างภาพ AI) */}
+      <div className="p-4 rounded-2xl bg-studio-900/90 border border-amber-500/30 backdrop-blur-md flex flex-wrap items-center justify-between gap-4 shadow-xl">
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={handleSelectAll}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-studio-950 border border-studio-700 text-xs font-semibold text-gray-200 hover:border-amber-400 transition-colors"
+          >
+            {selectedSceneIds.length === filteredScenes.length && filteredScenes.length > 0 ? (
+              <>
+                <CheckSquare className="w-4 h-4 text-amber-400" />
+                <span>ยกเลิกเลือกทั้งหมด</span>
+              </>
+            ) : (
+              <>
+                <Square className="w-4 h-4 text-gray-400" />
+                <span>เลือกทุกฉาก ({filteredScenes.length} ฉาก)</span>
+              </>
+            )}
+          </button>
+
+          <div className="text-xs text-gray-300">
+            เลือกแล้ว: <strong className="text-amber-400">{selectedSceneIds.length}</strong> ฉาก{' '}
+            <span className="text-gray-500">
+              (รวมเวลา {selectedSceneIds.length * 10} วินาที @ 10 วิ/ฉาก)
+            </span>
+          </div>
+        </div>
+
+        {/* Action Buttons for Selected Scenes */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Button: Play Video Sequence (10s per scene) */}
+          <button
+            type="button"
+            onClick={() => setIsTimelinePlayerOpen(true)}
+            className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-bold text-xs shadow-glow flex items-center gap-1.5 transition-all"
+          >
+            <Play className="w-4 h-4 fill-black" />
+            <span>
+              {selectedSceneIds.length > 0
+                ? `เล่นรวมฉากที่เลือก (${selectedSceneIds.length * 10} วิ)`
+                : `เล่นรวมทุกฉาก (${project.scenes.length * 10} วิ)`}
+            </span>
+          </button>
+
+          {/* Button: Batch AI Image Generation */}
+          <button
+            type="button"
+            onClick={handleBatchGenerateImages}
+            disabled={batchGenerating || selectedSceneIds.length === 0}
+            className="px-3.5 py-2 rounded-xl bg-studio-800 hover:bg-studio-700 border border-studio-700 text-amber-300 text-xs font-semibold flex items-center gap-1.5 transition-colors disabled:opacity-40"
+          >
+            <Sparkles className={`w-3.5 h-3.5 ${batchGenerating ? 'animate-spin' : ''}`} />
+            <span>
+              {batchGenerating
+                ? `กำลังสร้างภาพ (${batchProgress.current}/${batchProgress.total})...`
+                : 'สร้างภาพ AI ทุกฉากที่เลือก'}
+            </span>
+          </button>
+
+          {/* Button: Copy Merged Prompts */}
+          {selectedSceneIds.length > 0 && (
+            <button
+              type="button"
+              onClick={handleCopySelectedMerged}
+              className="px-3 py-2 rounded-xl bg-studio-800 hover:bg-studio-700 border border-studio-700 text-gray-300 text-xs font-medium flex items-center gap-1.5 transition-colors"
+            >
+              {batchCopied ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="text-emerald-400">คัดลอกแล้ว</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>รวมคำสั่งฉากที่เลือก</span>
+                </>
+              )}
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Scenes List */}
       <div className="space-y-6">
         {filteredScenes.length === 0 ? (
@@ -464,6 +656,8 @@ export default function ProjectStudioPage() {
               stylePreset={project.stylePreset}
               genre={project.genre}
               projectId={project.id}
+              isSelected={selectedSceneIds.includes(scene.id)}
+              onToggleSelect={() => handleToggleSelectScene(scene.id)}
               onUpdate={handleUpdateScene}
               onDelete={handleDeleteScene}
             />
@@ -481,6 +675,18 @@ export default function ProjectStudioPage() {
           setProject(updated);
           handleSave(updated);
         }}
+      />
+
+      {/* Video Timeline & Storyboard Player Modal (10 วินาที/ฉาก) */}
+      <VideoTimelinePlayer
+        isOpen={isTimelinePlayerOpen}
+        onClose={() => setIsTimelinePlayerOpen(false)}
+        selectedScenes={
+          selectedSceneIds.length > 0
+            ? project.scenes.filter((s) => selectedSceneIds.includes(s.id))
+            : project.scenes
+        }
+        projectTitle={project.title}
       />
     </div>
   );
