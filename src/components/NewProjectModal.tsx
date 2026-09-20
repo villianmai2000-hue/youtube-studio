@@ -12,6 +12,7 @@ import {
   X,
   Check,
   Zap,
+  Users,
 } from 'lucide-react';
 import {
   WorldCulture,
@@ -31,6 +32,7 @@ import {
   THAI_SETTING_SUBGENRES,
   getSubgenresByCulture,
 } from '@/lib/studio-categories';
+import { detectStoryCharacterScale } from '@/lib/character-generator';
 
 interface NewProjectModalProps {
   isOpen: boolean;
@@ -75,6 +77,11 @@ export default function NewProjectModal({ isOpen, onClose, onCreated }: NewProje
     return visualMedium === 'animation' ? ANIME_STYLES : MOVIE_STYLES;
   }, [visualMedium]);
 
+  // Auto-detected character scale based on story title, synopsis, culture, and subgenre
+  const detectedScale = useMemo(() => {
+    return detectStoryCharacterScale(title, synopsis, worldCulture, selectedSubGenre);
+  }, [title, synopsis, worldCulture, selectedSubGenre]);
+
   if (!isOpen) return null;
 
   // Handle Culture Change
@@ -116,7 +123,7 @@ export default function NewProjectModal({ isOpen, onClose, onCreated }: NewProje
 
     setLoading(true);
     setError('');
-    setLoadingStep('🤖 AI กำลังวิเคราะห์เนื้อเรื่องและออกแบบตัวละครตามพล็อตเรื่อง...');
+    setLoadingStep(`🤖 AI กำลังวิเคราะห์เนื้อเรื่องและออกแบบตัวละคร ${detectedScale.count} ตัวตามพล็อต...`);
 
     try {
       // 1. Generate Characters Automatically based on the Story Concept
@@ -133,7 +140,7 @@ export default function NewProjectModal({ isOpen, onClose, onCreated }: NewProje
             subGenre: selectedSubGenre,
             visualMedium,
             stylePreset,
-            characterCount: 3,
+            characterCount: detectedScale.count,
           }),
         });
         const charData = await charRes.json();
@@ -461,8 +468,33 @@ export default function NewProjectModal({ isOpen, onClose, onCreated }: NewProje
             </div>
           </div>
 
+          {/* Character Scale Auto-detection Preview */}
+          <div className="p-3 sm:p-4 rounded-2xl bg-cyan-950/40 border border-cyan-500/30 flex items-center justify-between gap-3 shadow-inner">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 shrink-0">
+                <Users className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs font-bold text-white">
+                    ขนาดตัวละครอัตโนมัติ (Story Scale):
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 text-xs font-extrabold">
+                    {detectedScale.count} ตัวละคร
+                  </span>
+                  <span className="text-[11px] text-cyan-400 font-medium">
+                    ({detectedScale.label})
+                  </span>
+                </div>
+                <p className="text-[11px] text-gray-400 mt-0.5">
+                  💡 {detectedScale.reason}
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* Submit Button */}
-          <div className="pt-2">
+          <div className="pt-1">
             <button
               type="submit"
               disabled={loading}

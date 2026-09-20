@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getAllProjects, saveProject, getProjectById } from '@/lib/storage';
-import { Project, MovieGenre, VisualMedium, StylePreset, CharacterBible, AspectRatio, ScriptEngine } from '@/lib/types';
+import { Project, MovieGenre, VisualMedium, StylePreset, CharacterBible, AspectRatio, ScriptEngine, WorldCulture } from '@/lib/types';
 import { generateContinuousMovieScenes } from '@/lib/script-templates';
+import { generateIntelligentCharacters, detectStoryCharacterScale } from '@/lib/character-generator';
 
 export const dynamic = 'force-dynamic';
 
@@ -77,43 +78,22 @@ export async function POST(request: Request) {
         googleFlowPrompt: c.googleFlowPrompt || `${c.appearanceAnchor || ''}, character portrait, 8k resolution, cinematic lighting`,
       }));
     } else {
-      const heroSeed = String(Math.floor(100000 + Math.random() * 900000));
-      const villainSeed = String(Math.floor(100000 + Math.random() * 900000));
-
-      projectCharacters = [
-        {
-          id: `char-${Date.now()}-1`,
-          name: leadHeroName || (genre === 'military_tactical' ? 'ผู้การพายุ' : 'เซียวหลิน'),
-          role: 'protagonist',
-          appearanceAnchor: leadHeroAnchor || (
-            genre === 'military_tactical'
-              ? 'ผู้บัญชาการหน่วยรบพิเศษหนุ่ม ผิวเข้มคมเข้ม สวมหมวกเบเรต์และชุดเกราะ Tactical Vest ลายพราง แววตาเด็ดเดี่ยว มีแผลเป็นเล็กๆ เหนือคิ้วซ้าย'
-              : 'จอมยุทธ์หนุ่มรูปงาม ผมยาวสีขาวเงินเกล้ามวยด้วยปิ่นหยกขาว สวมชุดคลุมเต๋าผ้าไหมสีดำปักดิ้นทอง แววตาสีอำพัน สะพายกระบี่เทพโบราณสีครามไว้ด้านหลัง สไตล์อนิเมะจีน 3D สวยสง่า'
-          ),
-          clothingStyle: genre === 'military_tactical'
-            ? 'ชุดเกราะ Tactical Vest ลายพรางสนามรบ วิทยุสื่อสารสะพายบ่า'
-            : (visualMedium === 'live_action' ? 'ชุดคลุมหนังและผ้าสไตล์ภาพยนตร์สมจริง' : 'ชุดคลุมผ้าไหมโบราณพริ้วไหวปักดิ้นทอง'),
-          voiceStyle: genre === 'military_tactical' ? 'ดุดัน หนักแน่น สั่งการเด็ดขาด' : 'ทุ้ม นิ่ง สุขุม แฝงพลังความมุ่งมั่น',
-          weaponsOrProps: genre === 'military_tactical' ? 'ปืนไรเฟิลจู่โจมติดกล้องเล็งและไฟเลเซอร์' : 'กระบี่ครามโบราณลอยกลางอากาศ',
-          googleFlowSeed: heroSeed,
-          googleFlowPrompt: `masterpiece character portrait, ${leadHeroAnchor || 'heroic warrior'}, detailed cinematic lighting, photorealistic 8k, flow.google.com quality --seed ${heroSeed}`,
-        },
-        {
-          id: `char-${Date.now()}-2`,
-          name: antagonistName || (genre === 'military_tactical' ? 'แม่ทัพศัตรู' : 'จ้าวอสูรโลหิต'),
-          role: 'antagonist',
-          appearanceAnchor: antagonistAnchor || (
-            genre === 'military_tactical'
-              ? 'หัวหน้ากองกำลังฝ่ายตรงข้าม รูปร่างกำยำ สวมหน้ากากกันแก๊สและแว่นยุทธวิธีสีดำทมิฬ สวมเสื้อเกราะหนักลายพรางเทาดำ แววตาดุดันโหดเหี้ยม'
-              : 'จ้าวอสูรผู้เกรงขาม แววตาสีแดงเพลิงเรืองรอง สวมชุดเกราะหนามสีดำทมิฬ มีไอหมอกมารสีเลือดแผ่ออกมารอบตัว สไตล์อนิเมะจีน 3D น่าเกรงขาม'
-          ),
-          clothingStyle: genre === 'military_tactical' ? 'เสื้อเกราะหนักลายพรางเทาดำ หน้ากากยุทธวิธี' : 'ชุดเกราะหนามทมิฬ แผ่ไอหมอกมารสีเลือด',
-          voiceStyle: 'ดุดัน ทะนงตัว เยือกเย็น',
-          weaponsOrProps: genre === 'military_tactical' ? 'ปืนกลหนัก / รีโมตจุดชนวนขีปนาวุธ' : 'ง้าวโลหิตทมิฬ / พลังออร่ามาร',
-          googleFlowSeed: villainSeed,
-          googleFlowPrompt: `masterpiece character portrait, ${antagonistAnchor || 'formidable antagonist'}, cinematic dark atmospheric lighting, 8k --seed ${villainSeed}`,
-        },
-      ];
+      // Auto-generate matching ensemble cast based on story title, synopsis, and culture
+      const detected = detectStoryCharacterScale(
+        title || '',
+        synopsis || '',
+        worldCulture,
+        subGenre
+      );
+      projectCharacters = generateIntelligentCharacters({
+        title: title || (genre === 'military_tactical' ? 'ยุทธการสงครามสายฟ้าแลบ' : 'มหากาพย์การต่อสู้ทวงแค้น'),
+        synopsis: synopsis || '',
+        worldCulture: (worldCulture as WorldCulture) || 'chinese',
+        genre: (subGenre || genre || 'xianxia_cultivation') as string,
+        subGenre: subGenre || '',
+        visualMedium: (visualMedium as VisualMedium) || 'animation',
+        count: detected.count,
+      });
     }
 
     // Generate continuous scenes for full target duration (e.g. 150m = 900 scenes @ 10s/scene)
