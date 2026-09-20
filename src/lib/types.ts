@@ -160,6 +160,15 @@ export interface Project {
   worldBuilding?: WorldBuilding;
   storyArchitecture?: StoryArchitecture;
   
+  // Sequel & Series Chaining
+  seriesId?: string; // รหัสกลุ่มซีรีส์เดียวกัน
+  seriesTitle?: string; // ชื่อซีรีส์หลัก
+  partNumber?: number; // ลำดับภาค เช่น 1, 2, 3, 4...
+  parentProjectId?: string; // รหัสโปรเจกต์ภาคก่อนหน้า
+  nextPartProjectId?: string; // รหัสโปรเจกต์ภาคถัดไป
+  previousPartTitle?: string; // ชื่อภาคก่อนหน้า
+  previousEndingRecap?: string; // สรุปตอนจบภาคก่อนหน้าเพื่อส่งต่อ
+  
   // System Metadata
   youtubeChannelStyle: string; // เช่น "สไตล์เพื่อนที่ดีที่สุด SAN1" หรือ "แนวทหารยุทธวิธี Facebook Reels"
   createdAt: string;

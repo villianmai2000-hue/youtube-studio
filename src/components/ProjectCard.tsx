@@ -3,14 +3,15 @@
 import React from 'react';
 import Link from 'next/link';
 import { Project } from '@/lib/types';
-import { Film, Clock, User, ArrowRight, Trash2, Layers } from 'lucide-react';
+import { Film, Clock, User, ArrowRight, Trash2, Layers, Sparkles } from 'lucide-react';
 
 interface ProjectCardProps {
   project: Project;
   onDelete: (id: string) => void;
+  onSequelClick?: (project: Project) => void;
 }
 
-export default function ProjectCard({ project, onDelete }: ProjectCardProps) {
+export default function ProjectCard({ project, onDelete, onSequelClick }: ProjectCardProps) {
   const isDonghua = project.genre === 'xianxia_cultivation';
   const isLiveAction = project.visualMedium === 'live_action';
 
@@ -57,6 +58,11 @@ export default function ProjectCard({ project, onDelete }: ProjectCardProps) {
             <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${badge.color}`}>
               {badge.label}
             </span>
+            {project.partNumber && (
+              <span className="px-2 py-0.5 rounded-full text-[11px] font-bold border border-amber-500/40 bg-amber-500/20 text-amber-300">
+                ภาคที่ {project.partNumber}
+              </span>
+            )}
             <span
               className={`px-2 py-0.5 rounded-full text-[11px] font-medium border ${
                 isLiveAction
@@ -100,7 +106,7 @@ export default function ProjectCard({ project, onDelete }: ProjectCardProps) {
         </div>
 
         {/* Action Button */}
-        <div className="pt-2 flex items-center justify-between gap-3">
+        <div className="pt-2 flex items-center justify-between gap-2">
           <button
             onClick={() => onDelete(project.id)}
             className="p-2 text-gray-500 hover:text-red-400 hover:bg-studio-800/80 rounded-lg transition-colors"
@@ -109,12 +115,23 @@ export default function ProjectCard({ project, onDelete }: ProjectCardProps) {
             <Trash2 className="w-4 h-4" />
           </button>
 
+          {onSequelClick && (
+            <button
+              onClick={() => onSequelClick(project)}
+              className="py-2 px-3 rounded-xl bg-studio-800 hover:bg-studio-700 text-amber-300 border border-studio-700 hover:border-amber-400 text-xs font-semibold flex items-center gap-1 transition-all"
+              title="สร้างภาคต่อสืบทอดตัวละครเดิม 100%"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span>ภาคต่อ</span>
+            </button>
+          )}
+
           <Link
             href={`/project/${project.id}`}
-            className="flex-1 py-2 px-4 rounded-xl bg-studio-800 hover:bg-amber-500 hover:text-black text-gray-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition-all group-hover:bg-amber-500 group-hover:text-black shadow-sm"
+            className="flex-1 py-2 px-3.5 rounded-xl bg-studio-800 hover:bg-amber-500 hover:text-black text-gray-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition-all group-hover:bg-amber-500 group-hover:text-black shadow-sm text-center truncate"
           >
-            <span>เข้าสู่ Studio เขียนบท</span>
-            <ArrowRight className="w-3.5 h-3.5" />
+            <span>เข้า Studio</span>
+            <ArrowRight className="w-3.5 h-3.5 flex-shrink-0" />
           </Link>
         </div>
       </div>

@@ -57,7 +57,8 @@ export default function NewProjectModal({ isOpen, onClose, onCreated }: NewProje
 
   // 6. Target Format & Specs
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('16:9');
-  const [targetDurationMinutes, setTargetDurationMinutes] = useState<number>(60);
+  const [durationMode, setDurationMode] = useState<string>('60');
+  const [customDurationMinutes, setCustomDurationMinutes] = useState<number>(90);
   const [scriptEngine, setScriptEngine] = useState<ScriptEngine>('gemini_3_1_pro');
 
   const [loading, setLoading] = useState(false);
@@ -84,25 +85,25 @@ export default function NewProjectModal({ isOpen, onClose, onCreated }: NewProje
       setVisualMedium('animation');
       setStylePreset('donghua_3d');
       setAspectRatio('16:9');
-      setTargetDurationMinutes(60);
+      setDurationMode('60');
     } else if (cult === 'japanese') {
       setSelectedSubGenre('isekai_jp');
       setVisualMedium('animation');
       setStylePreset('anime_2d');
       setAspectRatio('16:9');
-      setTargetDurationMinutes(30);
+      setDurationMode('30');
     } else if (cult === 'thai') {
       setSelectedSubGenre('naga');
       setVisualMedium('animation');
       setStylePreset('donghua_3d');
       setAspectRatio('16:9');
-      setTargetDurationMinutes(15);
+      setDurationMode('15');
     } else {
       setSelectedSubGenre('action');
       setVisualMedium('live_action');
       setStylePreset('hollywood_cinematic');
       setAspectRatio('16:9');
-      setTargetDurationMinutes(3);
+      setDurationMode('3');
     }
   };
 
@@ -159,7 +160,7 @@ export default function NewProjectModal({ isOpen, onClose, onCreated }: NewProje
           stylePreset,
           aspectRatio,
           scriptEngine,
-          targetDurationMinutes,
+          targetDurationMinutes: durationMode === 'custom' ? customDurationMinutes : Number(durationMode),
           characters,
         }),
       });
@@ -401,20 +402,46 @@ export default function NewProjectModal({ isOpen, onClose, onCreated }: NewProje
 
             {/* Target Duration */}
             <div className="space-y-1">
-              <label className="text-gray-300 font-semibold block flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5 text-amber-400" /> ความยาวเป้าหมาย:
+              <label className="text-gray-300 font-semibold block flex items-center justify-between">
+                <span className="flex items-center gap-1">
+                  <Clock className="w-3.5 h-3.5 text-amber-400" /> ความยาวเป้าหมาย:
+                </span>
+                {durationMode === 'custom' && (
+                  <span className="text-[10px] text-amber-300 font-mono">
+                    {customDurationMinutes} นาที (~{Math.round((customDurationMinutes / 60) * 10) / 10} ชม.)
+                  </span>
+                )}
               </label>
               <select
-                value={targetDurationMinutes}
-                onChange={(e) => setTargetDurationMinutes(Number(e.target.value))}
+                value={durationMode}
+                onChange={(e) => setDurationMode(e.target.value)}
                 className="w-full px-2.5 py-2 rounded-xl bg-studio-950 border border-studio-800 text-white text-xs focus:outline-none focus:border-amber-400"
               >
-                <option value={3}>~3 นาที (คลิปสั้น Reels / Shorts)</option>
-                <option value={5}>~5 นาที (มินิซีรีส์เข้มข้น)</option>
-                <option value={15}>~15 นาที (ตอนมาตรฐาน)</option>
-                <option value={30}>~30 นาที (ตอนพิเศษ / ครึ่งชั่วโมง)</option>
-                <option value={60}>~60 นาที (รวมตอน 1 ชั่วโมงเต็ม)</option>
+                <option value="3">~3 นาที (คลิปสั้น Reels / Shorts)</option>
+                <option value="5">~5 นาที (มินิซีรีส์เข้มข้น)</option>
+                <option value="15">~15 นาที (ตอนมาตรฐาน)</option>
+                <option value="30">~30 นาที (ตอนพิเศษ / ครึ่งชั่วโมง)</option>
+                <option value="60">~60 นาที (1 ชั่วโมงเต็ม)</option>
+                <option value="90">~90 นาที (1 ชั่วโมง 30 นาที) 🌟</option>
+                <option value="120">~120 นาที (2 ชั่วโมงเต็ม) 🌟</option>
+                <option value="150">~150 นาที (2 ชั่วโมง 30 นาที) 🌟</option>
+                <option value="custom">⏱️ กำหนดเวลาเอง (ระบุจำนวนนาทีเอง)...</option>
               </select>
+
+              {durationMode === 'custom' && (
+                <div className="flex items-center gap-2 pt-1 animate-in fade-in duration-200">
+                  <input
+                    type="number"
+                    min={1}
+                    max={600}
+                    value={customDurationMinutes}
+                    onChange={(e) => setCustomDurationMinutes(Math.max(1, Number(e.target.value)))}
+                    placeholder="เช่น 90, 180, 240 นาที"
+                    className="flex-1 px-3 py-1.5 rounded-xl bg-studio-950 border border-amber-500/50 text-amber-300 font-bold text-xs focus:outline-none focus:border-amber-400"
+                  />
+                  <span className="text-xs text-gray-400">นาที</span>
+                </div>
+              )}
             </div>
 
             {/* AI Engine */}

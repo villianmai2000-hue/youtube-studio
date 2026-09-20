@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getAllProjects, saveProject } from '@/lib/storage';
+import { getAllProjects, saveProject, getProjectById } from '@/lib/storage';
 import { Project, MovieGenre, VisualMedium, StylePreset, CharacterBible, AspectRatio, ScriptEngine } from '@/lib/types';
 import { generateActTemplateScenes } from '@/lib/script-templates';
 
@@ -38,6 +38,14 @@ export async function POST(request: Request) {
       leadHeroAnchor = 'handsome young cultivation prodigy, sharp intense dark eyes, long flowing black hair with jade hairpin, flowing black and gold embroidered daoist martial robe',
       antagonistName = 'จ้าวอสูรโลหิต',
       antagonistAnchor = 'formidable demon overlord, glowing crimson eyes, sharp demonic armor, aura of dark mist',
+      // Sequel fields
+      seriesId,
+      seriesTitle,
+      partNumber,
+      parentProjectId,
+      nextPartProjectId,
+      previousPartTitle,
+      previousEndingRecap,
     } = body;
 
     const projectId = `proj-${Date.now()}`;
@@ -139,6 +147,14 @@ export async function POST(request: Request) {
       targetDurationMinutes: Number(targetDurationMinutes) || (genre === 'military_tactical' ? 3 : 60),
       characters: projectCharacters,
       scenes: initialScenes,
+      // Sequel & Series Chaining
+      seriesId: seriesId || projectId,
+      seriesTitle: seriesTitle || title,
+      partNumber: Number(partNumber) || 1,
+      parentProjectId,
+      nextPartProjectId,
+      previousPartTitle,
+      previousEndingRecap,
       youtubeChannelStyle: genre === 'military_tactical'
         ? 'แนวทหาร & ยุทธการสงคราม Facebook Reels (2-5 นาที สไตล์ยุทโธปกรณ์ทันสมัย)'
         : 'สไตล์เพื่อนที่ดีที่สุด SAN1 (3D Donghua / Xianxia Recap & Narration)',
@@ -147,6 +163,22 @@ export async function POST(request: Request) {
     };
 
     await saveProject(newProject);
+
+    // If this is a sequel, update the parent project's nextPartProjectId
+    if (parentProjectId) {
+      try {
+        const parentProject = await getProjectById(parentProjectId);
+        if (parentProject) {
+          await saveProject({
+            ...parentProject,
+            nextPartProjectId: projectId,
+            updatedAt: new Date().toISOString(),
+          });
+        }
+      } catch (parentErr) {
+        console.warn('Failed to link parent project:', parentErr);
+      }
+    }
 
     return NextResponse.json({ success: true, project: newProject }, { status: 201 });
   } catch (error: unknown) {

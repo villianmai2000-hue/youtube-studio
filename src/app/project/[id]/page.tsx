@@ -10,6 +10,7 @@ import WorldStoryModal from '@/components/WorldStoryModal';
 import VideoTimelinePlayer from '@/components/VideoTimelinePlayer';
 import LoginModal from '@/components/LoginModal';
 import MetaPackageModal from '@/components/MetaPackageModal';
+import CreateSequelModal from '@/components/CreateSequelModal';
 import {
   Film,
   Sparkles,
@@ -63,6 +64,9 @@ export default function ProjectStudioPage() {
 
   // Meta Reels Master Package Modal (Seedream 5.0 Pro)
   const [isMetaModalOpen, setIsMetaModalOpen] = useState(false);
+
+  // Sequel Chaining Modal (Part 2, 3, 4...)
+  const [isSequelModalOpen, setIsSequelModalOpen] = useState(false);
 
   // AI Script Generation in Studio
   const [generatingAct, setGeneratingAct] = useState(false);
@@ -622,6 +626,16 @@ export default function ProjectStudioPage() {
             <span>ข้อมูลโลก &amp; โครงเรื่อง</span>
           </button>
 
+          {/* Create Sequel Button */}
+          <button
+            onClick={() => setIsSequelModalOpen(true)}
+            className="px-3 py-2 rounded-xl bg-gradient-to-r from-amber-500/20 via-purple-500/20 to-cyan-500/20 border border-amber-500/40 hover:border-amber-400 text-amber-300 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm"
+            title="สร้างภาคต่อ / ซีซั่นถัดไป (สืบทอดตัวละคร 11 มิติและโลกเดิม)"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+            <span>🎬 สร้างภาคต่อ</span>
+          </button>
+
           {/* Export Button */}
           <Link
             href={`/project/${projectId}/export`}
@@ -656,17 +670,103 @@ export default function ProjectStudioPage() {
         </div>
       </div>
 
+      {/* Series Navigation Ribbon */}
+      {(project.partNumber || project.parentProjectId || project.nextPartProjectId || project.seriesTitle) && (
+        <div className="p-3 px-4 rounded-2xl bg-gradient-to-r from-amber-950/40 via-studio-900 to-purple-950/40 border border-amber-500/30 flex flex-wrap items-center justify-between gap-3 text-xs shadow-sm">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <span className="px-2.5 py-1 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-black font-extrabold text-[11px] shadow-sm flex items-center gap-1">
+              <span>🔥 ซีรีส์:</span>
+              <span>{project.seriesTitle || project.title}</span>
+            </span>
+            <span className="px-2 py-0.5 rounded-lg bg-studio-800 text-amber-300 font-bold border border-studio-700">
+              ภาคที่ {project.partNumber || 1}
+            </span>
+            {project.previousPartTitle && (
+              <span className="text-[11px] text-gray-400 hidden sm:inline">
+                (ต่อจาก: {project.previousPartTitle})
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            {project.parentProjectId && (
+              <Link
+                href={`/project/${project.parentProjectId}`}
+                className="px-3 py-1.5 rounded-xl bg-studio-900 hover:bg-studio-800 text-gray-300 hover:text-white border border-studio-700 transition-colors text-xs flex items-center gap-1"
+              >
+                <span>&larr; ภาคก่อนหน้า</span>
+              </Link>
+            )}
+            {project.nextPartProjectId ? (
+              <Link
+                href={`/project/${project.nextPartProjectId}`}
+                className="px-3 py-1.5 rounded-xl bg-cyan-950/80 hover:bg-cyan-900/80 text-cyan-300 border border-cyan-500/40 transition-colors text-xs font-bold flex items-center gap-1 shadow-sm"
+              >
+                <span>ไปที่ภาค {Number(project.partNumber || 1) + 1} &rarr;</span>
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setIsSequelModalOpen(true)}
+                className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-extrabold text-xs flex items-center gap-1 shadow-glow transition-all"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>ทำภาค {Number(project.partNumber || 1) + 1} ต่อ</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Progress & Duration Tracker for "รันชั่วโมง" */}
       <div className="p-4 sm:p-5 rounded-2xl bg-studio-900 border border-studio-800 space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Clock className="w-4 h-4 text-amber-400" />
             <span className="font-bold text-gray-200">
               เวลาเล่าเรื่องจริง: ~{metrics.durationMinutes} นาที
             </span>
-            <span className="text-gray-400">
-              / เป้าหมายคลิป: {project.targetDurationMinutes} นาที (&quot;รันชั่วโมง&quot;)
-            </span>
+            <span className="text-gray-400">/</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-gray-400">เป้าหมาย:</span>
+              <select
+                value={
+                  [3, 5, 15, 30, 60, 90, 120, 150].includes(project.targetDurationMinutes)
+                    ? project.targetDurationMinutes
+                    : 'custom'
+                }
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === 'custom') {
+                    const custom = prompt(
+                      'ระบุความยาวเป้าหมายที่ต้องการ (จำนวนนาที):',
+                      String(project.targetDurationMinutes || 90)
+                    );
+                    if (custom && !isNaN(Number(custom)) && Number(custom) > 0) {
+                      const updated = { ...project, targetDurationMinutes: Number(custom) };
+                      setProject(updated);
+                      handleSave(updated);
+                    }
+                  } else {
+                    const updated = { ...project, targetDurationMinutes: Number(val) };
+                    setProject(updated);
+                    handleSave(updated);
+                  }
+                }}
+                className="bg-studio-950 border border-studio-700 hover:border-amber-400 rounded-lg px-2 py-1 text-amber-300 font-bold text-xs focus:outline-none focus:border-amber-400 cursor-pointer transition-colors"
+                title="คลิกเพื่อเปลี่ยนความยาวเป้าหมายของคลิป"
+              >
+                <option value={3}>~3 นาที (Shorts)</option>
+                <option value={5}>~5 นาที (Mini)</option>
+                <option value={15}>~15 นาที</option>
+                <option value={30}>~30 นาที</option>
+                <option value={60}>~60 นาที (1 ชม.)</option>
+                <option value={90}>~90 นาที (1 ชม. 30 น.) 🌟</option>
+                <option value={120}>~120 นาที (2 ชม.) 🌟</option>
+                <option value={150}>~150 นาที (2 ชม. 30 น.) 🌟</option>
+                <option value="custom">⏱️ กำหนดเอง...</option>
+              </select>
+            </div>
           </div>
 
           <div className="flex items-center gap-4 text-gray-300">
@@ -1166,6 +1266,13 @@ export default function ProjectStudioPage() {
         onClose={() => setIsMetaModalOpen(false)}
         project={project}
         selectedSceneIds={selectedSceneIds}
+      />
+
+      {/* Create Sequel Modal */}
+      <CreateSequelModal
+        isOpen={isSequelModalOpen}
+        onClose={() => setIsSequelModalOpen(false)}
+        project={project}
       />
     </div>
   );

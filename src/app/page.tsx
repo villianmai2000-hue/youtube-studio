@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Project, User } from '@/lib/types';
 import ProjectCard from '@/components/ProjectCard';
 import NewProjectModal from '@/components/NewProjectModal';
+import CreateSequelModal from '@/components/CreateSequelModal';
 import LoginModal from '@/components/LoginModal';
 import {
   Sparkles,
@@ -41,6 +42,7 @@ export default function HomePage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [sequelTargetProject, setSequelTargetProject] = useState<Project | null>(null);
 
   const fetchProjects = async () => {
     setLoading(true);
@@ -400,7 +402,12 @@ export default function HomePage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {projects.map((project) => (
-              <ProjectCard key={project.id} project={project} onDelete={handleDelete} />
+              <ProjectCard
+                key={project.id}
+                project={project}
+                onDelete={handleDelete}
+                onSequelClick={(p) => setSequelTargetProject(p)}
+              />
             ))}
           </div>
         )}
@@ -412,6 +419,20 @@ export default function HomePage() {
         onClose={() => setIsModalOpen(false)}
         onCreated={(newId) => router.push(`/project/${newId}`)}
       />
+
+      {/* Create Sequel Modal */}
+      {sequelTargetProject && (
+        <CreateSequelModal
+          isOpen={Boolean(sequelTargetProject)}
+          onClose={() => setSequelTargetProject(null)}
+          project={sequelTargetProject}
+          onSequelCreated={(newP) => {
+            setSequelTargetProject(null);
+            fetchProjects();
+            router.push(`/project/${newP.id}`);
+          }}
+        />
+      )}
     </div>
   );
 }
