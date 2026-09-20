@@ -8,6 +8,12 @@ export const metadata: Metadata = {
     'สตูดิโอ AI สร้างบทภาพยนตร์และอนิเมะจีน 3D กำลังภายใน (สไตล์ เพื่อนที่ดีที่สุด SAN1) จัดเก็บรูปภาพและข้อมูลใน MongoDB Atlas Cloud รองรับการรันคลิประดับชั่วโมงและ Deploy บน Vercel',
 };
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+};
+
 export default function RootLayout({
   children,
 }: {
