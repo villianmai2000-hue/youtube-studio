@@ -5,6 +5,7 @@ import path from 'path';
 
 const LOCAL_FALLBACK_FILE = path.join(process.cwd(), '.studio_local_data.json');
 const LOCAL_USERS_FILE = path.join(process.cwd(), '.studio_users.json');
+const LOCAL_SECURITY_FILE = path.join(process.cwd(), '.studio_security.json');
 const LOCAL_MEDIA_DIR = path.join(process.cwd(), '.studio_media');
 
 // In-Memory Global Fallbacks (Crucial for Vercel Serverless Read-Only Filesystem)
@@ -13,6 +14,21 @@ declare global {
   var _inMemoryProjects: Project[] | undefined;
   // eslint-disable-next-line no-var
   var _inMemoryUsers: User[] | undefined;
+  // eslint-disable-next-line no-var
+  var _activeOtp:
+    | {
+        code: string;
+        target: string;
+        expiresAt: number;
+      }
+    | undefined;
+  // eslint-disable-next-line no-var
+  var _ownerSecurity:
+    | {
+        phoneNumber: string;
+        email: string;
+      }
+    | undefined;
 }
 
 export const DEFAULT_OWNER: User = {
@@ -320,15 +336,172 @@ export async function updateUserCredentials(
   return user;
 }
 
+export function getOwnerSecurity(): { phoneNumber: string; email: string } {
+  if (global._ownerSecurity) {
+    return global._ownerSecurity;
+  }
+  try {
+    if (fs.existsSync(LOCAL_SECURITY_FILE)) {
+      const data = JSON.parse(fs.readFileSync(LOCAL_SECURITY_FILE, 'utf-8'));
+      if (data.phoneNumber || data.email) {
+        global._ownerSecurity = {
+          phoneNumber: data.phoneNumber || DEFAULT_OWNER.phoneNumber || '0962033005',
+          email: data.email || DEFAULT_OWNER.email || 'yutthakan2000@gmail.com',
+        };
+        DEFAULT_OWNER.phoneNumber = global._ownerSecurity.phoneNumber;
+        DEFAULT_OWNER.email = global._ownerSecurity.email;
+        return global._ownerSecurity;
+      }
+    }
+  } catch {
+    // ignore
+  }
+  global._ownerSecurity = {
+    phoneNumber: DEFAULT_OWNER.phoneNumber || '0962033005',
+    email: DEFAULT_OWNER.email || 'yutthakan2000@gmail.com',
+  };
+  return global._ownerSecurity;
+}
+
+export function saveOwnerSecurity(phoneNumber?: string, email?: string): { phoneNumber: string; email: string } {
+  const current = getOwnerSecurity();
+  if (phoneNumber !== undefined && phoneNumber.trim()) {
+    current.phoneNumber = phoneNumber.trim();
+    DEFAULT_OWNER.phoneNumber = phoneNumber.trim();
+  }
+  if (email !== undefined && email.trim()) {
+    current.email = email.trim();
+    DEFAULT_OWNER.email = email.trim();
+  }
+  global._ownerSecurity = current;
+
+  try {
+    fs.writeFileSync(LOCAL_SECURITY_FILE, JSON.stringify(current, null, 2), 'utf-8');
+  } catch {
+    // Vercel read-only fallback: stays in memory
+  }
+
+  return current;
+}
+
+export function maskContact(input: string): string {
+  if (input.includes('@')) {
+    const [name, domain] = input.split('@');
+    if (name.length <= 2) return `${name}***@${domain}`;
+    return `${name.slice(0, 2)}****${name.slice(-1)}@${domain}`;
+  }
+  const clean = input.replace(/[^0-9]/g, '');
+  if (clean.length >= 10) {
+    return `${clean.slice(0, 3)}-xxx-xx${clean.slice(-2)}`;
+  }
+  return `${input.slice(0, 3)}***`;
+}
+
+export async function requestOwnerOtp(recoveryInput: string): Promise<{
+  success: boolean;
+  message: string;
+  maskedTarget?: string;
+  otpCode?: string;
+}> {
+  const cleanInput = (recoveryInput || '').trim();
+  if (!cleanInput) {
+    return { success: false, message: 'กรุณากรอกเบอร์โทรศัพท์หรืออีเมลที่ผูกไว้' };
+  }
+
+  const sec = getOwnerSecurity();
+  const ownerUsers = await getAllUsers();
+  const owner = ownerUsers.find((u) => u.role === 'owner' || u.id === DEFAULT_OWNER.id) || DEFAULT_OWNER;
+
+  const currentPhone = (sec.phoneNumber || owner.phoneNumber || '0962033005').replace(/[^0-9]/g, '');
+  const currentEmail = (sec.email || owner.email || 'yutthakan2000@gmail.com').toLowerCase();
+
+  const inputPhone = cleanInput.replace(/[^0-9]/g, '');
+  const inputEmail = cleanInput.toLowerCase();
+
+  const isPhoneMatch = inputPhone.length >= 9 && inputPhone === currentPhone;
+  const isEmailMatch = inputEmail.includes('@') && inputEmail === currentEmail;
+
+  if (!isPhoneMatch && !isEmailMatch) {
+    return {
+      success: false,
+      message: 'เบอร์โทรศัพท์หรืออีเมลนี้ไม่ตรงกับข้อมูลความปลอดภัยในระบบ',
+    };
+  }
+
+  // Generate 6-digit OTP
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
+
+  global._activeOtp = {
+    code,
+    target: cleanInput,
+    expiresAt,
+  };
+
+  const masked = maskContact(isPhoneMatch ? sec.phoneNumber : sec.email);
+
+  return {
+    success: true,
+    message: `ส่งรหัส OTP 6 หลักไปยัง ${masked} สำเร็จแล้ว`,
+    maskedTarget: masked,
+    otpCode: code,
+  };
+}
+
+export async function verifyOtpAndResetPassword(
+  recoveryInput: string,
+  otpCode: string,
+  newPassword: string
+): Promise<{ success: boolean; message: string }> {
+  const cleanOtp = (otpCode || '').trim();
+  const cleanPass = (newPassword || '').trim();
+
+  if (!cleanOtp) {
+    return { success: false, message: 'กรุณากรอกรหัส OTP 6 หลัก' };
+  }
+  if (!cleanPass || cleanPass.length < 4) {
+    return { success: false, message: 'รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 4 ตัวอักษร' };
+  }
+
+  if (!global._activeOtp) {
+    return { success: false, message: 'ยังไม่มีการขอรหัส OTP หรือรหัสหมดอายุแล้ว กรุณากดขอรหัส OTP ใหม่' };
+  }
+
+  if (Date.now() > global._activeOtp.expiresAt) {
+    global._activeOtp = undefined;
+    return { success: false, message: 'รหัส OTP หมดอายุแล้ว (อายุ 5 นาที) กรุณากดขอรหัสใหม่' };
+  }
+
+  if (global._activeOtp.code !== cleanOtp) {
+    return { success: false, message: 'รหัส OTP ไม่ถูกต้อง กรุณาตรวจสอบรหัสอีกครั้ง' };
+  }
+
+  // Verified!
+  global._activeOtp = undefined;
+
+  // Update owner password
+  const users = await getAllUsers();
+  const owner = users.find((u) => u.role === 'owner' || u.id === DEFAULT_OWNER.id) || DEFAULT_OWNER;
+  owner.password = cleanPass;
+  DEFAULT_OWNER.password = cleanPass;
+  await saveUser(owner);
+
+  return {
+    success: true,
+    message: 'ยืนยันรหัส OTP และตั้งรหัสผ่านใหม่สำเร็จแล้ว! สามารถใช้รหัสผ่านใหม่เข้าสู่ระบบได้ทันที',
+  };
+}
+
 export async function updateOwnerSecurity(phoneNumber?: string, email?: string): Promise<User> {
+  const sec = saveOwnerSecurity(phoneNumber, email);
   const users = await getAllUsers();
   let owner = users.find((u) => u.role === 'owner' || u.id === DEFAULT_OWNER.id);
   if (!owner) {
     owner = { ...DEFAULT_OWNER };
   }
 
-  if (phoneNumber !== undefined) owner.phoneNumber = phoneNumber.trim();
-  if (email !== undefined) owner.email = email.trim();
+  owner.phoneNumber = sec.phoneNumber;
+  owner.email = sec.email;
 
   await saveUser(owner);
   return owner;
@@ -345,16 +518,17 @@ export async function recoverOwnerPassword(
     return { success: false, message: 'รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 4 ตัวอักษร' };
   }
 
+  const sec = getOwnerSecurity();
   const users = await getAllUsers();
   const owner = users.find((u) => u.role === 'owner' || u.id === DEFAULT_OWNER.id) || DEFAULT_OWNER;
 
-  const phoneMatch = owner.phoneNumber && owner.phoneNumber.replace(/[^0-9]/g, '') === cleanInput.replace(/[^0-9]/g, '');
-  const emailMatch = owner.email && owner.email.toLowerCase() === cleanInput.toLowerCase();
+  const currentPhone = (sec.phoneNumber || owner.phoneNumber || '0962033005').replace(/[^0-9]/g, '');
+  const currentEmail = (sec.email || owner.email || 'yutthakan2000@gmail.com').toLowerCase();
 
-  // Also allow default phone match
-  const defaultPhoneMatch = cleanInput.replace(/[^0-9]/g, '') === '0962033005';
+  const phoneMatch = currentPhone === cleanInput.replace(/[^0-9]/g, '');
+  const emailMatch = currentEmail === cleanInput.toLowerCase();
 
-  if (phoneMatch || emailMatch || defaultPhoneMatch) {
+  if (phoneMatch || emailMatch) {
     owner.password = cleanPass;
     DEFAULT_OWNER.password = cleanPass;
     await saveUser(owner);

@@ -125,11 +125,11 @@ export default function OwnerSecurityModal({ isOpen, onClose, onUpdated }: Owner
               required
               value={phoneNumber}
               onChange={(e) => setPhoneNumber(e.target.value)}
-              placeholder="เช่น 0962033005"
+              placeholder="เช่น 08X-XXX-XXXX หรือ 09XXXXXXXX"
               className="w-full px-3.5 py-2.5 bg-studio-950 border border-studio-700 rounded-xl text-sm text-white focus:outline-none focus:border-emerald-500 font-mono"
             />
             <p className="text-[11px] text-gray-500 mt-1">
-              *หากลืมรหัสผ่าน สามารถกรอกเบอร์นี้เพื่อตั้งรหัสผ่านใหม่ได้ทันที
+              *หากลืมรหัสผ่าน สามารถกรอกเบอร์นี้เพื่อขอรับรหัส OTP ตั้งรหัสผ่านใหม่ได้ทันที
             </p>
           </div>
 
@@ -143,7 +143,7 @@ export default function OwnerSecurityModal({ isOpen, onClose, onUpdated }: Owner
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="เช่น yutthakan2000@gmail.com"
+              placeholder="เช่น your-email@example.com"
               className="w-full px-3.5 py-2.5 bg-studio-950 border border-studio-700 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-500 font-mono"
             />
           </div>
@@ -158,7 +158,7 @@ export default function OwnerSecurityModal({ isOpen, onClose, onUpdated }: Owner
               required
               value={requesterPassword}
               onChange={(e) => setRequesterPassword(e.target.value)}
-              placeholder="รหัสผ่านเจ้าของปัจจุบัน (0962033005Maiiam2000)"
+              placeholder="กรอกรหัสผ่านปัจจุบันเพื่อยืนยัน"
               className="w-full px-3.5 py-2.5 bg-studio-950 border border-studio-700 rounded-xl text-sm text-white focus:outline-none focus:border-amber-500"
             />
           </div>

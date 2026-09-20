@@ -30,6 +30,7 @@ yarn-error.log*
 .studio_media/
 .studio_local_data.json
 .studio_users.json
+.studio_security.json
 
 # Vercel & TS
 .vercel

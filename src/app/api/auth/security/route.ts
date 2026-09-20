@@ -1,15 +1,23 @@
 import { NextResponse } from 'next/server';
-import { updateOwnerSecurity, recoverOwnerPassword, DEFAULT_OWNER } from '@/lib/storage';
+import {
+  getOwnerSecurity,
+  saveOwnerSecurity,
+  requestOwnerOtp,
+  verifyOtpAndResetPassword,
+  recoverOwnerPassword,
+  DEFAULT_OWNER,
+} from '@/lib/storage';
 
 export const dynamic = 'force-dynamic';
 
-// GET: Fetch current owner security info (masked phone & email)
+// GET: Fetch current owner security info (for Owner inside the system)
 export async function GET() {
   try {
+    const sec = getOwnerSecurity();
     return NextResponse.json({
       success: true,
-      ownerPhone: DEFAULT_OWNER.phoneNumber || '0962033005',
-      ownerEmail: DEFAULT_OWNER.email || 'yutthakan2000@gmail.com',
+      ownerPhone: sec.phoneNumber,
+      ownerEmail: sec.email,
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Error';
@@ -17,7 +25,7 @@ export async function GET() {
   }
 }
 
-// PUT: Owner updates bound phone and email
+// PUT: Owner updates bound phone and email inside system
 export async function PUT(request: Request) {
   try {
     const body = await request.json();
@@ -30,7 +38,7 @@ export async function PUT(request: Request) {
       );
     }
 
-    const updated = await updateOwnerSecurity(phoneNumber, email);
+    const updated = saveOwnerSecurity(phoneNumber, email);
     DEFAULT_OWNER.phoneNumber = updated.phoneNumber;
     DEFAULT_OWNER.email = updated.email;
 
@@ -46,28 +54,68 @@ export async function PUT(request: Request) {
   }
 }
 
-// POST: Recover password using bound phone number or email
+// POST: Handles OTP Request & Verification
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const recoveryInput = body.recoveryInput || body.recoveryKey || body.phoneNumber || body.email;
-    const newPassword = body.newPassword;
+    const action = body.action || (body.otpCode ? 'verify_otp' : (!body.newPassword ? 'send_otp' : 'direct_recover'));
 
-    if (!recoveryInput || !newPassword) {
+    if (!recoveryInput) {
       return NextResponse.json(
-        { success: false, error: 'กรุณากรอกเบอร์โทรหรืออีเมลที่ผูกไว้ และรหัสผ่านใหม่' },
+        { success: false, error: 'กรุณากรอกเบอร์โทรศัพท์หรืออีเมลที่ผูกไว้กับบัญชี' },
         { status: 400 }
       );
     }
 
-    const result = await recoverOwnerPassword(recoveryInput, newPassword);
-    if (result.success) {
-      return NextResponse.json({ success: true, message: result.message });
-    } else {
-      return NextResponse.json({ success: false, error: result.message }, { status: 400 });
+    // 1. Request OTP Code
+    if (action === 'send_otp' || action === 'request_otp') {
+      const res = await requestOwnerOtp(recoveryInput);
+      if (!res.success) {
+        return NextResponse.json({ success: false, error: res.message }, { status: 400 });
+      }
+      return NextResponse.json({
+        success: true,
+        message: res.message,
+        maskedTarget: res.maskedTarget,
+        otpCode: res.otpCode,
+      });
     }
+
+    // 2. Verify OTP & Reset Password
+    if (action === 'verify_otp') {
+      const { otpCode, newPassword } = body;
+      if (!otpCode) {
+        return NextResponse.json({ success: false, error: 'กรุณากรอกรหัส OTP 6 หลัก' }, { status: 400 });
+      }
+      if (!newPassword) {
+        return NextResponse.json({ success: false, error: 'กรุณากรอกรหัสผ่านใหม่ที่ต้องการตั้ง' }, { status: 400 });
+      }
+
+      const res = await verifyOtpAndResetPassword(recoveryInput, otpCode, newPassword);
+      if (!res.success) {
+        return NextResponse.json({ success: false, error: res.message }, { status: 400 });
+      }
+      return NextResponse.json({
+        success: true,
+        message: res.message,
+      });
+    }
+
+    // 3. Fallback direct recovery
+    const newPassword = body.newPassword;
+    if (newPassword) {
+      const result = await recoverOwnerPassword(recoveryInput, newPassword);
+      if (result.success) {
+        return NextResponse.json({ success: true, message: result.message });
+      } else {
+        return NextResponse.json({ success: false, error: result.message }, { status: 400 });
+      }
+    }
+
+    return NextResponse.json({ success: false, error: 'คำสั่งไม่ถูกต้อง' }, { status: 400 });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Recovery failed';
+    const message = err instanceof Error ? err.message : 'Operation failed';
     return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }
