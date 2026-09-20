@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Project, ScriptScene } from '@/lib/types';
+import { cleanSceneTitle, calculateMovieScenesCount, formatTimeCode } from '@/lib/script-templates';
 import {
   Sparkles,
   Copy,
@@ -51,6 +52,35 @@ export default function MetaPackageModal({
   const totalSecRemainder = totalDurationSec % 60;
   const durationStr = `${totalMinutes > 0 ? `${totalMinutes} นาที ` : ''}${totalSecRemainder} วินาที`;
 
+  const calc = useMemo(() => {
+    return calculateMovieScenesCount(project.targetDurationMinutes || (targetScenes.length * 10) / 60);
+  }, [project.targetDurationMinutes, targetScenes.length]);
+
+  // Tab 1 Timeline Pagination
+  const [timelinePage, setTimelinePage] = useState(1);
+  const [pageSize, setPageSize] = useState<number | 'all'>(50);
+  const [jumpSceneInput, setJumpSceneInput] = useState('');
+
+  const totalPages = pageSize === 'all' ? 1 : Math.ceil(targetScenes.length / (pageSize as number));
+  const displayedScenes = useMemo(() => {
+    if (pageSize === 'all') return targetScenes;
+    const start = (timelinePage - 1) * (pageSize as number);
+    return targetScenes.slice(start, start + (pageSize as number));
+  }, [targetScenes, timelinePage, pageSize]);
+
+  // Handle jump to scene
+  const handleJumpToScene = (e: React.FormEvent) => {
+    e.preventDefault();
+    const num = parseInt(jumpSceneInput, 10);
+    if (!isNaN(num) && num >= 1 && num <= targetScenes.length) {
+      if (pageSize !== 'all') {
+        const page = Math.ceil(num / (pageSize as number));
+        setTimelinePage(page);
+      }
+      setJumpSceneInput('');
+    }
+  };
+
   // Helper to remove any lingering seed tags
   const sanitizePrompt = (text: string) => {
     return (text || '')
@@ -85,12 +115,13 @@ export default function MetaPackageModal({
     return { bgm, sfx };
   };
 
-  // Generate the full master package text
+  // Generate the full master package text (Exports ALL scenes)
   const generateFullPackageText = () => {
     let output = `🚀 รวมทุกอย่างสำหรับสร้างคลิปใน Meta / Facebook Reels เบ็ดเสร็จ\n`;
     output += `==========================================================\n`;
     output += `📌 ชื่อเรื่อง / แคปชันวิดีโอ: ${project.title}\n`;
     output += `📐 สัดส่วน: ${project.aspectRatio || '16:9'} (Reels / Shorts) | ความยาว: ~${totalDurationSec} วินาที (${targetScenes.length} ฉาก @ 10 วิ/ฉาก)\n`;
+    output += `⏱️ การคำนวณเวลา: ${calc.calculationBreakdown}\n`;
     output += `🤖 AI Engine: ${project.scriptEngine || 'gemini_3_1_pro'} | โหมด: ${project.visualMedium === 'live_action' ? 'ภาพยนตร์คนจริง (Live-Action)' : 'อนิเมะ 3D'}\n`;
     output += `🎥 สไตล์กล้อง: Seedream 5.0 Pro (Anamorphic 35mm f/2.0 ไหลต่อเนื่อง 10 วิ/ฉาก ไร้รอยต่อ)\n\n`;
 
@@ -99,8 +130,8 @@ export default function MetaPackageModal({
     targetScenes.forEach((s, idx) => {
       const startSec = idx * 10;
       const endSec = (idx + 1) * 10;
-      const startMinStr = `${Math.floor(startSec / 60)}:${String(startSec % 60).padStart(2, '0')}`;
-      const endMinStr = `${Math.floor(endSec / 60)}:${String(endSec % 60).padStart(2, '0')}`;
+      const startMinStr = formatTimeCode(startSec);
+      const endMinStr = formatTimeCode(endSec);
       output += `⏱️ [ฉากที่ ${s.sceneNumber} (${startMinStr} - ${endMinStr})]:\n${s.narration.trim()}\n\n`;
     });
 
@@ -109,11 +140,11 @@ export default function MetaPackageModal({
     targetScenes.forEach((s, idx) => {
       const startSec = idx * 10;
       const endSec = (idx + 1) * 10;
-      const startMinStr = `${Math.floor(startSec / 60)}:${String(startSec % 60).padStart(2, '0')}`;
-      const endMinStr = `${Math.floor(endSec / 60)}:${String(endSec % 60).padStart(2, '0')}`;
+      const startMinStr = formatTimeCode(startSec);
+      const endMinStr = formatTimeCode(endSec);
       const { bgm, sfx } = parseAudioLayers(s.sfxBgm);
 
-      output += `[ฉากที่ ${s.sceneNumber}] (${startMinStr} - ${endMinStr}) : ${s.title}\n`;
+      output += `[ฉากที่ ${s.sceneNumber}] (${startMinStr} - ${endMinStr}) : ${cleanSceneTitle(s.title)}\n`;
       output += `🎙️ เสียงพากย์: ${s.narration}\n`;
       if (s.dialogues && s.dialogues.length > 0) {
         output += `💬 บทพูดตัวละคร:\n`;
@@ -240,6 +271,21 @@ export default function MetaPackageModal({
           </div>
         </div>
 
+        {/* Exact Duration Calculation Formula Banner */}
+        <div className="px-5 py-2.5 bg-gradient-to-r from-cyan-950/70 via-studio-900 to-blue-950/70 border-b border-cyan-500/25 flex flex-wrap items-center justify-between gap-2 text-xs">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="px-2.5 py-0.5 rounded-lg bg-cyan-500/20 text-cyan-300 font-extrabold text-[11px] border border-cyan-400/40 flex items-center gap-1 shadow-sm">
+              ⚡ การคำนวณแปลงเวลา:
+            </span>
+            <span className="text-gray-100 font-medium font-mono text-xs">
+              {calc.calculationBreakdown}
+            </span>
+          </div>
+          <span className="text-amber-400 font-bold text-[11px] flex items-center gap-1">
+            🎬 Seedream 5.0 Pro (10 วิ/ฉาก ไหลลื่นไม่ตัด)
+          </span>
+        </div>
+
         {/* Navigation Tabs */}
         <div className="px-5 py-2.5 bg-studio-900/60 border-b border-studio-800/80 flex items-center gap-2 overflow-x-auto scrollbar-none text-xs">
           <button
@@ -311,12 +357,96 @@ export default function MetaPackageModal({
                 </div>
               </div>
 
+              {/* Timeline Pagination Bar */}
+              <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl bg-studio-900 border border-studio-800 text-xs">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-gray-400">
+                    แสดงฉาก{' '}
+                    <strong className="text-cyan-400">
+                      {pageSize === 'all' ? 1 : (timelinePage - 1) * (pageSize as number) + 1}
+                    </strong>{' '}
+                    -{' '}
+                    <strong className="text-cyan-400">
+                      {pageSize === 'all'
+                        ? targetScenes.length
+                        : Math.min(timelinePage * (pageSize as number), targetScenes.length)}
+                    </strong>{' '}
+                    จากทั้งหมด <strong className="text-white">{targetScenes.length}</strong> ฉาก
+                  </span>
+
+                  <span className="text-studio-700">|</span>
+
+                  <div className="flex items-center gap-1">
+                    <span className="text-gray-400">ต่อหน้า:</span>
+                    <select
+                      value={pageSize}
+                      onChange={(e) => {
+                        const val = e.target.value === 'all' ? 'all' : parseInt(e.target.value, 10);
+                        setPageSize(val);
+                        setTimelinePage(1);
+                      }}
+                      className="bg-studio-950 border border-studio-700 rounded-lg px-2 py-1 text-gray-200 text-xs focus:outline-none focus:border-cyan-500"
+                    >
+                      <option value={25}>25 ฉาก</option>
+                      <option value={50}>50 ฉาก</option>
+                      <option value={100}>100 ฉาก</option>
+                      <option value="all">ทั้งหมด ({targetScenes.length})</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {/* Jump to scene */}
+                  <form onSubmit={handleJumpToScene} className="flex items-center gap-1.5">
+                    <input
+                      type="number"
+                      min={1}
+                      max={targetScenes.length}
+                      value={jumpSceneInput}
+                      onChange={(e) => setJumpSceneInput(e.target.value)}
+                      placeholder="ไปที่ฉาก..."
+                      className="w-20 px-2 py-1 rounded-lg bg-studio-950 border border-studio-700 text-white text-xs placeholder-gray-500 focus:outline-none focus:border-cyan-500"
+                    />
+                    <button
+                      type="submit"
+                      className="px-2.5 py-1 rounded-lg bg-studio-800 hover:bg-studio-700 text-gray-200 text-xs font-semibold"
+                    >
+                      ไป
+                    </button>
+                  </form>
+
+                  {pageSize !== 'all' && totalPages > 1 && (
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setTimelinePage((p) => Math.max(1, p - 1))}
+                        disabled={timelinePage <= 1}
+                        className="px-2.5 py-1 rounded-lg bg-studio-800 hover:bg-studio-700 text-gray-200 text-xs font-semibold disabled:opacity-40"
+                      >
+                        &larr; ก่อนหน้า
+                      </button>
+                      <span className="px-2 font-mono text-gray-300">
+                        {timelinePage} / {totalPages}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setTimelinePage((p) => Math.min(totalPages, p + 1))}
+                        disabled={timelinePage >= totalPages}
+                        className="px-2.5 py-1 rounded-lg bg-studio-800 hover:bg-studio-700 text-gray-200 text-xs font-semibold disabled:opacity-40"
+                      >
+                        ถัดไป &rarr;
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               <div className="space-y-5">
-                {targetScenes.map((scene, idx) => {
-                  const startSec = idx * 10;
-                  const endSec = (idx + 1) * 10;
-                  const startMinStr = `${Math.floor(startSec / 60)}:${String(startSec % 60).padStart(2, '0')}`;
-                  const endMinStr = `${Math.floor(endSec / 60)}:${String(endSec % 60).padStart(2, '0')}`;
+                {displayedScenes.map((scene) => {
+                  const startSec = (scene.sceneNumber - 1) * 10;
+                  const endSec = scene.sceneNumber * 10;
+                  const startMinStr = formatTimeCode(startSec);
+                  const endMinStr = formatTimeCode(endSec);
                   const { bgm, sfx } = parseAudioLayers(scene.sfxBgm);
 
                   return (
@@ -331,7 +461,7 @@ export default function MetaPackageModal({
                             {scene.sceneNumber}
                           </span>
                           <h3 className="font-bold text-white text-sm sm:text-base">
-                            ฉากที่ {scene.sceneNumber}: {scene.title}
+                            ฉากที่ {scene.sceneNumber}: {cleanSceneTitle(scene.title)}
                           </h3>
                         </div>
 
@@ -509,6 +639,33 @@ export default function MetaPackageModal({
                   );
                 })}
               </div>
+
+              {/* Bottom Pagination Bar */}
+              {pageSize !== 'all' && totalPages > 1 && (
+                <div className="flex items-center justify-between p-3 rounded-2xl bg-studio-900 border border-studio-800 text-xs">
+                  <span className="text-gray-400">
+                    หน้า <strong className="text-cyan-400">{timelinePage}</strong> จาก <strong className="text-white">{totalPages}</strong>
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setTimelinePage((p) => Math.max(1, p - 1))}
+                      disabled={timelinePage <= 1}
+                      className="px-3 py-1.5 rounded-lg bg-studio-800 hover:bg-studio-700 text-gray-200 text-xs font-semibold disabled:opacity-40"
+                    >
+                      &larr; หน้าก่อนหน้า
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTimelinePage((p) => Math.min(totalPages, p + 1))}
+                      disabled={timelinePage >= totalPages}
+                      className="px-3 py-1.5 rounded-lg bg-studio-800 hover:bg-studio-700 text-gray-200 text-xs font-semibold disabled:opacity-40"
+                    >
+                      หน้าถัดไป &rarr;
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -529,8 +686,8 @@ export default function MetaPackageModal({
                       .map((s, idx) => {
                         const startSec = idx * 10;
                         const endSec = (idx + 1) * 10;
-                        const startMinStr = `${Math.floor(startSec / 60)}:${String(startSec % 60).padStart(2, '0')}`;
-                        const endMinStr = `${Math.floor(endSec / 60)}:${String(endSec % 60).padStart(2, '0')}`;
+                        const startMinStr = formatTimeCode(startSec);
+                        const endMinStr = formatTimeCode(endSec);
                         return `⏱️ [ฉากที่ ${s.sceneNumber} (${startMinStr} - ${endMinStr})]:\n${s.narration.trim()}`;
                       })
                       .join('\n\n');
@@ -546,7 +703,7 @@ export default function MetaPackageModal({
                   ) : (
                     <>
                       <Copy className="w-4 h-4" />
-                      <span>คัดลอกบทพากย์ทั้งหมด</span>
+                      <span>คัดลอกบทพากย์ทั้งหมด ({targetScenes.length} ฉาก)</span>
                     </>
                   )}
                 </button>
@@ -556,8 +713,8 @@ export default function MetaPackageModal({
                 {targetScenes.map((scene, idx) => {
                   const startSec = idx * 10;
                   const endSec = (idx + 1) * 10;
-                  const startMinStr = `${Math.floor(startSec / 60)}:${String(startSec % 60).padStart(2, '0')}`;
-                  const endMinStr = `${Math.floor(endSec / 60)}:${String(endSec % 60).padStart(2, '0')}`;
+                  const startMinStr = formatTimeCode(startSec);
+                  const endMinStr = formatTimeCode(endSec);
                   const wordCount = scene.narration.trim().split(/\s+/).length;
 
                   return (

@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { ScriptScene, CharacterBible, VisualMedium, StylePreset, CharacterDialogue } from '@/lib/types';
+import { cleanSceneTitle } from '@/lib/script-templates';
 import {
   Film,
   MessageSquare,
@@ -253,8 +254,8 @@ export default function SceneCard({
           <div className="flex-1">
             <input
               type="text"
-              value={scene.title}
-              onChange={(e) => onUpdate({ ...scene, title: e.target.value })}
+              value={cleanSceneTitle(scene.title)}
+              onChange={(e) => onUpdate({ ...scene, title: cleanSceneTitle(e.target.value) })}
               className="w-full px-2.5 py-1 rounded-lg bg-studio-950 border border-studio-800 text-white font-bold text-sm focus:outline-none focus:border-amber-500"
               placeholder="ชื่อฉาก"
             />

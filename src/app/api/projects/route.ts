@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAllProjects, saveProject, getProjectById } from '@/lib/storage';
 import { Project, MovieGenre, VisualMedium, StylePreset, CharacterBible, AspectRatio, ScriptEngine } from '@/lib/types';
-import { generateActTemplateScenes } from '@/lib/script-templates';
+import { generateContinuousMovieScenes } from '@/lib/script-templates';
 
 export const dynamic = 'force-dynamic';
 
@@ -116,17 +116,18 @@ export async function POST(request: Request) {
       ];
     }
 
-    // Generate initial scenes
-    const initialScenes = generateActTemplateScenes({
+    // Generate continuous scenes for full target duration (e.g. 150m = 900 scenes @ 10s/scene)
+    const initialScenes = generateContinuousMovieScenes({
       title: title || (genre === 'military_tactical' ? 'ยุทธการสายฟ้าแลบ ทะลวงฐานทัพศัตรู' : 'มหากาพย์การต่อสู้ทวงแค้น'),
       synopsis: synopsis || (genre === 'military_tactical' ? 'ปฏิบัติการทางทหารและขีปนาวุธความเร็วเหนือเสียง สยบภัยคุกคามใน 5 นาที' : 'มหากาพย์การต่อสู้ทวงแค้นและก้าวสู่ความเป็นหนึ่ง'),
       genre: genre as MovieGenre,
       visualMedium: visualMedium as VisualMedium,
       stylePreset: stylePreset as StylePreset,
       targetDurationMinutes: Number(targetDurationMinutes) || (genre === 'military_tactical' ? 3 : 60),
-      actNumber: 1,
       characters: projectCharacters,
       aspectRatio: (aspectRatio as AspectRatio) || '16:9',
+      worldCulture,
+      subGenre,
     });
 
     const newProject: Project = {

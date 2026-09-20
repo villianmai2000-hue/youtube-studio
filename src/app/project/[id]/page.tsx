@@ -12,6 +12,12 @@ import LoginModal from '@/components/LoginModal';
 import MetaPackageModal from '@/components/MetaPackageModal';
 import CreateSequelModal from '@/components/CreateSequelModal';
 import {
+  generateContinuousMovieScenes,
+  calculateMovieScenesCount,
+  cleanSceneTitle,
+  formatTimeCode,
+} from '@/lib/script-templates';
+import {
   Film,
   Sparkles,
   Save,
@@ -34,6 +40,7 @@ import {
   LogIn,
   Eye,
   Globe,
+  Zap,
 } from 'lucide-react';
 
 export default function ProjectStudioPage() {
@@ -72,6 +79,12 @@ export default function ProjectStudioPage() {
   const [generatingAct, setGeneratingAct] = useState(false);
   const [customAiPrompt, setCustomAiPrompt] = useState('');
   const [apiKeyInput, setApiKeyInput] = useState('');
+  const [generatingFullScenes, setGeneratingFullScenes] = useState(false);
+
+  // Studio Scenes Pagination (Supports up to 900+ scenes smoothly)
+  const [studioPage, setStudioPage] = useState(1);
+  const [studioPageSize, setStudioPageSize] = useState<number | 'all'>(50);
+  const [jumpToSceneNum, setJumpToSceneNum] = useState('');
 
   // Auth Gate
   const [currentUser, setCurrentUser] = useState<UserType | null>(null);
@@ -251,6 +264,52 @@ export default function ProjectStudioPage() {
     }
   };
 
+  // Generate Full Continuous Movie Scenes matching project.targetDurationMinutes (e.g. 150 min = 900 scenes @ 10s/scene)
+  const handleGenerateFullMovieScenes = async () => {
+    if (!project) return;
+    const calc = calculateMovieScenesCount(project.targetDurationMinutes);
+    const confirmed = confirm(
+      `⚡ ยืนยันการคำนวณและสร้างฉากเต็มเวลา (Seedream 5.0 Pro):\n\n` +
+      `📌 ชื่อเรื่อง: ${project.title}\n` +
+      `⏱️ ความยาวเป้าหมาย: ${project.targetDurationMinutes} นาที\n` +
+      `📐 สูตรคำนวณ: ${calc.calculationBreakdown}\n\n` +
+      `ระบบจะสร้างบทบรรยายภาษาไทย, บทพูดตัวละคร, มุมกล้อง Seedream 5.0 Pro (10 วิ/ฉาก ไหลลื่นไม่ตัด) ` +
+      `และเสียงดนตรี ครบทั้ง ${calc.totalScenes} ฉากทันที!\n\n` +
+      `ต้องการดำเนินการต่อหรือไม่?`
+    );
+    if (!confirmed) return;
+
+    setGeneratingFullScenes(true);
+    try {
+      const newScenes = generateContinuousMovieScenes({
+        title: project.title,
+        synopsis: project.synopsis,
+        genre: project.genre,
+        visualMedium: project.visualMedium,
+        stylePreset: project.stylePreset,
+        targetDurationMinutes: project.targetDurationMinutes,
+        characters: project.characters,
+        aspectRatio: project.aspectRatio,
+        worldCulture: project.worldCulture,
+        subGenre: project.subGenre,
+      });
+
+      const updatedProject = {
+        ...project,
+        scenes: newScenes,
+      };
+
+      setProject(updatedProject);
+      await handleSave(updatedProject);
+      setStudioPage(1);
+      alert(`🎉 สร้างบทภาพยนตร์และฉากต่อเนื่องครบทั้ง ${newScenes.length} ฉากเรียบร้อยแล้ว! พร้อมบันทึกลงคลาวด์ Atlas ทันที`);
+    } catch (err: unknown) {
+      alert('เกิดข้อผิดพลาด: ' + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setGeneratingFullScenes(false);
+    }
+  };
+
   // Toggle selection for a scene
   const handleToggleSelectScene = (sceneId: string) => {
     setSelectedSceneIds((prev) =>
@@ -357,24 +416,24 @@ export default function ProjectStudioPage() {
         .map((s) => {
           if (!s.dialogues || s.dialogues.length === 0) return null;
           const diaLines = s.dialogues.map((d) => `${d.speaker} (${d.emotion}): "${d.text}"`).join('\n');
-          return `[ฉากที่ ${s.sceneNumber}: ${s.title}]\n${diaLines}`;
+          return `[ฉากที่ ${s.sceneNumber}: ${cleanSceneTitle(s.title)}]\n${diaLines}`;
         })
         .filter(Boolean)
         .join('\n\n');
     } else if (type === 'images') {
       // Merged Image prompts
       output = targets
-        .map((s) => `[ฉากที่ ${s.sceneNumber}: ${s.title}]\n${s.imagePrompt}`)
+        .map((s) => `[ฉากที่ ${s.sceneNumber}: ${cleanSceneTitle(s.title)}]\n${s.imagePrompt}`)
         .join('\n\n');
     } else if (type === 'videos') {
       // Merged Video motion prompts (คลีน Seed Lock ออก เพื่อให้เจนวิดีโอไม่เพี้ยน)
       output = targets
-        .map((s) => `[ฉากที่ ${s.sceneNumber}: ${s.title}]\n${sanitizePrompt(s.videoMotionPrompt)}`)
+        .map((s) => `[ฉากที่ ${s.sceneNumber}: ${cleanSceneTitle(s.title)}]\n${sanitizePrompt(s.videoMotionPrompt)}`)
         .join('\n\n');
     } else if (type === 'flow') {
       // Merged Google Flow prompts (flow.google.com คลีน ไม่เพี้ยน)
       output = targets
-        .map((s) => `[ฉากที่ ${s.sceneNumber}: ${s.title} - flow.google.com]\n${sanitizePrompt(s.googleFlowPrompt || s.imagePrompt)}`)
+        .map((s) => `[ฉากที่ ${s.sceneNumber}: ${cleanSceneTitle(s.title)} - flow.google.com]\n${sanitizePrompt(s.googleFlowPrompt || s.imagePrompt)}`)
         .join('\n\n');
     } else if (type === 'meta') {
       // All-in-One Meta/Facebook Reels Production Package (บทพากย์ + ฉาก + บทพูด + SFX + พร้อมต์วิดีโอ + แฮชแท็ก)
@@ -389,8 +448,8 @@ export default function ProjectStudioPage() {
       targets.forEach((s, idx) => {
         const startSec = idx * 10;
         const endSec = (idx + 1) * 10;
-        const startMinStr = `${Math.floor(startSec / 60)}:${String(startSec % 60).padStart(2, '0')}`;
-        const endMinStr = `${Math.floor(endSec / 60)}:${String(endSec % 60).padStart(2, '0')}`;
+        const startMinStr = formatTimeCode(startSec);
+        const endMinStr = formatTimeCode(endSec);
         output += `⏱️ [ฉากที่ ${s.sceneNumber} (${startMinStr} - ${endMinStr})]:\n${s.narration.trim()}\n\n`;
       });
 
@@ -399,9 +458,9 @@ export default function ProjectStudioPage() {
       targets.forEach((s, idx) => {
         const startSec = idx * 10;
         const endSec = (idx + 1) * 10;
-        const startMinStr = `${Math.floor(startSec / 60)}:${String(startSec % 60).padStart(2, '0')}`;
-        const endMinStr = `${Math.floor(endSec / 60)}:${String(endSec % 60).padStart(2, '0')}`;
-        output += `[ฉากที่ ${s.sceneNumber}] (${startMinStr} - ${endMinStr}) : ${s.title}\n`;
+        const startMinStr = formatTimeCode(startSec);
+        const endMinStr = formatTimeCode(endSec);
+        output += `[ฉากที่ ${s.sceneNumber}] (${startMinStr} - ${endMinStr}) : ${cleanSceneTitle(s.title)}\n`;
         output += `🎙️ เสียงพากย์: ${s.narration}\n`;
         if (s.dialogues && s.dialogues.length > 0) {
           output += `💬 บทพูดตัวละคร:\n`;
@@ -442,7 +501,7 @@ export default function ProjectStudioPage() {
       });
       output += `\n============================================\n\n`;
       targets.forEach((s) => {
-        output += `=== [ฉากที่ ${s.sceneNumber}] (องค์ที่ ${s.actNumber}) : ${s.title} (10 วินาที) ===\n`;
+        output += `=== [ฉากที่ ${s.sceneNumber}] (องค์ที่ ${s.actNumber}) : ${cleanSceneTitle(s.title)} (10 วินาที) ===\n`;
         output += `🎥 ทิศทางกล้อง: ${s.cameraMovement}\n`;
         output += `💡 แสงเงา: ${s.lighting}\n`;
         output += `🎙️ บทบรรยายเสียงพากย์:\n${s.narration}\n`;
@@ -492,6 +551,25 @@ export default function ProjectStudioPage() {
     if (selectedAct === 'all') return project.scenes;
     return project.scenes.filter((s) => s.actNumber === selectedAct);
   }, [project, selectedAct]);
+
+  const totalStudioPages = studioPageSize === 'all' ? 1 : Math.ceil(filteredScenes.length / (studioPageSize as number));
+  const paginatedScenes = useMemo(() => {
+    if (studioPageSize === 'all') return filteredScenes;
+    const start = (studioPage - 1) * (studioPageSize as number);
+    return filteredScenes.slice(start, start + (studioPageSize as number));
+  }, [filteredScenes, studioPage, studioPageSize]);
+
+  const handleJumpToSceneStudio = (e: React.FormEvent) => {
+    e.preventDefault();
+    const num = parseInt(jumpToSceneNum, 10);
+    if (!isNaN(num) && num >= 1 && num <= filteredScenes.length) {
+      if (studioPageSize !== 'all') {
+        const page = Math.ceil(num / (studioPageSize as number));
+        setStudioPage(page);
+      }
+      setJumpToSceneNum('');
+    }
+  };
 
   // Auth Gatekeeper: Locked Screen if not logged in
   if (authChecked && !currentUser) {
@@ -636,6 +714,21 @@ export default function ProjectStudioPage() {
             <span>🎬 สร้างภาคต่อ</span>
           </button>
 
+          {/* Generate Full Movie Continuous Scenes Button */}
+          <button
+            onClick={handleGenerateFullMovieScenes}
+            disabled={generatingFullScenes}
+            className="px-3 py-2 rounded-xl bg-gradient-to-r from-amber-500/25 via-cyan-500/25 to-blue-500/25 hover:from-amber-500/35 hover:to-cyan-500/35 border border-amber-500/50 hover:border-amber-400 text-amber-300 hover:text-white text-xs font-extrabold flex items-center gap-1.5 transition-all shadow-sm"
+            title={`คำนวณและสร้างฉากให้เต็มเวลา ${project.targetDurationMinutes} นาที (${Math.round((project.targetDurationMinutes * 60) / 10)} ฉาก @ 10 วิ/ฉาก ไหลลื่นไม่ตัด)`}
+          >
+            <Zap className={`w-3.5 h-3.5 text-amber-400 ${generatingFullScenes ? 'animate-spin' : ''}`} />
+            <span>
+              {generatingFullScenes
+                ? 'กำลังสร้างฉากเต็มเวลา...'
+                : `⚡ สร้างเต็มเวลา (${Math.round((project.targetDurationMinutes * 60) / 10)} ฉาก)`}
+            </span>
+          </button>
+
           {/* Export Button */}
           <Link
             href={`/project/${projectId}/export`}
@@ -756,23 +849,41 @@ export default function ProjectStudioPage() {
                 className="bg-studio-950 border border-studio-700 hover:border-amber-400 rounded-lg px-2 py-1 text-amber-300 font-bold text-xs focus:outline-none focus:border-amber-400 cursor-pointer transition-colors"
                 title="คลิกเพื่อเปลี่ยนความยาวเป้าหมายของคลิป"
               >
-                <option value={3}>~3 นาที (Shorts)</option>
-                <option value={5}>~5 นาที (Mini)</option>
-                <option value={15}>~15 นาที</option>
-                <option value={30}>~30 นาที</option>
-                <option value={60}>~60 นาที (1 ชม.)</option>
-                <option value={90}>~90 นาที (1 ชม. 30 น.) 🌟</option>
-                <option value={120}>~120 นาที (2 ชม.) 🌟</option>
-                <option value={150}>~150 นาที (2 ชม. 30 น.) 🌟</option>
+                <option value={3}>~3 นาที (18 ฉาก @ 10 วิ)</option>
+                <option value={5}>~5 นาที (30 ฉาก @ 10 วิ)</option>
+                <option value={15}>~15 นาที (90 ฉาก @ 10 วิ)</option>
+                <option value={30}>~30 นาที (180 ฉาก @ 10 วิ)</option>
+                <option value={60}>~60 นาที (1 ชม. = 360 ฉาก)</option>
+                <option value={90}>~90 นาที (1 ชม. 30 น. = 540 ฉาก) 🌟</option>
+                <option value={120}>~120 นาที (2 ชม. = 720 ฉาก) 🌟</option>
+                <option value={150}>~150 นาที (2 ชม. 30 น. = 900 ฉาก) 🌟</option>
                 <option value="custom">⏱️ กำหนดเอง...</option>
               </select>
             </div>
           </div>
 
-          <div className="flex items-center gap-4 text-gray-300">
-            <span>คำภาษาไทยทั้งหมด: <strong className="text-white">{metrics.totalWords} คำ</strong></span>
-            <span>จำนวนฉากทั้งหมด: <strong className="text-white">{project.scenes.length} ฉาก</strong></span>
-            <span className="text-amber-400 font-bold">{metrics.progressPercent}% สำเร็จ</span>
+          <div className="flex items-center gap-3 flex-wrap text-gray-300">
+            <span>คำทั้งหมด: <strong className="text-white">{metrics.totalWords} คำ</strong></span>
+            <span>
+              ฉากปัจจุบัน: <strong className="text-white">{project.scenes.length} ฉาก</strong>
+              {' / '}
+              เป้าหมาย: <strong className="text-amber-400">{Math.round((project.targetDurationMinutes * 60) / 10)} ฉาก</strong>
+            </span>
+            <span className="text-amber-400 font-bold">{metrics.progressPercent}%</span>
+
+            {/* Quick Expand Button if scenes < target */}
+            {project.scenes.length < Math.round((project.targetDurationMinutes * 60) / 10) && (
+              <button
+                type="button"
+                onClick={handleGenerateFullMovieScenes}
+                disabled={generatingFullScenes}
+                className="px-3 py-1 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-extrabold text-[11px] shadow-glow flex items-center gap-1 transition-all animate-pulse"
+                title={`คลิกเพื่อคำนวณและสร้างฉากให้ครบตามเวลาเป้าหมาย (${Math.round((project.targetDurationMinutes * 60) / 10)} ฉาก)`}
+              >
+                <Zap className="w-3.5 h-3.5" />
+                <span>⚡ ขยายฉากให้เต็ม {Math.round((project.targetDurationMinutes * 60) / 10)} ฉาก</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -1147,22 +1258,152 @@ export default function ProjectStudioPage() {
             </div>
           </div>
         ) : (
-          filteredScenes.map((scene, index) => (
-            <SceneCard
-              key={scene.id}
-              scene={scene}
-              index={index}
-              characters={project.characters}
-              visualMedium={project.visualMedium}
-              stylePreset={project.stylePreset}
-              genre={project.genre}
-              projectId={project.id}
-              isSelected={selectedSceneIds.includes(scene.id)}
-              onToggleSelect={() => handleToggleSelectScene(scene.id)}
-              onUpdate={handleUpdateScene}
-              onDelete={handleDeleteScene}
-            />
-          ))
+          <>
+            {/* Top Studio Pagination Bar */}
+            <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl bg-studio-900 border border-studio-800 text-xs shadow-sm">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-gray-300">
+                  แสดงฉาก{' '}
+                  <strong className="text-amber-400">
+                    {studioPageSize === 'all' ? 1 : (studioPage - 1) * (studioPageSize as number) + 1}
+                  </strong>{' '}
+                  -{' '}
+                  <strong className="text-amber-400">
+                    {studioPageSize === 'all'
+                      ? filteredScenes.length
+                      : Math.min(studioPage * (studioPageSize as number), filteredScenes.length)}
+                  </strong>{' '}
+                  จากทั้งหมด <strong className="text-white">{filteredScenes.length}</strong> ฉาก
+                </span>
+
+                <span className="text-studio-700">|</span>
+
+                <div className="flex items-center gap-1.5">
+                  <span className="text-gray-400">ต่อหน้า:</span>
+                  <select
+                    value={studioPageSize}
+                    onChange={(e) => {
+                      const val = e.target.value === 'all' ? 'all' : parseInt(e.target.value, 10);
+                      setStudioPageSize(val);
+                      setStudioPage(1);
+                    }}
+                    className="bg-studio-950 border border-studio-700 rounded-lg px-2.5 py-1 text-gray-200 text-xs focus:outline-none focus:border-amber-400 cursor-pointer"
+                  >
+                    <option value={25}>25 ฉาก</option>
+                    <option value={50}>50 ฉาก</option>
+                    <option value={100}>100 ฉาก</option>
+                    <option value="all">ทั้งหมด ({filteredScenes.length})</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* Jump to scene */}
+                <form onSubmit={handleJumpToSceneStudio} className="flex items-center gap-1.5">
+                  <input
+                    type="number"
+                    min={1}
+                    max={filteredScenes.length}
+                    value={jumpToSceneNum}
+                    onChange={(e) => setJumpToSceneNum(e.target.value)}
+                    placeholder="ไปที่ฉาก..."
+                    className="w-20 px-2.5 py-1 rounded-lg bg-studio-950 border border-studio-700 text-white text-xs placeholder-gray-500 focus:outline-none focus:border-amber-400 font-mono"
+                  />
+                  <button
+                    type="submit"
+                    className="px-2.5 py-1 rounded-lg bg-studio-800 hover:bg-studio-700 text-gray-200 text-xs font-semibold"
+                  >
+                    ไป
+                  </button>
+                </form>
+
+                {studioPageSize !== 'all' && totalStudioPages > 1 && (
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setStudioPage((p) => Math.max(1, p - 1))}
+                      disabled={studioPage <= 1}
+                      className="px-3 py-1 rounded-lg bg-studio-800 hover:bg-studio-700 text-gray-200 text-xs font-semibold disabled:opacity-40"
+                    >
+                      &larr; ก่อนหน้า
+                    </button>
+                    <span className="px-2 font-mono text-gray-300">
+                      {studioPage} / {totalStudioPages}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setStudioPage((p) => Math.min(totalStudioPages, p + 1))}
+                      disabled={studioPage >= totalStudioPages}
+                      className="px-3 py-1 rounded-lg bg-studio-800 hover:bg-studio-700 text-gray-200 text-xs font-semibold disabled:opacity-40"
+                    >
+                      ถัดไป &rarr;
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Render Paginated Scenes */}
+            {paginatedScenes.map((scene, index) => (
+              <SceneCard
+                key={scene.id}
+                scene={scene}
+                index={studioPageSize === 'all' ? index : (studioPage - 1) * (studioPageSize as number) + index}
+                characters={project.characters}
+                visualMedium={project.visualMedium}
+                stylePreset={project.stylePreset}
+                genre={project.genre}
+                projectId={project.id}
+                isSelected={selectedSceneIds.includes(scene.id)}
+                onToggleSelect={() => handleToggleSelectScene(scene.id)}
+                onUpdate={handleUpdateScene}
+                onDelete={handleDeleteScene}
+              />
+            ))}
+
+            {/* Bottom Studio Pagination Bar */}
+            {studioPageSize !== 'all' && totalStudioPages > 1 && (
+              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-studio-900 border border-studio-800 text-xs shadow-sm">
+                <span className="text-gray-400">
+                  หน้า <strong className="text-amber-400">{studioPage}</strong> จาก <strong className="text-white">{totalStudioPages}</strong> (แสดงทีละ {studioPageSize} ฉาก)
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setStudioPage(1)}
+                    disabled={studioPage <= 1}
+                    className="px-2.5 py-1.5 rounded-lg bg-studio-800 hover:bg-studio-700 text-gray-300 text-xs disabled:opacity-40"
+                  >
+                    หน้าแรก
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStudioPage((p) => Math.max(1, p - 1))}
+                    disabled={studioPage <= 1}
+                    className="px-3 py-1.5 rounded-lg bg-studio-800 hover:bg-studio-700 text-gray-200 text-xs font-semibold disabled:opacity-40"
+                  >
+                    &larr; ก่อนหน้า
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStudioPage((p) => Math.min(totalStudioPages, p + 1))}
+                    disabled={studioPage >= totalStudioPages}
+                    className="px-3 py-1.5 rounded-lg bg-studio-800 hover:bg-studio-700 text-gray-200 text-xs font-semibold disabled:opacity-40"
+                  >
+                    ถัดไป &rarr;
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStudioPage(totalStudioPages)}
+                    disabled={studioPage >= totalStudioPages}
+                    className="px-2.5 py-1.5 rounded-lg bg-studio-800 hover:bg-studio-700 text-gray-300 text-xs disabled:opacity-40"
+                  >
+                    หน้าสุดท้าย
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 
