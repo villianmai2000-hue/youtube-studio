@@ -33,6 +33,7 @@ export async function POST(request: Request) {
       stylePreset = 'donghua_3d',
       aspectRatio = '16:9',
       scriptEngine = 'gemini_3_1_pro',
+      characterCount,
       targetDurationMinutes = 60,
       characters: customCharacters,
       leadHeroName = 'เซียวหลิน',
@@ -85,6 +86,7 @@ export async function POST(request: Request) {
         worldCulture,
         subGenre
       );
+      const targetCount = characterCount ? Math.max(1, Number(characterCount)) : detected.count;
       projectCharacters = generateIntelligentCharacters({
         title: title || (genre === 'military_tactical' ? 'ยุทธการสงครามสายฟ้าแลบ' : 'มหากาพย์การต่อสู้ทวงแค้น'),
         synopsis: synopsis || '',
@@ -92,7 +94,7 @@ export async function POST(request: Request) {
         genre: (subGenre || genre || 'xianxia_cultivation') as string,
         subGenre: subGenre || '',
         visualMedium: (visualMedium as VisualMedium) || 'animation',
-        count: detected.count,
+        count: targetCount,
       });
     }
 

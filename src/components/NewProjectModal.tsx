@@ -63,6 +63,10 @@ export default function NewProjectModal({ isOpen, onClose, onCreated }: NewProje
   const [customDurationMinutes, setCustomDurationMinutes] = useState<number>(90);
   const [scriptEngine, setScriptEngine] = useState<ScriptEngine>('gemini_3_1_pro');
 
+  // Character Count: Auto-detect vs Custom Count
+  const [characterCountMode, setCharacterCountMode] = useState<'auto' | 'custom'>('auto');
+  const [customCharacterCount, setCustomCharacterCount] = useState<number>(10);
+
   const [loading, setLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState<string>('');
   const [error, setError] = useState('');
@@ -123,7 +127,13 @@ export default function NewProjectModal({ isOpen, onClose, onCreated }: NewProje
 
     setLoading(true);
     setError('');
-    setLoadingStep(`🤖 AI กำลังวิเคราะห์เนื้อเรื่องและออกแบบตัวละคร ${detectedScale.count} ตัวตามพล็อต...`);
+
+    const finalCharacterCount =
+      characterCountMode === 'auto'
+        ? detectedScale.count
+        : Math.max(1, customCharacterCount);
+
+    setLoadingStep(`🤖 AI กำลังวิเคราะห์เนื้อเรื่องและออกแบบตัวละคร ${finalCharacterCount} ตัวตามพล็อต...`);
 
     try {
       // 1. Generate Characters Automatically based on the Story Concept
@@ -140,7 +150,7 @@ export default function NewProjectModal({ isOpen, onClose, onCreated }: NewProje
             subGenre: selectedSubGenre,
             visualMedium,
             stylePreset,
-            characterCount: detectedScale.count,
+            characterCount: finalCharacterCount,
           }),
         });
         const charData = await charRes.json();
@@ -168,6 +178,7 @@ export default function NewProjectModal({ isOpen, onClose, onCreated }: NewProje
           aspectRatio,
           scriptEngine,
           targetDurationMinutes: durationMode === 'custom' ? customDurationMinutes : Number(durationMode),
+          characterCount: finalCharacterCount,
           characters,
         }),
       });
@@ -468,29 +479,104 @@ export default function NewProjectModal({ isOpen, onClose, onCreated }: NewProje
             </div>
           </div>
 
-          {/* Character Scale Auto-detection Preview */}
-          <div className="p-3 sm:p-4 rounded-2xl bg-cyan-950/40 border border-cyan-500/30 flex items-center justify-between gap-3 shadow-inner">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 shrink-0">
-                <Users className="w-5 h-5" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs font-bold text-white">
-                    ขนาดตัวละครอัตโนมัติ (Story Scale):
-                  </span>
-                  <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 text-xs font-extrabold">
-                    {detectedScale.count} ตัวละคร
-                  </span>
-                  <span className="text-[11px] text-cyan-400 font-medium">
-                    ({detectedScale.label})
-                  </span>
+          {/* Character Scale & Custom Count Selection */}
+          <div className="p-3 sm:p-4 rounded-2xl bg-cyan-950/40 border border-cyan-500/30 space-y-3 shadow-inner">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 shrink-0">
+                  <Users className="w-4 h-4" />
                 </div>
-                <p className="text-[11px] text-gray-400 mt-0.5">
-                  💡 {detectedScale.reason}
-                </p>
+                <div>
+                  <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
+                    <span>ระบบสร้างตัวละคร (Character Ensemble Engine)</span>
+                  </h4>
+                  <p className="text-[11px] text-gray-400">
+                    เลือกให้อนุมัติสร้างตามเนื้อเรื่องอัตโนมัติ หรือกำหนดจำนวนเองได้ตามใจชอบ
+                  </p>
+                </div>
+              </div>
+
+              {/* Mode Toggle Pills */}
+              <div className="flex items-center gap-1 p-1 bg-studio-950 border border-studio-800 rounded-xl self-start sm:self-auto">
+                <button
+                  type="button"
+                  onClick={() => setCharacterCountMode('auto')}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                    characterCountMode === 'auto'
+                      ? 'bg-cyan-500 text-black shadow-sm'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  🤖 อัตโนมัติ ({detectedScale.count} ตัว)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCharacterCountMode('custom')}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                    characterCountMode === 'custom'
+                      ? 'bg-amber-500 text-black shadow-sm'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  ✏️ กำหนดจำนวนเอง
+                </button>
               </div>
             </div>
+
+            {characterCountMode === 'auto' ? (
+              <div className="flex items-center justify-between p-2.5 rounded-xl bg-studio-900/80 border border-studio-800 text-xs gap-2">
+                <div>
+                  <span className="text-cyan-300 font-bold">{detectedScale.label}:</span>{' '}
+                  <span className="text-gray-300">{detectedScale.reason}</span>
+                </div>
+                <span className="px-2.5 py-1 rounded-lg bg-cyan-500/20 text-cyan-300 font-extrabold border border-cyan-400/30 whitespace-nowrap">
+                  {detectedScale.count} ตัวละคร
+                </span>
+              </div>
+            ) : (
+              <div className="p-3 rounded-xl bg-studio-900/80 border border-amber-500/30 space-y-2.5 animate-in fade-in duration-200">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <label className="text-xs text-amber-300 font-bold block">
+                      ต้องการสร้างตัวละครกี่ตัว (ใส่เลขได้เท่าไหร่ก็ได้):
+                    </label>
+                    <p className="text-[11px] text-gray-400 mt-0.5">
+                      💡 AI จะสร้างตัวละครครบ 11 มิติ พร้อมบทพูดและจัดสรรฉากให้ทุกคน
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min={1}
+                      max={100}
+                      value={customCharacterCount}
+                      onChange={(e) => setCustomCharacterCount(Math.max(1, Number(e.target.value) || 1))}
+                      className="w-20 px-3 py-1.5 rounded-xl bg-studio-950 border border-amber-500/50 text-amber-300 font-extrabold text-center text-sm focus:outline-none focus:border-amber-400 shadow-inner"
+                    />
+                    <span className="text-xs text-amber-200 font-bold">ตัว</span>
+                  </div>
+                </div>
+
+                {/* Quick Selection Pills */}
+                <div className="flex items-center gap-1.5 flex-wrap pt-1 border-t border-studio-800/80">
+                  <span className="text-[10px] text-gray-400 mr-1">ตัวเลือกยอดนิยม:</span>
+                  {[3, 5, 8, 10, 12, 16, 20].map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => setCustomCharacterCount(n)}
+                      className={`px-2.5 py-0.5 rounded-lg text-[11px] font-bold border transition-all ${
+                        customCharacterCount === n
+                          ? 'bg-amber-500 text-black border-amber-400 shadow-sm'
+                          : 'bg-studio-950 text-gray-300 border-studio-800 hover:border-studio-700'
+                      }`}
+                    >
+                      {n} ตัว {n === 10 ? '🏴‍☠️ วันพีช' : ''}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Submit Button */}

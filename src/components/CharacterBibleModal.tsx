@@ -36,6 +36,7 @@ interface CharacterBibleModalProps {
   visualMedium?: VisualMedium;
   stylePreset?: StylePreset;
   onSaveCharacters: (characters: CharacterBible[]) => void;
+  onSaveAndInjectIntoScript?: (characters: CharacterBible[]) => Promise<void> | void;
 }
 
 export default function CharacterBibleModal({
@@ -47,8 +48,10 @@ export default function CharacterBibleModal({
   visualMedium = 'animation',
   stylePreset = 'donghua_3d',
   onSaveCharacters,
+  onSaveAndInjectIntoScript,
 }: CharacterBibleModalProps) {
   const [characters, setCharacters] = useState<CharacterBible[]>(initialCharacters);
+  const [isInjectingScript, setIsInjectingScript] = useState(false);
   const [generatingAll, setGeneratingAll] = useState(false);
   const [generatingAiCharacters, setGeneratingAiCharacters] = useState(false);
   const [generatingCharId, setGeneratingCharId] = useState<string | null>(null);
@@ -305,6 +308,19 @@ export default function CharacterBibleModal({
     onClose();
   };
 
+  const handleSaveAndInject = async () => {
+    if (onSaveAndInjectIntoScript) {
+      setIsInjectingScript(true);
+      try {
+        await onSaveAndInjectIntoScript(characters);
+      } finally {
+        setIsInjectingScript(false);
+      }
+    } else {
+      handleSave();
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
       <div className="bg-studio-900 border border-studio-700 rounded-3xl max-w-5xl w-full p-5 sm:p-7 shadow-2xl my-6 relative max-h-[94vh] flex flex-col">
@@ -393,7 +409,7 @@ export default function CharacterBibleModal({
             {/* Count Selector Pills */}
             <div className="flex items-center gap-1.5 flex-wrap">
               <span className="text-xs text-gray-400 mr-1">จำนวนตัวละคร:</span>
-              {[8, 10, 12, 16].map((num) => (
+              {[5, 8, 10, 12, 16, 20].map((num) => (
                 <button
                   key={num}
                   type="button"
@@ -412,15 +428,16 @@ export default function CharacterBibleModal({
                 <input
                   type="number"
                   min={1}
-                  max={50}
+                  max={100}
                   value={selectedCount}
                   onChange={(e) => setSelectedCount(Math.max(1, Number(e.target.value) || 1))}
-                  className="w-12 bg-transparent text-amber-300 font-bold text-xs text-center focus:outline-none"
+                  className="w-14 bg-transparent text-amber-300 font-extrabold text-xs text-center focus:outline-none"
+                  title="ใส่จำนวนตัวละครได้เท่าไหร่ก็ได้"
                 />
               </div>
             </div>
 
-            {/* Triggers: 1-Click AI Generation & Quick Add */}
+            {/* Triggers: 1-Click AI Generation, Quick Add & Instant Script Update */}
             <div className="flex items-center gap-2 flex-wrap">
               <button
                 type="button"
@@ -437,7 +454,7 @@ export default function CharacterBibleModal({
                 ) : (
                   <>
                     <Bot className="w-4 h-4 text-black" />
-                    <span>🤖 AI เจนทีมตัวละครยกแก๊ง ({selectedCount} ตัว สไตล์วันพีช)</span>
+                    <span>🤖 AI เจนทีมตัวละครยกแก๊ง ({selectedCount} ตัว)</span>
                   </>
                 )}
               </button>
@@ -451,15 +468,37 @@ export default function CharacterBibleModal({
                 <Plus className="w-3.5 h-3.5" />
                 <span>+3 ตัวละคร</span>
               </button>
+
+              <button
+                type="button"
+                onClick={handleSaveAndInject}
+                disabled={isInjectingScript}
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 via-cyan-500 to-blue-600 hover:from-amber-400 hover:to-blue-500 text-black font-extrabold text-xs shadow-glow flex items-center gap-1.5 transition-all disabled:opacity-50"
+                title="นำตัวละครทั้งหมดลงไปมีบทบาทในภาพยนตร์ทุกฉากทันที"
+              >
+                {isInjectingScript ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-black" />
+                    <span>กำลังเขียนบทให้ทุกคน...</span>
+                  </>
+                ) : (
+                  <>
+                    <Zap className="w-4 h-4 text-black fill-black" />
+                    <span>⚡ บันทึก &amp; นำลงบทภาพยนตร์ทันที</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
 
           {/* Helpful Tip Alert */}
-          <div className="px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-300 flex items-center gap-2">
-            <span>💡</span>
-            <span>
-              <strong>ตัวละครไม่จำกัด:</strong> เมื่อสร้างหรือปรับเปลี่ยนตัวละครแล้ว กด <strong>&quot;บันทึกข้อมูลตัวละครทั้งหมด&quot;</strong> แล้วกดปุ่ม <strong>&quot;⚡ สร้างเต็มเวลา&quot;</strong> ที่หน้าสตูดิโอ เพื่อให้ระบบคำนวณบทพูด 10 วินาทีให้ตัวละครทุกคนมีแอร์ไทม์และฉากต่อสู้ครบถ้วน!
-            </span>
+          <div className="px-3.5 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-[11px] text-amber-300 flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2">
+              <span className="text-base">💡</span>
+              <span>
+                <strong>ปรับแต่งตัวละครได้ไม่จำกัด:</strong> สามารถใส่จำนวนเท่าไหร่ก็ได้ หรือแก้ไขชื่อ/ทักษะ/หน้าตาตัวละครเองได้ตามใจชอบ เมื่อปรับเสร็จแล้ว ให้กดปุ่ม <strong>&quot;⚡ บันทึก &amp; อัปเดตใส่บทภาพยนตร์ทันที&quot;</strong> เพื่อให้ระบบคำนวณบทพูด 10 วินาทีให้ตัวละครทุกคนมีแอร์ไทม์ครบถ้วนทันที!
+              </span>
+            </div>
           </div>
         </div>
 
@@ -962,22 +1001,49 @@ export default function CharacterBibleModal({
         </div>
 
         {/* Footer */}
-        <div className="mt-4 flex items-center justify-end gap-3 pt-3 border-t border-studio-800 flex-shrink-0">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors"
-          >
-            ยกเลิก
-          </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-bold text-sm shadow-glow transition-all flex items-center gap-2"
-          >
-            <Check className="w-4 h-4" />
-            <span>บันทึกข้อมูลตัวละครทั้งหมด</span>
-          </button>
+        <div className="mt-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3 border-t border-studio-800 flex-shrink-0">
+          <div className="text-xs text-gray-400 flex items-center gap-2">
+            <Users className="w-4 h-4 text-amber-400" />
+            <span>รวม {characters.length} ตัวละครในโปรเจกต์</span>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-end gap-2.5">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-3.5 py-2 text-xs text-gray-400 hover:text-white rounded-xl hover:bg-studio-800 transition-colors"
+            >
+              ยกเลิก
+            </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              className="px-4 py-2 rounded-xl bg-studio-800 hover:bg-studio-700 text-gray-200 hover:text-white text-xs font-semibold border border-studio-700 transition-all flex items-center gap-1.5"
+              title="บันทึกข้อมูลตัวละครเก็บไว้ โดยยังไม่เขียนบทภาพยนตร์ใหม่"
+            >
+              <Check className="w-3.5 h-3.5 text-gray-400" />
+              <span>บันทึกตัวละคร (คงฉากเดิม)</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleSaveAndInject}
+              disabled={isInjectingScript}
+              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-cyan-500 to-blue-600 hover:from-amber-400 hover:to-blue-500 text-black font-extrabold text-xs sm:text-sm shadow-[0_0_20px_rgba(245,158,11,0.35)] transition-all flex items-center gap-2 disabled:opacity-50"
+              title="บันทึกตัวละครและเขียนบทภาพยนตร์ 10 วินาทีให้ทุกคนมีบทบาทและฉากต่อสู้ทันที"
+            >
+              {isInjectingScript ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin text-black" />
+                  <span>กำลังนำตัวละครลงไปเขียนบททุกฉาก...</span>
+                </>
+              ) : (
+                <>
+                  <Zap className="w-4 h-4 text-black fill-black" />
+                  <span>🚀 บันทึก &amp; อัปเดตใส่บทภาพยนตร์ทันที (แนะนำ)</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>

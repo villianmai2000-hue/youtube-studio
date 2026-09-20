@@ -276,7 +276,7 @@ export function generateIntelligentCharacters(params: {
         googleFlowSeed: '101012',
       },
     ];
-    return towerRoster.slice(0, count);
+    return expandRosterToCount(towerRoster, count, 'tower');
   }
 
   // 2. แนวโจรสลัด / วันพีช / มหาสมุทร (One Piece Pirate Style)
@@ -473,7 +473,7 @@ export function generateIntelligentCharacters(params: {
         googleFlowSeed: '102030',
       },
     ];
-    return pirateRoster.slice(0, count);
+    return expandRosterToCount(pirateRoster, count, 'pirate');
   }
 
   // 3. แนวเซียนจีน 3D (Donghua Xianxia)
@@ -711,7 +711,7 @@ export function generateIntelligentCharacters(params: {
         googleFlowSeed: '820819',
       },
     ];
-    return militaryRoster.slice(0, count);
+    return expandRosterToCount(militaryRoster, count, 'military');
   }
 
   // 4. แนวไซไฟ / หุ่นยนต์ / ไซเบอร์พังก์ (Cyberpunk & Sci-Fi)
@@ -775,9 +775,291 @@ export function generateIntelligentCharacters(params: {
         googleFlowSeed: '253142',
       },
     ];
-    return scifiRoster.slice(0, count);
+    return expandRosterToCount(scifiRoster, count, 'scifi');
   }
 
   // Fallback: Chinese Xianxia default
-  return cnRoster.slice(0, count);
+  return expandRosterToCount(cnRoster, count, 'xianxia');
+}
+
+/**
+ * ฟังก์ชันขยายหรือตัดจำนวนตัวละครให้ตรงตามจำนวนที่ผู้ใช้ต้องการอย่างแม่นยำ (1-50+ ตัว)
+ * หากผู้ใช้กำหนดจำนวนมากกว่าใน Roster ต้นฉบับ ระบบจะจำลองตัวละครที่มีมิติครบ 11 มิติ
+ * เสริมทัพทั้งสายสนับสนุน แม่ทัพ อาจารย์ สัตว์เทวะ และศัตรูคู่อาฆาตตามธีมเรื่องทันที
+ */
+function expandRosterToCount(
+  baseRoster: CharacterBible[],
+  targetCount: number,
+  category: 'tower' | 'pirate' | 'xianxia' | 'military' | 'scifi' | 'thai' | 'general'
+): CharacterBible[] {
+  if (targetCount <= baseRoster.length) {
+    return baseRoster.slice(0, targetCount);
+  }
+
+  const result = [...baseRoster];
+  const needed = targetCount - baseRoster.length;
+
+  const archetypesByCategory: Record<string, Array<{
+    namePrefix: string;
+    role: CharacterBible['role'];
+    age: string;
+    bodyBuild: string;
+    facialFeatures: string;
+    hairStyle: string;
+    clothingStyle: string;
+    colorTheme: string;
+    weaponsOrProps: string;
+    personality: string;
+    abilities: string;
+    weaknesses: string;
+    relationships: string;
+    appearanceAnchor: string;
+    voiceStyle: string;
+  }>> = {
+    tower: [
+      {
+        namePrefix: 'คิมยูนา (จอมเวทอักขระรูน / ผู้ถอดรหัสชั้นหอคอย)',
+        role: 'supporting',
+        age: '21 ปี',
+        bodyBuild: 'เพรียวบาง คล่องแคล่ว แววตาส่องประกายสีฟ้าคราม',
+        facialFeatures: 'ใบหน้ารูปไข่ แววตาฉลาดเฉลียว สวมต่างหูผลึกเวท',
+        hairStyle: 'ผมยาวสีน้ำเงินเข้มมัดแกละสองข้าง',
+        clothingStyle: 'ชุดคลุมผ้าไหมมนตราเสริมรูน กางเกงขาสั้น รองเท้าบูทยาว',
+        colorTheme: 'สีน้ำเงินสว่าง-ทอง-ขาว',
+        weaponsOrProps: 'พู่กันเขียนอักขระแสง / ลูกแก้วผลึกหอคอย',
+        personality: 'ช่างสงสัย รอบคอบ ถนัดถอดรหัสค่ายกลโบราณ',
+        abilities: 'เขียนรูนสร้างเกราะกำบัง, สลายบาเรียดันเจี้ยน, วิเคราะห์จุดอ่อนบอส',
+        weaknesses: 'พละกำลังกายภาพต่ำ ต้องมีคนคุ้มกันขณะเขียนอักขระ',
+        relationships: 'ฝ่ายสนับสนุนหลักและผู้ถอดรหัสของทีม',
+        appearanceAnchor: 'anime magical rune mage girl, long blue twin tails, glowing magical paintbrush, glowing runes floating, 8k anime art',
+        voiceStyle: 'กระฉับกระเฉง ฉลาด มั่นใจ ช่างเจรจา',
+      },
+      {
+        namePrefix: 'เบลค (นักล่าเงาลอบสังหาร / ผู้สอดแนมแนวหน้า)',
+        role: 'supporting',
+        age: '25 ปี',
+        bodyBuild: 'ผอมเพรียว กล้ามเนื้อไร้ไขมัน เคลื่อนไหวดุจสายลม',
+        facialFeatures: 'สวมผ้าปิดปากครึ่งล่าง ดวงตาสีอำพันคมกริบ',
+        hairStyle: 'ผมซอยสั้นสีเทาขี้เถ้า สะบัดตามแรงลม',
+        clothingStyle: 'ชุดสูทคอมแบทล่องหนเคลือบสารดูดซับเสียง',
+        colorTheme: 'สีเทาเขม่า-ดำสนิท-ม่วงเงา',
+        weaponsOrProps: 'เคียวสั้นคู่โซ่วิญญาณ / ระเบิดควันตัดประสาท',
+        personality: 'เงียบขรึม พูดเฉพาะเรื่องงาน จงรักภักดีต่อหัวหน้าทีม',
+        abilities: 'ก้าวพริบตาผ่านเงามืด, ลอบแทงจุดตายไร้เสียง, ปลดกับดัก',
+        weaknesses: 'ไม่ชอบที่สว่างจ้าและคนพูดมาก',
+        relationships: 'หน่วยล่าสังหารและลาดตระเวนแนวหน้าของทีม',
+        appearanceAnchor: 'cool anime shadow assassin scout, face mask, sharp amber eyes, dual scythe daggers with chains, dark mist aura, 8k anime art',
+        voiceStyle: 'กระซิบต่ำ เยือกเย็น รวดเร็วเฉียบขาด',
+      },
+      {
+        namePrefix: 'ลอร์ดมอร์กาน (ผู้พิทักษ์ประตูทมิฬ / ขุนพลระดับสูง)',
+        role: 'antagonist',
+        age: 'หลายร้อยปี',
+        bodyBuild: 'ร่างยักษ์ 2.2 เมตร สวมเกราะเหล็กดำสนิทแผ่ไอวิญญาณ',
+        facialFeatures: 'ดวงตาสีแดงฉานใต้หมวกเกราะมังกรดำ',
+        hairStyle: 'ซ่อนใต้หมวกเกราะเหล็กหนา',
+        clothingStyle: 'ชุดเกราะอัศวินดำเต็มยศ ผ้าคลุมขาดวิ่นสีเลือดหมู',
+        colorTheme: 'สีดำเหล็ก-แดงทมิฬ-เงินด้าน',
+        weaponsOrProps: 'ง้าวพิฆาตวิญญาณ / โล่หัวกะโหลกทมิฬ',
+        personality: 'เหี้ยมหาญ ภักดีต่อบอสใหญ่ เกลียดชังมนุษย์ผู้ท้าชิง',
+        abilities: 'ฟันคลื่นลมตัดผ่ามิติ, เรียกวิญญาณนักรบเงา 100 ตน, เกราะสะท้อนเวท',
+        weaknesses: 'ข้อต่อเกราะด้านหลังลำคอ',
+        relationships: 'มือสังหารประจำด่านที่คอยขัดขวางไม่ให้ทีมผ่านขึ้นไป',
+        appearanceAnchor: 'imposing black armored dread knight, glowing red visor slit, massive halberd, dark spectral mist, 8k anime art',
+        voiceStyle: 'ก้องกังวาน ดุดัน ดั่งเสียงเหล็กกล้ากระทบกัน',
+      },
+    ],
+    pirate: [
+      {
+        namePrefix: 'บรูโน (นักดนตรีพเนจร / มือกระบี่เพลงวิญญาณ)',
+        role: 'supporting',
+        age: '28 ปี',
+        bodyBuild: 'สูงโปร่ง ทรงเสน่ห์ มีผ้าพันคอปลิวไสว',
+        facialFeatures: 'ใบหน้าคมสัน แววตาขี้เล่นแต่แฝงความโศกเศร้าในอดีต',
+        hairStyle: 'ผมหยิกสีน้ำตาลเข้มปัดข้าง',
+        clothingStyle: 'เสื้อเชิ้ตลายลูกไม้สไตล์กวีโจรสลัด สวมหมวกขนนก',
+        colorTheme: 'สีเขียวมรกต-ทอง-ขาวนวล',
+        weaponsOrProps: 'ไวโอลินอาคมไม้โอ๊กโบราณ / กระบี่เรเปียร์ซ่อนในคันชัก',
+        personality: 'โรแมนติก อารมณ์ดี สร้างเสียงเพลงให้ลูกเรือมีกำลังใจ',
+        abilities: 'บรรเลงเพลงกล่อมประสาทศัตรู, เพลงกระบี่ความเร็วเสียง, บัฟฮีลกำลังใจ',
+        weaknesses: 'ใจอ่อนกับคำขอร้องของคนชราและเด็ก',
+        relationships: 'นักดนตรีประจำเรือผู้เก็บรวบรวมบทเพลงแห่งท้องทะเล',
+        appearanceAnchor: 'dashing anime bard pirate, playing glowing wooden violin, rapier sword, feather tricorn hat, emerald coat, 8k anime art',
+        voiceStyle: 'นุ่ม ไพเราะ ร้องเพลงขับกล่อม ทรงเสน่ห์',
+      },
+      {
+        namePrefix: 'ไคโตะ (นายท้ายเรือมนุษย์มังกรทะเล / เจ้าแห่งคลื่น)',
+        role: 'supporting',
+        age: '33 ปี',
+        bodyBuild: 'กำยำ แผ่นหลังกว้าง มีเกล็ดมังกรสีครามประปรายตามแขน',
+        facialFeatures: 'ใบหน้าคมเข้ม คิ้วเข้ม แววตาสีน้ำเงินทะเลลึก ดุดันแต่นิ่งสงบ',
+        hairStyle: 'ผมยาวสีครามเข้มรวบไว้ด้านหลัง',
+        clothingStyle: 'กิโมโนเปิดอก คาดสายสะพายผ้าใบเรือ มีรอยสักลายคลื่นสมุทร',
+        colorTheme: 'สีน้ำเงินคราม-ขาวฟองคลื่น-ดำ',
+        weaponsOrProps: 'หมัดคาราเต้สมุทร / หางเสือเรือเหล็กกล้า',
+        personality: 'สุขุม หนักแน่นดั่งภูผาใต้สมุทร รักพวกพ้อง ยึดมั่นในสัจจะ',
+        abilities: 'ควบคุมกระแสน้ำวน, หมัดกระแทกคลื่นทำลายเรือรบ, ว่ายน้ำความเร็วปลาโลมา',
+        weaknesses: 'เคลื่อนไหวบนบกได้ช้ากว่าในน้ำเล็กน้อย',
+        relationships: 'นายท้ายเรือผู้คอยบังคับทิศทางเรือฝ่าทุกมรสุมยักษ์',
+        appearanceAnchor: 'strong anime fishman sea-dragon helmsman, blue scales on arms, open kimono, ocean wave tattoos, steering ship wheel, 8k anime art',
+        voiceStyle: 'ทุ้มต่ำ หนักแน่น อบอุ่น ทรงพลังดั่งคลื่นทะเล',
+      },
+      {
+        namePrefix: 'แม่ทัพเรือไครอส (พลเรือโทหมัดอัคคี / นักล่าค่าหัวระดับสูง)',
+        role: 'antagonist',
+        age: '45 ปี',
+        bodyBuild: 'สูงใหญ่ 2.4 เมตร บ่ากว้าง ร่างกายบึกบึน',
+        facialFeatures: 'ใบหน้าเหลี่ยม หนวดเคราสั้น แววตาดุร้ายไร้ความปรานี',
+        hairStyle: 'ผมสั้นสีดำแซมเทา',
+        clothingStyle: 'เครื่องแบบทหารเรือยศนายพลสีขาวขอบทอง เสื้อคลุมไหล่ปลิวไสว',
+        colorTheme: 'สีขาว-ทอง-เพลิงส้ม',
+        weaponsOrProps: 'หมัดฮาคิเหล็กกล้าเพลิง / ปืนใหญ่พกพา',
+        personality: 'เชื่อในกฎหมายและความเด็ดขาด ไล่ล่าโจรสลัดไม่ยอมลดละ',
+        abilities: 'หมัดระเบิดเพลิงผลาญน่านน้ำ, ร่างกายเหล็กไหลทนทานกระสุน',
+        weaknesses: 'ความทะนงตนในเกียรติยศและยศฐาบรรดาศักดิ์',
+        relationships: 'ศัตรูตัวฉกาจที่นำกองเรือรบ 10 ลำมาปิดล้อมจับกุม',
+        appearanceAnchor: 'commanding anime marine vice admiral, white coat with golden epaulets, flaming iron fist, stern aggressive face, 8k anime art',
+        voiceStyle: 'ทรงอำนาจ ตะโกนสั่งการกึกก้อง ดุดัน',
+      },
+    ],
+    xianxia: [
+      {
+        namePrefix: 'หลินเฟิง (ศิษย์พี่ใหญ่กระบี่สายฟ้า / ผู้พิทักษ์ค่ายกล)',
+        role: 'supporting',
+        age: '24 ปี',
+        bodyBuild: 'สูงโปร่ง แข็งแรง สง่างาม มีประจุสายฟ้าแลบแปลบปลาบรอบตัว',
+        facialFeatures: 'คิ้วกระบี่ แววตาสีม่วงสายฟ้า คมคาย สุขุม',
+        hairStyle: 'ผมยาวสีดำรวบครึ่งศีรษะประดับปิ่นเงินลายสายฟ้า',
+        clothingStyle: 'ชุดคลุมสำนักสีครามเข้มขลิบเงิน สวมเกราะแขนหนังมังกร',
+        colorTheme: 'สีม่วงสายฟ้า-ครามเข้ม-เงิน',
+        weaponsOrProps: 'กระบี่สายฟ้าเก้าพิโรธ / ยันต์สายฟ้าทลายมาร',
+        personality: 'เคร่งครัด ซื่อตรง ปกป้องศิษย์น้องด้วยชีวิต ไม่เกรงกลัวอำนาจมืด',
+        abilities: 'เพลงกระบี่อัสนีบาตฟาดฟัน 100 ช็อตในเสี้ยววินาที, เรียกม่านบาเรียสายฟ้า',
+        weaknesses: 'ยึดมั่นในกฎเกณฑ์จนบางครั้งขาดความยืดหยุ่น',
+        relationships: 'ศิษย์พี่ร่วมสำนักผู้ร่วมรบเคียงบ่าเคียงไหล่กับเซียวเฉิน',
+        appearanceAnchor: 'handsome Chinese xianxia thunder swordsman, dark blue and silver robe, violet lightning aura, wielding electric sword, 3D Donghua 8k',
+        voiceStyle: 'ทุ้ม หนักแน่น สุขุม ชัดถ้อยชัดคำ',
+      },
+      {
+        namePrefix: 'มู่หรงเยว่ (จอมนางพิณมนตรา / ทายาทหุบเขาพันบุปผา)',
+        role: 'supporting',
+        age: '20 ปี',
+        bodyBuild: 'สง่างาม อ่อนช้อย รูปร่างสมส่วนดั่งนางสวรรค์จุติ',
+        facialFeatures: 'ใบหน้างดงามสะกดสายตา ดวงตากวางสีน้ำตาลเข้ม ริมฝีปากแต้มชาด',
+        hairStyle: 'ผมยาวสลวยสีน้ำตาลเข้มเกล้ามวยผีเสื้อประดับดอกบัวหยก',
+        clothingStyle: 'ชุดผ้าไหมแพรพรรณสีชมพูกลีบบัว ชายกระโปรงพริ้วไหวต้านลมปราณ',
+        colorTheme: 'สีชมพูดอกท้อ-ขาวหยก-ทองคำ',
+        weaponsOrProps: 'พิณโบราณเจ็ดสาย "ม่านเมฆา" / ใบหลิวสังหาร',
+        personality: 'ฉลาด สุภาพ มีรอยยิ้มลึกลับ อ่านกลยุทธ์ศัตรูได้อย่างแม่นยำ',
+        abilities: 'เสียงพิณตัดวิญญาณ, สร้างค่ายกลมิติภาพลวงตา, รักษาบาดแผลลมปราณ',
+        weaknesses: 'แพ้การประชิดตัวระยะเผาขน',
+        relationships: 'สหายคนสำคัญผู้คอยสนับสนุนจังหวะการต่อสู้จากแนวหลัง',
+        appearanceAnchor: 'breathtaking Chinese fairy playing floating ancient zither guqin, pink lotus silk dress, glowing sound waves, 3D Donghua 8k',
+        voiceStyle: 'ไพเราะ นุ่มนวล อ่อนหวาน ก้องกังวานดั่งเสียงน้ำพุสวรรค์',
+      },
+      {
+        namePrefix: 'ราชามารโลหิต อสูรพันกร (แม่ทัพฝ่ายมาร / ศัตรูระดับขุนพล)',
+        role: 'antagonist',
+        age: 'สามร้อยปี',
+        bodyBuild: 'สูง 2.3 เมตร กล้ามเนื้อสีแดงโลหิต มีเกล็ดมารทมิฬปกคลุม',
+        facialFeatures: 'ใบหน้าเหี้ยมเกรียม เขามารสีดำแหลมคม 2 ข้าง แววตาสีแดงกระหายเลือด',
+        hairStyle: 'ผมยาวสีแดงเพลิงสยายกลางหลัง',
+        clothingStyle: 'เกราะกระดูกอสูรโบราณ ผ้าคลุมสีดำเปื้อนเลือด',
+        colorTheme: 'สีแดงเลือดนก-ดำทมิฬ-ทองแดง',
+        weaponsOrProps: 'ดาบวงพระจันทร์โลหิตคู่ / โซ่ตรวนวิญญาณคนบาป',
+        personality: 'ดุดัน ป่าเถื่อน กระหายการทำลายล้าง ไร้ความปรานี',
+        abilities: 'สูบปราณโลหิตฟื้นฟูพลังตนเอง, เพลงดาบโลหิตผ่าสวรรค์, หมอกพิษกลืนกระดูก',
+        weaknesses: 'แพ้พลังแสงสวรรค์บริสุทธิ์และกระบี่ฟ้าประทาน',
+        relationships: 'ขุนพลมือขวาของจ้าวอสูรโลหิต ผู้คุมกองทัพมารบุกสำนัก',
+        appearanceAnchor: 'fearsome Chinese blood demon general, crimson skin, black demon horns, twin curved blood blades, dark skull armor, 3D Donghua 8k',
+        voiceStyle: 'คำรามดุดัน ดั่งสัตว์ร้ายกระหายเลือด',
+      },
+    ],
+    military: [
+      {
+        namePrefix: 'หมวดสไนเปอร์อีเกิล (พลแม่นปืนดวงตามรณะ)',
+        role: 'supporting',
+        age: '26 ปี',
+        bodyBuild: 'เพรียว คล่องแคล่ว อดทนสูง ซ่อนตัวได้นานหลายชั่วโมง',
+        facialFeatures: 'แววตานิ่งสงบดั่งเหยี่ยว สวมผ้าคลุมพรางตา',
+        hairStyle: 'ผมสั้นสีดำเกรียนทหาร',
+        clothingStyle: 'ชุดกิลลี่สูท (Ghillie Suit) ลายพรางป่าดิบชื้น',
+        colorTheme: 'สีเขียวขี้ม้า-น้ำตาลดิน-ดำ',
+        weaponsOrProps: 'ไรเฟิลซุ่มยิงขนาด .50 BMG ติดกล้องจับความร้อน / ปืนพกเก็บเสียง',
+        personality: 'เยือกเย็น สมาธิสูง พูดน้อย นัดเดียวดับชีพศัตรู',
+        abilities: 'ยิงสังหารเป้าหมายระยะ 1,500 เมตร, ล่องหนกลมกลืนกับสภาพแวดล้อม',
+        weaknesses: 'ไม่ถนัดประจัญบานระยะเผาขน',
+        relationships: 'มือปืนระวังหลังให้หน่วยรบพิเศษ',
+        appearanceAnchor: 'tactical military sniper in ghillie suit, .50 cal sniper rifle, ghillie camouflage, intense focused eyes, 8k cinematic',
+        voiceStyle: 'กระซิบต่ำ นิ่ง เด็ดขาด',
+      },
+      {
+        namePrefix: 'จ่าเอกสปาร์ก (ช่างเทคนิคและผู้เชี่ยวชาญวัตถุระเบิด EOD)',
+        role: 'supporting',
+        age: '29 ปี',
+        bodyBuild: 'กำยำ ทรงพลัง มือไม้แข็งแรงและนิ่งสนิท',
+        facialFeatures: 'ใบหน้าเปื้อนคราบเขม่า แววตามั่นใจ มีรอยยิ้มท้าทาย',
+        hairStyle: 'ผมสีน้ำตาลตัดสั้น',
+        clothingStyle: 'ชุดเวสต์เก็บอุปกรณ์ EOD เครื่องตรวจจับโลหะและระเบิด',
+        colorTheme: 'สีดำ-ส้มสะท้อนแสง-เทาเหล็ก',
+        weaponsOrProps: 'อุปกรณ์กู้ระเบิดความถี่สูง / ลูกระเบิด C4 ยุทธวิธี',
+        personality: 'กล้าได้กล้าเสีย มือเบา ไม่เคยตื่นเต้นกับตัวเลขนับถอยหลัง',
+        abilities: 'ปลดชนวนระเบิดทุกชนิดใน 10 วินาที, สร้างกับดักระเบิดต้านรถถัง',
+        weaknesses: 'ชอบเสี่ยงภัยเกินความจำเป็น',
+        relationships: 'หน่วยเคลียร์เส้นทางปลอดภัยให้เพื่อนร่วมทีม',
+        appearanceAnchor: 'badass combat combat engineer EOD soldier, explosive vests, detonator, wire cutters, rugged smile, 8k cinematic',
+        voiceStyle: 'กวนๆ มั่นใจ หนักแน่น',
+      },
+    ],
+    scifi: [
+      {
+        namePrefix: 'ดร.โนวา (วิศวกรควอนตัม / ผู้ควบคุมไฮเปอร์ไดรฟ์)',
+        role: 'supporting',
+        age: '28 ปี',
+        bodyBuild: 'สูงโปร่ง สวมแว่นโฮโลแกรมสแกนข้อมูล',
+        facialFeatures: 'ดวงตาสีฟ้าครามเฉลียวฉลาด ใบหน้ามีสมาธิตลอดเวลา',
+        hairStyle: 'ผมยาวสีเงินมัดรวบสูง',
+        clothingStyle: 'ชุดสูทห้องแล็บไฮเทคสีขาวเคลือบสารป้องกันรังสีคอสมิก',
+        colorTheme: 'สีขาว-ฟ้าเทคโนโลยี-เงิน',
+        weaponsOrProps: 'ปืนกระตุ้นสนามแม่เหล็กควอนตัม / แท็บเล็ตมิติโฮโลแกรม',
+        personality: 'คิดเชิงวิทยาศาสตร์ มีเหตุผล มองเห็นทางรอดในสถานการณ์สิ้นหวัง',
+        abilities: 'เปิดเกราะป้องกันสนามพลังงาน, คำนวณวิถียานหลบฝนอุกกาบาต',
+        weaknesses: 'ร่างกายไม่ทนทานต่อการต่อสู้ระยะประชิด',
+        relationships: 'สมองกลของทีมผู้ดูแลเครื่องยนต์และระบบพลังงาน',
+        appearanceAnchor: 'brilliant female sci-fi quantum engineer, white lab suit, holographic glasses, data pad, glowing blue reactor core, 8k scifi art',
+        voiceStyle: 'ชัดเจน ฉะฉาน สุภาพ มีเหตุผล',
+      },
+    ],
+  };
+
+  const pool = archetypesByCategory[category] || archetypesByCategory.tower;
+
+  for (let k = 0; k < needed; k++) {
+    const archetype = pool[k % pool.length];
+    const charNum = baseRoster.length + k + 1;
+    const randomSeed = String(Math.floor(100000 + Math.random() * 900000));
+
+    result.push({
+      id: `char-dyn-${Date.now()}-${k + 1}`,
+      name: `${archetype.namePrefix} [${charNum}]`,
+      role: archetype.role,
+      age: archetype.age,
+      bodyBuild: archetype.bodyBuild,
+      facialFeatures: archetype.facialFeatures,
+      hairStyle: archetype.hairStyle,
+      clothingStyle: archetype.clothingStyle,
+      colorTheme: archetype.colorTheme,
+      weaponsOrProps: archetype.weaponsOrProps,
+      personality: archetype.personality,
+      abilities: archetype.abilities,
+      weaknesses: archetype.weaknesses,
+      relationships: archetype.relationships,
+      appearanceAnchor: archetype.appearanceAnchor,
+      voiceStyle: archetype.voiceStyle,
+      googleFlowSeed: randomSeed,
+      googleFlowPrompt: `${archetype.appearanceAnchor}, character portrait, 8k resolution, cinematic lighting --seed ${randomSeed}`,
+    });
+  }
+
+  return result;
 }

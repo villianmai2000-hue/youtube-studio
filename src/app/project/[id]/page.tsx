@@ -310,6 +310,53 @@ export default function ProjectStudioPage() {
     }
   };
 
+  // Save Characters and Immediately Auto-Inject into Continuous Movie Script
+  const handleSaveCharactersAndInjectScript = async (chars: CharacterBible[]) => {
+    if (!project) return;
+    const calc = calculateMovieScenesCount(project.targetDurationMinutes);
+    const confirmed = confirm(
+      `⚡ ยืนยันบันทึกและนำตัวละครทั้ง ${chars.length} ตัว ลงไปในบทภาพยนตร์ทันที:\n\n` +
+      `📌 ชื่อเรื่อง: ${project.title}\n` +
+      `👥 ตัวละคร: ${chars.length} ตัว (ทุกคนจะมีบทพูด 10 วินาทีและฉากต่อสู้ตามลำดับเรื่อง)\n` +
+      `⏱️ ความยาวเป้าหมาย: ${project.targetDurationMinutes} นาที (${calc.totalScenes} ฉาก @ 10 วิ/ฉาก)\n\n` +
+      `ระบบจะคำนวณและเขียนบทภาพยนตร์ใหม่ให้สอดคล้องกับตัวละครชุดนี้ทันที\n` +
+      `ต้องการดำเนินการต่อหรือไม่?`
+    );
+    if (!confirmed) return;
+
+    setGeneratingFullScenes(true);
+    try {
+      const newScenes = generateContinuousMovieScenes({
+        title: project.title,
+        synopsis: project.synopsis,
+        genre: project.genre,
+        visualMedium: project.visualMedium,
+        stylePreset: project.stylePreset,
+        targetDurationMinutes: project.targetDurationMinutes,
+        characters: chars,
+        aspectRatio: project.aspectRatio,
+        worldCulture: project.worldCulture,
+        subGenre: project.subGenre,
+      });
+
+      const updatedProject: Project = {
+        ...project,
+        characters: chars,
+        scenes: newScenes,
+      };
+
+      setProject(updatedProject);
+      await handleSave(updatedProject);
+      setStudioPage(1);
+      setIsCharModalOpen(false);
+      alert(`🎉 บันทึกตัวละคร ${chars.length} ตัว และสร้างบทภาพยนตร์ใหม่ให้ทุกคนครบทั้ง ${newScenes.length} ฉากเรียบร้อยแล้ว!`);
+    } catch (err: unknown) {
+      alert('เกิดข้อผิดพลาด: ' + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setGeneratingFullScenes(false);
+    }
+  };
+
   // Toggle selection for a scene
   const handleToggleSelectScene = (sceneId: string) => {
     setSelectedSceneIds((prev) =>
@@ -1475,6 +1522,7 @@ export default function ProjectStudioPage() {
           setProject(updated);
           handleSave(updated);
         }}
+        onSaveAndInjectIntoScript={handleSaveCharactersAndInjectScript}
       />
 
       {/* World & Story Bible Modal (9 & 8 Dimensions) */}
