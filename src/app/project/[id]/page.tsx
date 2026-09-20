@@ -321,21 +321,29 @@ export default function ProjectStudioPage() {
 
     let output = '';
 
+    const sanitizePrompt = (text?: string) => {
+      if (!text) return '';
+      return text
+        .replace(/\[Google Flow Seed Lock:[^\]]*\]\s*/gi, '')
+        .replace(/Seed Lock:[^\n]*\n?/gi, '')
+        .replace(/\(Seed:[^\)]*\)/gi, '')
+        .replace(/--seed\s+\d+/gi, '')
+        .trim();
+    };
+
     if (type === 'narration') {
-      // Merged Voiceover narration only
+      // Merged Narrations
       output = targets
         .map((s) => s.narration.trim())
         .filter(Boolean)
         .join('\n\n');
     } else if (type === 'dialogues') {
-      // Merged Character dialogues
+      // Merged Dialogues
       output = targets
         .map((s) => {
-          if (s.dialogues.length === 0) return null;
-          const dlgs = s.dialogues
-            .map((d) => `${d.speaker} (${d.emotion}): "${d.text}"`)
-            .join('\n');
-          return `[ฉากที่ ${s.sceneNumber}: ${s.title}]\n${dlgs}`;
+          if (!s.dialogues || s.dialogues.length === 0) return null;
+          const diaLines = s.dialogues.map((d) => `${d.speaker} (${d.emotion}): "${d.text}"`).join('\n');
+          return `[ฉากที่ ${s.sceneNumber}: ${s.title}]\n${diaLines}`;
         })
         .filter(Boolean)
         .join('\n\n');
@@ -345,34 +353,32 @@ export default function ProjectStudioPage() {
         .map((s) => `[ฉากที่ ${s.sceneNumber}: ${s.title}]\n${s.imagePrompt}`)
         .join('\n\n');
     } else if (type === 'videos') {
-      // Merged Video motion prompts
+      // Merged Video motion prompts (คลีน Seed Lock ออก เพื่อให้เจนวิดีโอไม่เพี้ยน)
       output = targets
-        .map((s) => `[ฉากที่ ${s.sceneNumber}: ${s.title}]\n${s.videoMotionPrompt}`)
+        .map((s) => `[ฉากที่ ${s.sceneNumber}: ${s.title}]\n${sanitizePrompt(s.videoMotionPrompt)}`)
         .join('\n\n');
     } else if (type === 'flow') {
-      // Merged Google Flow prompts (flow.google.com with seed lock)
+      // Merged Google Flow prompts (flow.google.com คลีน ไม่เพี้ยน)
       output = targets
-        .map((s) => {
-          const flowSeed = s.googleFlowSeed || '12345';
-          const flowPrompt = s.googleFlowPrompt || `${s.imagePrompt} --seed ${flowSeed}`;
-          return `[ฉากที่ ${s.sceneNumber}: ${s.title} - flow.google.com] (Seed: ${flowSeed})\n${flowPrompt}`;
-        })
+        .map((s) => `[ฉากที่ ${s.sceneNumber}: ${s.title} - flow.google.com]\n${sanitizePrompt(s.googleFlowPrompt || s.imagePrompt)}`)
         .join('\n\n');
     } else if (type === 'meta') {
       // All-in-One Meta/Facebook Reels Production Package (บทพากย์ + ฉาก + บทพูด + SFX + พร้อมต์วิดีโอ + แฮชแท็ก)
       output = `🚀 รวมทุกอย่างสำหรับสร้างคลิปใน Meta / Facebook Reels เบ็ดเสร็จ\n`;
       output += `==========================================================\n`;
       output += `📌 ชื่อเรื่อง / แคปชันวิดีโอ: ${project.title}\n`;
-      output += `📐 สัดส่วน: ${project.aspectRatio || '9:16'} (Reels / Shorts) | ความยาว: ~${targets.length * 10} วินาที (${targets.length} ฉาก @ 10 วิ/ฉาก)\n`;
-      output += `🤖 AI Engine: ${project.scriptEngine || 'Google Gemini'} | โหมด: ${project.visualMedium === 'live_action' ? 'ภาพยนตร์คนจริง (Live-Action)' : 'อนิเมะ 3D'}\n\n`;
+      output += `📐 สัดส่วน: ${project.aspectRatio || '16:9'} (Reels / Shorts) | ความยาว: ~${targets.length * 10} วินาที (${targets.length} ฉาก @ 10 วิ/ฉาก)\n`;
+      output += `🤖 AI Engine: ${project.scriptEngine || 'gemini_3_1_pro'} | โหมด: ${project.visualMedium === 'live_action' ? 'ภาพยนตร์คนจริง (Live-Action)' : 'อนิเมะ 3D'}\n\n`;
 
-      output += `📖 [1. บทบรรยายสำหรับลงเสียงพากย์ / Voiceover รวดเดียวจบ]:\n`;
+      output += `📖 [1. บทบรรยายสำหรับลงเสียงพากย์ / Voiceover (แบ่งฉากละ 10 วินาที / พากย์รวดเดียวจบ)]:\n`;
       output += `----------------------------------------------------------\n`;
-      output += targets
-        .map((s) => s.narration.trim())
-        .filter(Boolean)
-        .join(' ');
-      output += `\n\n`;
+      targets.forEach((s, idx) => {
+        const startSec = idx * 10;
+        const endSec = (idx + 1) * 10;
+        const startMinStr = `${Math.floor(startSec / 60)}:${String(startSec % 60).padStart(2, '0')}`;
+        const endMinStr = `${Math.floor(endSec / 60)}:${String(endSec % 60).padStart(2, '0')}`;
+        output += `⏱️ [ฉากที่ ${s.sceneNumber} (${startMinStr} - ${endMinStr})]:\n${s.narration.trim()}\n\n`;
+      });
 
       output += `🎬 [2. ไทม์ไลน์แจกแจงทีละฉาก (ลำดับภาพ + บทพูด + ซาวด์ SFX/BGM + พร้อมต์วิดีโอ)]:\n`;
       output += `----------------------------------------------------------\n`;
@@ -383,7 +389,7 @@ export default function ProjectStudioPage() {
         const endMinStr = `${Math.floor(endSec / 60)}:${String(endSec % 60).padStart(2, '0')}`;
         output += `[ฉากที่ ${s.sceneNumber}] (${startMinStr} - ${endMinStr}) : ${s.title}\n`;
         output += `🎙️ เสียงพากย์: ${s.narration}\n`;
-        if (s.dialogues.length > 0) {
+        if (s.dialogues && s.dialogues.length > 0) {
           output += `💬 บทพูดตัวละคร:\n`;
           s.dialogues.forEach((d) => {
             output += `   • ${d.speaker} (${d.emotion}): "${d.text}"\n`;
@@ -391,8 +397,8 @@ export default function ProjectStudioPage() {
         }
         output += `🎵 ดนตรี & เอฟเฟกต์เสียง: ${s.sfxBgm}\n`;
         output += `🎥 มุมกล้อง & แสง: ${s.cameraMovement} | ${s.lighting}\n`;
-        output += `📹 พร้อมต์เจนวิดีโอ AI (Kling/Runway/Haiper): ${s.videoMotionPrompt}\n`;
-        output += `🌊 flow.google.com (Seed: ${s.googleFlowSeed || '12345'}): ${s.googleFlowPrompt || `${s.imagePrompt} --seed ${s.googleFlowSeed || '12345'}`}\n`;
+        output += `📹 พร้อมต์เจนวิดีโอ AI (Kling/Runway/Haiper): ${sanitizePrompt(s.videoMotionPrompt)}\n`;
+        output += `🌊 flow.google.com: ${sanitizePrompt(s.googleFlowPrompt || s.imagePrompt)}\n`;
         output += `\n`;
       });
 
@@ -411,7 +417,7 @@ export default function ProjectStudioPage() {
       output += `รวม ${targets.length} ฉาก (ความยาวรวม ~${targets.length * 10} วินาที @ 10 วิ/ฉาก)\n\n`;
       output += `=== รายชื่อตัวละคร (Character Bible) ===\n`;
       project.characters.forEach((c) => {
-        output += `- ${c.name} (${c.role}): ${c.appearanceAnchor} (Seed: ${c.googleFlowSeed || 'N/A'})\n`;
+        output += `- ${c.name} (${c.role}): ${c.appearanceAnchor}\n`;
       });
       output += `\n============================================\n\n`;
       targets.forEach((s) => {
@@ -419,7 +425,7 @@ export default function ProjectStudioPage() {
         output += `🎥 ทิศทางกล้อง: ${s.cameraMovement}\n`;
         output += `💡 แสงเงา: ${s.lighting}\n`;
         output += `🎙️ บทบรรยายเสียงพากย์:\n${s.narration}\n`;
-        if (s.dialogues.length > 0) {
+        if (s.dialogues && s.dialogues.length > 0) {
           output += `💬 บทสนทนาตัวละคร:\n`;
           s.dialogues.forEach((d) => {
             output += `  ${d.speaker} (${d.emotion}): "${d.text}"\n`;
@@ -427,8 +433,8 @@ export default function ProjectStudioPage() {
         }
         output += `🎵 เสียง/ดนตรี: ${s.sfxBgm}\n`;
         output += `🎨 Prompt ภาพ (Midjourney/Flux): ${s.imagePrompt}\n`;
-        output += `📹 Prompt วิดีโอ (Kling/Runway): ${s.videoMotionPrompt}\n`;
-        output += `🌊 flow.google.com (Seed: ${s.googleFlowSeed || '12345'}): ${s.googleFlowPrompt || `${s.imagePrompt} --seed ${s.googleFlowSeed || '12345'}`}\n\n`;
+        output += `📹 Prompt วิดีโอ (Kling/Runway): ${sanitizePrompt(s.videoMotionPrompt)}\n`;
+        output += `🌊 flow.google.com: ${sanitizePrompt(s.googleFlowPrompt || s.imagePrompt)}\n\n`;
       });
     }
 
