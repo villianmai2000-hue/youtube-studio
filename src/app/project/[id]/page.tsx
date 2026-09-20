@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Project, ScriptScene, VisualMedium, StylePreset, CharacterBible, User as UserType } from '@/lib/types';
 import SceneCard from '@/components/SceneCard';
 import CharacterBibleModal from '@/components/CharacterBibleModal';
+import WorldStoryModal from '@/components/WorldStoryModal';
 import VideoTimelinePlayer from '@/components/VideoTimelinePlayer';
 import LoginModal from '@/components/LoginModal';
 import MetaPackageModal from '@/components/MetaPackageModal';
@@ -31,6 +32,7 @@ import {
   Lock,
   LogIn,
   Eye,
+  Globe,
 } from 'lucide-react';
 
 export default function ProjectStudioPage() {
@@ -55,6 +57,9 @@ export default function ProjectStudioPage() {
 
   // Character Bible Modal
   const [isCharModalOpen, setIsCharModalOpen] = useState(false);
+
+  // World & Story Bible Modal (9 & 8 Dimensions)
+  const [isWorldStoryModalOpen, setIsWorldStoryModalOpen] = useState(false);
 
   // Meta Reels Master Package Modal (Seedream 5.0 Pro)
   const [isMetaModalOpen, setIsMetaModalOpen] = useState(false);
@@ -608,6 +613,15 @@ export default function ProjectStudioPage() {
             <span>สมุดคุมตัวละคร ({project.characters.length})</span>
           </button>
 
+          {/* World & Story Bible Button */}
+          <button
+            onClick={() => setIsWorldStoryModalOpen(true)}
+            className="px-3 py-2 rounded-xl bg-studio-900 border border-studio-700 text-gray-300 hover:text-white hover:border-studio-600 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+          >
+            <Globe className="w-3.5 h-3.5 text-cyan-400" />
+            <span>ข้อมูลโลก &amp; โครงเรื่อง</span>
+          </button>
+
           {/* Export Button */}
           <Link
             href={`/project/${projectId}/export`}
@@ -1107,11 +1121,28 @@ export default function ProjectStudioPage() {
         isOpen={isCharModalOpen}
         onClose={() => setIsCharModalOpen(false)}
         characters={project.characters}
+        project={project}
         projectId={project.id}
         visualMedium={project.visualMedium}
         stylePreset={project.stylePreset}
         onSaveCharacters={(chars) => {
           const updated = { ...project, characters: chars };
+          setProject(updated);
+          handleSave(updated);
+        }}
+      />
+
+      {/* World & Story Bible Modal (9 & 8 Dimensions) */}
+      <WorldStoryModal
+        isOpen={isWorldStoryModalOpen}
+        onClose={() => setIsWorldStoryModalOpen(false)}
+        project={project}
+        onSave={(updatedWorld, updatedStory) => {
+          const updated = {
+            ...project,
+            worldBuilding: updatedWorld,
+            storyArchitecture: updatedStory,
+          };
           setProject(updated);
           handleSave(updated);
         }}

@@ -1,30 +1,36 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Sparkles,
   Film,
-  Palette,
-  Clock,
-  User,
-  ShieldAlert,
-  Bot,
-  Smartphone,
   Tv,
-  Plus,
-  Trash2,
-  Lock,
-  RefreshCw,
+  Clock,
+  Globe,
+  Palette,
+  Bot,
+  X,
   Check,
+  Zap,
 } from 'lucide-react';
 import {
-  MovieGenre,
+  WorldCulture,
   VisualMedium,
   StylePreset,
   AspectRatio,
   ScriptEngine,
-  CharacterBible,
+  MovieGenre,
 } from '@/lib/types';
+import {
+  ANIME_GENRES,
+  ANIME_STYLES,
+  MOVIE_GENRES,
+  MOVIE_STYLES,
+  CHINESE_SETTING_SUBGENRES,
+  JAPANESE_SETTING_SUBGENRES,
+  THAI_SETTING_SUBGENRES,
+  getSubgenresByCulture,
+} from '@/lib/studio-categories';
 
 interface NewProjectModalProps {
   isOpen: boolean;
@@ -32,235 +38,72 @@ interface NewProjectModalProps {
   onCreated: (projectId: string) => void;
 }
 
-interface TempCharacter {
-  name: string;
-  role: 'protagonist' | 'antagonist' | 'supporting';
-  appearanceAnchor: string;
-  clothingStyle: string;
-  voiceStyle: string;
-  weaponsOrProps: string;
-  googleFlowSeed: string;
-}
-
-function getCharacterPresets(targetGenre: MovieGenre, count: number): TempCharacter[] {
-  if (targetGenre === 'military_tactical') {
-    const list: TempCharacter[] = [
-      {
-        name: 'ผู้การพายุ',
-        role: 'protagonist',
-        appearanceAnchor:
-          'ผู้บัญชาการหน่วยรบพิเศษหนุ่ม ผิวเข้มคมเข้ม สวมหมวกเบเรต์และชุดเกราะ Tactical Vest ลายพราง แววตาเด็ดเดี่ยว มีแผลเป็นเล็กๆ เหนือคิ้วซ้าย 8k photorealistic',
-        clothingStyle: 'ชุดเกราะ Tactical Vest ลายพรางสนามรบ วิทยุสื่อสารสะพายบ่า',
-        voiceStyle: 'ดุดัน หนักแน่น สั่งการเฉียบขาด',
-        weaponsOrProps: 'ปืนไรเฟิลจู่โจมติดกล้องเล็งและไฟเลเซอร์',
-        googleFlowSeed: '849201',
-      },
-      {
-        name: 'พลเอกศัตรู (มาร์คอฟ)',
-        role: 'antagonist',
-        appearanceAnchor:
-          'หัวหน้ากองกำลังฝ่ายตรงข้าม รูปร่างกำยำ สวมหน้ากากกันแก๊สและแว่นยุทธวิธีสีดำทมิฬ เสื้อเกราะหนักลายพรางเทาดำ แววตาดุดัน 8k photorealistic',
-        clothingStyle: 'เสื้อเกราะหนักลายพรางเทาดำ หน้ากากยุทธวิธี',
-        voiceStyle: 'ดุดัน ทะนงตัว เยือกเย็น',
-        weaponsOrProps: 'ปืนกลหนักและรีโมตจุดชนวนขีปนาวุธ',
-        googleFlowSeed: '631894',
-      },
-      {
-        name: 'หมวดฟ้าใส',
-        role: 'supporting',
-        appearanceAnchor:
-          'พลซุ่มยิงหญิงหน่วยปฏิบัติการพิเศษ ผมรวบหางม้า สายตาคมกริบ แว่นยุทธวิธี Night-Vision สวมชุดพรางกิลลี่สูท 8k photorealistic',
-        clothingStyle: 'ชุดกิลลี่สูทพรางตัว สไนเปอร์เวสต์',
-        voiceStyle: 'เยือกเย็น สุขุม รายงานเป้าหมายเฉียบคม',
-        weaponsOrProps: 'ปืนไรเฟิลซุ่มยิงลำกล้องยาวเก็บเสียงพร้อมกล้องจับความร้อน',
-        googleFlowSeed: '518293',
-      },
-      {
-        name: 'พลเอกธนา (ศบภ.)',
-        role: 'supporting',
-        appearanceAnchor:
-          'นายพลผู้บัญชาการศูนย์ยุทธการร่วม ผมสีดอกเลา ใบหน้าสุขุมน่าเกรงขาม สวมเครื่องแบบทหารระดับสูง ประดับเหรียญเกียรติยศ 8k cinematic portrait',
-        clothingStyle: 'เครื่องแบบทหารระดับสูง คุมหน้าจอโฮโลแกรมยุทธวิธี',
-        voiceStyle: 'สุขุม หนักแน่น ทรงอำนาจสั่งการระดับชาติ',
-        weaponsOrProps: 'แท็บเล็ตสั่งการระบบขีปนาวุธป้องกันภัยทางอากาศ',
-        googleFlowSeed: '394102',
-      },
-    ];
-    return list.slice(0, count);
-  }
-
-  if (targetGenre === 'xianxia_cultivation') {
-    const list: TempCharacter[] = [
-      {
-        name: 'เซียวหลิน',
-        role: 'protagonist',
-        appearanceAnchor:
-          'จอมยุทธ์หนุ่มรูปงาม ผมยาวสีขาวเงินเกล้ามวยด้วยปิ่นหยกขาว สวมชุดคลุมเต๋าผ้าไหมสีดำปักดิ้นทอง แววตาสีอำพัน สะพายกระบี่เทพโบราณสีคราม สไตล์อนิเมะจีน 3D สวยสง่า',
-        clothingStyle: 'ชุดคลุมผ้าไหมโบราณพริ้วไหวปักดิ้นทอง',
-        voiceStyle: 'ทุ้ม นิ่ง สุขุม แฝงพลังความมุ่งมั่น',
-        weaponsOrProps: 'กระบี่ครามโบราณลอยกลางอากาศ',
-        googleFlowSeed: '741258',
-      },
-      {
-        name: 'จ้าวอสูรโลหิต',
-        role: 'antagonist',
-        appearanceAnchor:
-          'จ้าวอสูรผู้เกรงขาม แววตาสีแดงเพลิงเรืองรอง สวมชุดเกราะหนามสีดำทมิฬ มีไอหมอกมารสีเลือดแผ่ออกมารอบตัว สไตล์อนิเมะจีน 3D',
-        clothingStyle: 'ชุดเกราะหนามทมิฬ แผ่ไอหมอกมารสีเลือด',
-        voiceStyle: 'ดุดัน ทะนงตัว เยือกเย็น',
-        weaponsOrProps: 'ง้าวโลหิตทมิฬ / พลังออร่ามาร',
-        googleFlowSeed: '952314',
-      },
-      {
-        name: 'ไป๋หลิง',
-        role: 'supporting',
-        appearanceAnchor:
-          'เซียนสาวรูปโฉมงดงามดุจภาพวาด ผมดำขลับประดับดอกเหมย สวมชุดผ้าไหมแพรพรรณสีขาวบริสุทธิ์ แววตาอ่อนโยนแต่เปี่ยมพลังกระบี่บงกช สไตล์อนิเมะจีน 3D',
-        clothingStyle: 'ชุดคลุมผ้าไหมสีขาวพริ้วไหว ประดับหยกพิสุทธิ์',
-        voiceStyle: 'ไพเราะ นุ่มนวล แต่หนักแน่นในคุณธรรม',
-        weaponsOrProps: 'กระบี่ดอกบัวหิมะ / พิณโบราณสะกดมาร',
-        googleFlowSeed: '482190',
-      },
-      {
-        name: 'เจ้าสำนักเฒ่าหาน',
-        role: 'supporting',
-        appearanceAnchor:
-          'ปรมาจารย์ผู้เฒ่าเครายาวสีหิมะ ดวงตาแจ่มใสเปี่ยมปัญญา นั่งสมาธิบนแท่นหิน มีกลิ่นอายเซียนทองคำหมุนวนรอบกาย สไตล์อนิเมะจีน 3D',
-        clothingStyle: 'ชุดนักพรตเต๋าสีครามปักลายแปดทิศ',
-        voiceStyle: 'ก้องกังวาน เปี่ยมบารมี ให้แง่คิดคมคาย',
-        weaponsOrProps: 'แส้ปัดหางม้าขาว / ค่ายกลแปดทิศทองคำ',
-        googleFlowSeed: '617283',
-      },
-    ];
-    return list.slice(0, count);
-  }
-
-  // Default / Action Scifi
-  const list: TempCharacter[] = [
-    {
-      name: 'เอเป็กซ์ (Apex)',
-      role: 'protagonist',
-      appearanceAnchor:
-        'นักรบไซบอร์กหนุ่ม แขนกลชีวภาพเรืองแสงนีออนสีฟ้า สวมแจ็กเก็ตแทคติคอลหนังสีดำ แววตาเด็ดเดี่ยว 8k cyberpunk cinematic',
-      clothingStyle: 'แจ็กเก็ตหนังไซเบอร์พังก์ อุปกรณ์เกราะเบา',
-      voiceStyle: 'เท่ คม ชัดเจน',
-      weaponsOrProps: 'ดาบพลาสม่าคู่ / ปืนพกพลังงาน',
-      googleFlowSeed: '782910',
-    },
-    {
-      name: 'โอเมก้า (Omega Prime)',
-      role: 'antagonist',
-      appearanceAnchor:
-        'หุ่นรบ AI สังหารขนาดยักษ์ ดวงตาเซนเซอร์สีแดงเลือด เกราะเหล็กไททาเนียมทมิฬ มีไอความร้อนพวยพุ่ง 8k sci-fi cinematic',
-      clothingStyle: 'เกราะเหล็กนาโนสีเทาดำ',
-      voiceStyle: 'หุ่นยนต์สังเคราะห์ เยือกเย็น ไร้ความปรานี',
-      weaponsOrProps: 'ปืนใหญ่เลเซอร์ประจุควอนตัม',
-      googleFlowSeed: '891024',
-    },
-    {
-      name: 'โนวา (Nova)',
-      role: 'supporting',
-      appearanceAnchor:
-        'แฮกเกอร์สาวอัจฉริยะ ผมสั้นสีนีออนม่วง แว่นไซเบอร์สโคป คอยซัพพอร์ตระบบดาวเทียม 8k sci-fi cinematic',
-      clothingStyle: 'ชุดสูทนาโนเรืองแสงสีม่วง ถุงมือควบคุมโฮโลแกรม',
-      voiceStyle: 'คล่องแคล่ว ตื่นตัว รวดเร็ว',
-      weaponsOrProps: 'โดรนแฮกกิ้งขนาดจิ๋ว',
-      googleFlowSeed: '620194',
-    },
-    {
-      name: 'คอมมานเดอร์เร็กซ์',
-      role: 'supporting',
-      appearanceAnchor:
-        'ผู้บัญชาการอาวุโสแห่งกองกำลังพิทักษ์โลก สวมเกราะพาวเวอร์สูทสีทองแดง บาดแผลจากสงครามอวกาศ 8k sci-fi cinematic',
-      clothingStyle: 'เกราะพาวเวอร์สูทสั่งการสงคราม',
-      voiceStyle: 'ทรงพลัง ดังก้อง ปลุกใจ',
-      weaponsOrProps: 'บาเรียสนามพลังและปืนใหญ่พลังไอออน',
-      googleFlowSeed: '401928',
-    },
-  ];
-  return list.slice(0, count);
-}
-
 export default function NewProjectModal({ isOpen, onClose, onCreated }: NewProjectModalProps) {
+  // 1. Work Medium (อนิเมะ vs ภาพยนตร์)
+  const [visualMedium, setVisualMedium] = useState<VisualMedium>('animation');
+
+  // 2. World Culture (จีน, ญี่ปุ่น, ไทย, สากล)
+  const [worldCulture, setWorldCulture] = useState<WorldCulture>('chinese');
+
+  // 3. Subgenre / Setting
+  const [selectedSubGenre, setSelectedSubGenre] = useState<string>('xianxia');
+
+  // 4. Style Preset
+  const [stylePreset, setStylePreset] = useState<StylePreset>('donghua_3d');
+
+  // 5. Title & Synopsis
   const [title, setTitle] = useState('');
   const [synopsis, setSynopsis] = useState('');
-  const [genre, setGenre] = useState<MovieGenre>('military_tactical');
-  const [militaryCategory, setMilitaryCategory] = useState<
-    'missiles_weapons' | 'jets_drones' | 'special_forces' | 'armored_tanks'
-  >('missiles_weapons');
-  const [visualMedium, setVisualMedium] = useState<VisualMedium>('live_action');
-  const [stylePreset, setStylePreset] = useState<StylePreset>('military_combat');
-  const [aspectRatio, setAspectRatio] = useState<AspectRatio>('9:16');
-  const [scriptEngine, setScriptEngine] = useState<ScriptEngine>('gemini_3_1_pro');
-  const [targetDurationMinutes, setTargetDurationMinutes] = useState<number>(3);
 
-  // Characters List
-  const [characters, setCharacters] = useState<TempCharacter[]>(() =>
-    getCharacterPresets('military_tactical', 2)
-  );
+  // 6. Target Format & Specs
+  const [aspectRatio, setAspectRatio] = useState<AspectRatio>('16:9');
+  const [targetDurationMinutes, setTargetDurationMinutes] = useState<number>(60);
+  const [scriptEngine, setScriptEngine] = useState<ScriptEngine>('gemini_3_1_pro');
 
   const [loading, setLoading] = useState(false);
+  const [loadingStep, setLoadingStep] = useState<string>('');
   const [error, setError] = useState('');
+
+  // Subgenres based on world culture
+  const availableSubgenres = useMemo(() => {
+    return getSubgenresByCulture(worldCulture);
+  }, [worldCulture]);
+
+  // Styles based on visual medium
+  const availableStyles = useMemo(() => {
+    return visualMedium === 'animation' ? ANIME_STYLES : MOVIE_STYLES;
+  }, [visualMedium]);
 
   if (!isOpen) return null;
 
-  const handleGenreChange = (newGenre: MovieGenre) => {
-    setGenre(newGenre);
-    const count = characters.length >= 2 && characters.length <= 4 ? characters.length : 2;
-    if (newGenre === 'military_tactical') {
-      setVisualMedium('live_action');
-      setStylePreset('military_combat');
-      setAspectRatio('9:16');
-      setTargetDurationMinutes(3);
-      setCharacters(getCharacterPresets('military_tactical', count));
-    } else if (newGenre === 'xianxia_cultivation') {
+  // Handle Culture Change
+  const handleCultureChange = (cult: WorldCulture) => {
+    setWorldCulture(cult);
+    if (cult === 'chinese') {
+      setSelectedSubGenre('xianxia');
       setVisualMedium('animation');
       setStylePreset('donghua_3d');
       setAspectRatio('16:9');
       setTargetDurationMinutes(60);
-      setCharacters(getCharacterPresets('xianxia_cultivation', count));
+    } else if (cult === 'japanese') {
+      setSelectedSubGenre('isekai_jp');
+      setVisualMedium('animation');
+      setStylePreset('anime_2d');
+      setAspectRatio('16:9');
+      setTargetDurationMinutes(30);
+    } else if (cult === 'thai') {
+      setSelectedSubGenre('naga');
+      setVisualMedium('animation');
+      setStylePreset('donghua_3d');
+      setAspectRatio('16:9');
+      setTargetDurationMinutes(15);
     } else {
-      setCharacters(getCharacterPresets(newGenre, count));
+      setSelectedSubGenre('action');
+      setVisualMedium('live_action');
+      setStylePreset('hollywood_cinematic');
+      setAspectRatio('16:9');
+      setTargetDurationMinutes(3);
     }
-  };
-
-  const setCharacterCountPreset = (count: 2 | 3 | 4) => {
-    setCharacters(getCharacterPresets(genre, count));
-  };
-
-  const handleAddCharacter = () => {
-    const randomSeed = String(Math.floor(100000 + Math.random() * 900000));
-    setCharacters([
-      ...characters,
-      {
-        name: `ตัวละครใหม่ ${characters.length + 1}`,
-        role: 'supporting',
-        appearanceAnchor: 'ระบุลักษณะเด่น รูปร่าง หน้าตา เครื่องแต่งกาย เพื่อล็อคหน้าตาด้วย AI',
-        clothingStyle: 'เครื่องแต่งกายประจำตัว',
-        voiceStyle: 'น้ำเสียงเป็นเอกลักษณ์',
-        weaponsOrProps: '',
-        googleFlowSeed: randomSeed,
-      },
-    ]);
-  };
-
-  const handleRemoveCharacter = (index: number) => {
-    if (characters.length <= 1) {
-      alert('ต้องมีตัวละครอย่างน้อย 1 ตัว');
-      return;
-    }
-    setCharacters(characters.filter((_, i) => i !== index));
-  };
-
-  const handleUpdateCharacter = (index: number, field: keyof TempCharacter, value: string) => {
-    const updated = [...characters];
-    updated[index] = { ...updated[index], [field]: value };
-    setCharacters(updated);
-  };
-
-  const randomizeSeed = (index: number) => {
-    const randomSeed = String(Math.floor(100000 + Math.random() * 900000));
-    handleUpdateCharacter(index, 'googleFlowSeed', randomSeed);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -272,16 +115,46 @@ export default function NewProjectModal({ isOpen, onClose, onCreated }: NewProje
 
     setLoading(true);
     setError('');
+    setLoadingStep('🤖 AI กำลังวิเคราะห์เนื้อเรื่องและออกแบบตัวละครตามพล็อตเรื่อง...');
 
     try {
+      // 1. Generate Characters Automatically based on the Story Concept
+      let characters = [];
+      try {
+        const charRes = await fetch('/api/ai/generate-characters', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title,
+            synopsis,
+            worldCulture,
+            genre: selectedSubGenre,
+            subGenre: selectedSubGenre,
+            visualMedium,
+            stylePreset,
+            characterCount: 3,
+          }),
+        });
+        const charData = await charRes.json();
+        if (charData.success && Array.isArray(charData.characters)) {
+          characters = charData.characters;
+        }
+      } catch (charErr) {
+        console.warn('Character auto-gen error, will use default template cast:', charErr);
+      }
+
+      setLoadingStep('🚀 กำลังจัดเตรียมห้องสตูดิโอและประกอบไทม์ไลน์ภาพยนตร์...');
+
+      // 2. Create the Project
       const res = await fetch('/api/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title,
-          synopsis,
-          genre,
-          militaryCategory: genre === 'military_tactical' ? militaryCategory : undefined,
+          synopsis: synopsis || `${title} - มหากาพย์เรื่องราวในแดน${worldCulture === 'chinese' ? 'เซียนโบราณ' : worldCulture === 'japanese' ? 'ต่างโลก' : worldCulture === 'thai' ? 'ไทยโบราณ' : 'สากล'}`,
+          genre: (worldCulture === 'chinese' ? 'xianxia_cultivation' : worldCulture === 'western_global' ? 'action_scifi' : 'custom') as MovieGenre,
+          worldCulture,
+          subGenre: selectedSubGenre,
           visualMedium,
           stylePreset,
           aspectRatio,
@@ -302,502 +175,283 @@ export default function NewProjectModal({ isOpen, onClose, onCreated }: NewProje
       setError(err instanceof Error ? err.message : 'Network error');
     } finally {
       setLoading(false);
+      setLoadingStep('');
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-      <div className="bg-studio-900 border border-studio-700 rounded-3xl max-w-3xl w-full p-6 sm:p-8 shadow-2xl my-6 relative max-h-[92vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200">
+      <div className="bg-studio-900 border border-studio-700 rounded-3xl max-w-3xl w-full p-5 sm:p-7 shadow-2xl my-6 relative max-h-[92vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-studio-800">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/20 shadow-glow">
-              <Film className="w-5 h-5" />
+            <div className="p-2.5 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/20">
+              <Sparkles className="w-5 h-5 animate-pulse" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-white">สร้างโปรเจกต์ใหม่ (ภาพยนตร์ / อนิเมะ / ทหาร)</h2>
-              <p className="text-xs text-gray-400">
-                รองรับสัดส่วน 16:9 และ 9:16 &bull; เลือกรุ่น AI เขียนบท &bull; ล็อคหน้าตาตัวละครด้วย flow.google.com
+              <h2 className="text-lg sm:text-xl font-extrabold text-white tracking-wide">
+                สร้างสตูดิโอใหม่ (New Studio Project)
+              </h2>
+              <p className="text-xs text-cyan-300 mt-0.5 font-medium">
+                ✨ สร้างสตูดิโอก่อน แล้วระบบจะวิเคราะห์พล็อตเรื่องเพื่อสร้างตัวละครให้อัตโนมัติ!
               </p>
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="text-gray-400 hover:text-white p-2 rounded-xl hover:bg-studio-800 transition-colors"
+            className="p-2 text-gray-400 hover:text-white rounded-xl hover:bg-studio-800 transition-colors"
           >
-            ✕
+            <X className="w-5 h-5" />
           </button>
         </div>
 
         {error && (
-          <div className="mt-4 p-3 rounded-xl bg-red-950/40 border border-red-500/30 text-red-300 text-sm flex items-center gap-2">
-            <ShieldAlert className="w-4 h-4 flex-shrink-0" />
+          <div className="mt-4 p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs flex items-center gap-2">
+            <span>⚠️</span>
             <span>{error}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-5">
-          {/* Title */}
-          <div>
-            <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
-              ชื่อเรื่อง / หัวข้อคลิป *
-            </label>
-            <input
-              type="text"
-              required
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder={
-                genre === 'military_tactical'
-                  ? 'เช่น: เผยแสนยานุภาพ ขีปนาวุธไฮเปอร์โซนิก vs ระบบป้องกันภัยทางอากาศ (2-5 นาที)'
-                  : 'เช่น: มหากาพย์มหาเทพกระบี่สายฟ้า ทะลวง 9 ดินแดน (รวมตอน 1 ชั่วโมงเต็ม)'
-              }
-              className="w-full px-4 py-2.5 rounded-xl bg-studio-950 border border-studio-700 text-white placeholder-gray-500 focus:outline-none focus:border-amber-500 text-sm"
-            />
-          </div>
-
-          {/* Synopsis */}
-          <div>
-            <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
-              เรื่องย่อ / ข้อมูลยุทธการ / สปอยล์เนื้อเรื่อง
-            </label>
-            <textarea
-              rows={2}
-              value={synopsis}
-              onChange={(e) => setSynopsis(e.target.value)}
-              placeholder="เล่าไฮไลต์สำคัญ เหตุการณ์ที่เกิดขึ้น อาวุธที่นำมาใช้งาน หรือการปะทะชี้ชะตา..."
-              className="w-full px-4 py-2.5 rounded-xl bg-studio-950 border border-studio-700 text-white placeholder-gray-500 focus:outline-none focus:border-amber-500 text-sm"
-            />
-          </div>
-
-          {/* Row: Aspect Ratio & Script Engine */}
+        <form onSubmit={handleSubmit} className="mt-5 space-y-5">
+          {/* Step 1 & Step 2: Medium and World Culture Selectors */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Aspect Ratio Selector (16:9 vs 9:16) */}
-            <div>
-              <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
-                สัดส่วนวิดีโอ (Aspect Ratio) *
+            {/* Step 1: Format */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-gray-200 flex items-center gap-1.5">
+                <Film className="w-3.5 h-3.5 text-cyan-400" /> 1. รูปแบบผลงาน (Work Medium):
               </label>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
-                  onClick={() => setAspectRatio('16:9')}
-                  className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all ${
-                    aspectRatio === '16:9'
-                      ? 'bg-amber-500/20 border-amber-500 text-white shadow-glow'
-                      : 'bg-studio-950/60 border-studio-800 text-gray-400 hover:border-studio-700'
+                  onClick={() => setVisualMedium('animation')}
+                  className={`p-2.5 rounded-xl border text-xs font-bold flex flex-col items-center gap-1 transition-all ${
+                    visualMedium === 'animation'
+                      ? 'bg-cyan-500/20 border-cyan-400 text-cyan-200 shadow-sm'
+                      : 'bg-studio-950 border-studio-800 text-gray-400 hover:border-studio-700'
                   }`}
                 >
-                  <Tv className="w-5 h-5 text-amber-400" />
-                  <span className="text-xs font-bold">16:9 แนวนอน</span>
-                  <span className="text-[10px] text-gray-400">YouTube, Cinema</span>
+                  <span className="text-base">🌸</span>
+                  <span>อนิเมะ / 3D Animation</span>
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => setAspectRatio('9:16')}
-                  className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all ${
-                    aspectRatio === '9:16'
-                      ? 'bg-amber-500/20 border-amber-500 text-white shadow-glow'
-                      : 'bg-studio-950/60 border-studio-800 text-gray-400 hover:border-studio-700'
+                  onClick={() => setVisualMedium('live_action')}
+                  className={`p-2.5 rounded-xl border text-xs font-bold flex flex-col items-center gap-1 transition-all ${
+                    visualMedium === 'live_action'
+                      ? 'bg-amber-500/20 border-amber-400 text-amber-200 shadow-sm'
+                      : 'bg-studio-950 border-studio-800 text-gray-400 hover:border-studio-700'
                   }`}
                 >
-                  <Smartphone className="w-5 h-5 text-cyan-400" />
-                  <span className="text-xs font-bold">9:16 แนวตั้ง</span>
-                  <span className="text-[10px] text-gray-400">Reels, Shorts, TikTok</span>
+                  <span className="text-base">🎥</span>
+                  <span>ภาพยนตร์คนจริง (Live-Action)</span>
                 </button>
               </div>
             </div>
 
-            {/* AI Scriptwriting Model Engine */}
-            <div>
-              <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                <Bot className="w-3.5 h-3.5 text-cyan-400" />
-                เลือกรุ่น AI เขียนบทสคริปต์
+            {/* Step 2: World Culture */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-gray-200 flex items-center gap-1.5">
+                <Globe className="w-3.5 h-3.5 text-amber-400" /> 2. วัฒนธรรมโลก &amp; ธีมหลัก (World Culture):
               </label>
-              <select
-                value={scriptEngine}
-                onChange={(e) => setScriptEngine(e.target.value as ScriptEngine)}
-                className="w-full px-3.5 py-3 rounded-xl bg-studio-950 border border-studio-700 text-white text-xs focus:outline-none focus:border-amber-500"
-              >
-                <optgroup label="Google Gemini">
-                  <option value="gemini_3_1_pro">Google Gemini 3.1 Pro (เขียนบทพากย์ละเอียด ภาษาไทยคมชัด)</option>
-                  <option value="gemini_3_8_flash">Google Gemini 3.8 Flash (ความเร็วสูง ดำเนินเรื่องฉับไว)</option>
-                  <option value="gemini_flash_lite">Google Gemini 3.5 Flash-Lite (ประหยัด ประมวลผลเร็ว)</option>
-                </optgroup>
-                <optgroup label="Claude.ai">
-                  <option value="claude_extra">Claude.ai Extra (บรรยายเชิงลึก มหากาพย์)</option>
-                  <option value="claude_high">Claude.ai High (ความแม่นยำสูง อารมณ์เข้มข้น)</option>
-                  <option value="claude_medium">Claude.ai Medium (สมดุลและรวดเร็ว)</option>
-                </optgroup>
-              </select>
-              <p className="text-[10px] text-gray-400 mt-1">
-                ระบบเชื่อมต่อระบบเขียนบทภาษาไทยเต็มรูปแบบแยกเสียงพากย์และเสียงตัวละคร
-              </p>
-            </div>
-          </div>
-
-          {/* Genre Selection */}
-          <div>
-            <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
-              หมวดหมู่หลัก (Genre) *
-            </label>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-              <button
-                type="button"
-                onClick={() => handleGenreChange('military_tactical')}
-                className={`p-3.5 rounded-xl border text-left transition-all relative ${
-                  genre === 'military_tactical'
-                    ? 'bg-amber-500/15 border-amber-500 text-white shadow-glow'
-                    : 'bg-studio-950/60 border-studio-800 text-gray-400 hover:border-studio-700'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <span className="text-base">🚀</span>
-                  <span className="text-xs font-bold text-white">แนวทหาร &amp; ยุทธการสงคราม</span>
-                </div>
-                <p className="text-[11px] text-amber-300/80 mt-1">
-                  2-5 นาที สไตล์ Facebook Reels (ยุทโธปกรณ์, รถถัง, โดรน, ขีปนาวุธ)
-                </p>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleGenreChange('xianxia_cultivation')}
-                className={`p-3.5 rounded-xl border text-left transition-all relative ${
-                  genre === 'xianxia_cultivation'
-                    ? 'bg-amber-500/15 border-amber-500 text-white shadow-glow'
-                    : 'bg-studio-950/60 border-studio-800 text-gray-400 hover:border-studio-700'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <span className="text-base">⚔️</span>
-                  <span className="text-xs font-bold text-white">บำเพ็ญเพียร / กำลังภายใน</span>
-                </div>
-                <p className="text-[11px] text-gray-400 mt-1">
-                  สไตล์เพื่อนที่ดีที่สุด SAN1 (3D Donghua อนิเมะจีน รันชั่วโมง)
-                </p>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleGenreChange('action_scifi')}
-                className={`p-3.5 rounded-xl border text-left transition-all relative ${
-                  genre === 'action_scifi'
-                    ? 'bg-amber-500/15 border-amber-500 text-white shadow-glow'
-                    : 'bg-studio-950/60 border-studio-800 text-gray-400 hover:border-studio-700'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <span className="text-base">🤖</span>
-                  <span className="text-xs font-bold text-white">แอ็กชัน / ไซไฟ / แฟนตาซี</span>
-                </div>
-                <p className="text-[11px] text-gray-400 mt-1">
-                  โลกอนาคต หุ่นยนต์รบ หรือเวทมนตร์มหากาพย์
-                </p>
-              </button>
-            </div>
-          </div>
-
-          {/* If Military: Subcategory selector */}
-          {genre === 'military_tactical' && (
-            <div className="p-4 rounded-2xl bg-amber-950/20 border border-amber-500/30 space-y-3">
-              <span className="text-xs font-bold text-amber-300 uppercase tracking-wider block">
-                🎯 เลือกหมวดย่อยของคลิปทหาร (อิงสไตล์ Facebook Reels)
-              </span>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
                 {[
-                  { id: 'missiles_weapons', label: '🚀 ขีปนาวุธ & อาวุธ', desc: 'ไฮเปอร์โซนิก, ปืนใหญ่' },
-                  { id: 'jets_drones', label: '✈️ เครื่องบินรบ & โดรน', desc: 'F-35, โดรนกามิกาเซ่' },
-                  { id: 'special_forces', label: '🛡️ หน่วยรบพิเศษ', desc: 'ภารกิจลับ, ชิงตัวประกัน' },
-                  { id: 'armored_tanks', label: '💥 รถถัง & ยานเกราะ', desc: 'สงครามยานเกราะประจัญบาน' },
-                ].map((cat) => (
+                  { id: 'chinese', label: 'จีน 🇨🇳', desc: 'เซียน/กำลังภายใน' },
+                  { id: 'japanese', label: 'ญี่ปุ่น 🇯🇵', desc: 'ต่างโลก/อนิเมะ' },
+                  { id: 'thai', label: 'ไทย 🇹🇭', desc: 'พญานาค/มนต์คาถา' },
+                  { id: 'western_global', label: 'สากล 🌐', desc: 'ฮอลลีวูด/ไซไฟ' },
+                ].map((c) => (
                   <button
-                    key={cat.id}
+                    key={c.id}
                     type="button"
-                    onClick={() => setMilitaryCategory(cat.id as any)}
-                    className={`p-2.5 rounded-xl border text-left transition-all ${
-                      militaryCategory === cat.id
-                        ? 'bg-amber-500/20 border-amber-500 text-white shadow-glow'
-                        : 'bg-studio-900 border-studio-700 text-gray-400 hover:border-studio-600'
+                    onClick={() => handleCultureChange(c.id as WorldCulture)}
+                    className={`p-2 rounded-xl border text-xs font-bold flex flex-col items-center transition-all ${
+                      worldCulture === c.id
+                        ? 'bg-amber-500/20 border-amber-400 text-amber-300 shadow-sm'
+                        : 'bg-studio-950 border-studio-800 text-gray-400 hover:border-studio-700'
                     }`}
                   >
-                    <p className="text-xs font-bold text-white">{cat.label}</p>
-                    <p className="text-[10px] text-gray-400 mt-0.5">{cat.desc}</p>
+                    <span>{c.label}</span>
+                    <span className="text-[10px] text-gray-400 font-normal mt-0.5">{c.desc}</span>
                   </button>
                 ))}
               </div>
             </div>
-          )}
-
-          {/* Duration Selector */}
-          <div>
-            <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
-              <Clock className="w-3.5 h-3.5 inline mr-1 text-amber-400" />
-              เป้าหมายความยาวคลิป
-            </label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {genre === 'military_tactical'
-                ? [
-                    { mins: 2, label: '2 นาที (Reels)', sub: '12 ฉาก เร้าใจกระชับ' },
-                    { mins: 3, label: '3 นาที (แนะนำ)', sub: '18 ฉาก ละเอียดเข้มข้น' },
-                    { mins: 5, label: '5 นาที (เต็มเรื่อง)', sub: '30 ฉาก ยุทธการครบวงจร' },
-                    { mins: 15, label: '15 นาที (สารคดี)', sub: 'วิเคราะห์แสนยานุภาพเชิงลึก' },
-                  ].map((item) => (
-                    <button
-                      key={item.mins}
-                      type="button"
-                      onClick={() => setTargetDurationMinutes(item.mins)}
-                      className={`p-3 rounded-xl border text-left transition-all ${
-                        targetDurationMinutes === item.mins
-                          ? 'bg-amber-500/15 border-amber-500 text-white shadow-glow'
-                          : 'bg-studio-950/60 border-studio-800 text-gray-400 hover:border-studio-700'
-                      }`}
-                    >
-                      <p className="text-xs font-bold text-gray-100">{item.label}</p>
-                      <p className="text-[10px] text-gray-400 mt-0.5">{item.sub}</p>
-                    </button>
-                  ))
-                : [
-                    { mins: 15, label: '15 นาที', sub: '~2,000 คำ' },
-                    { mins: 30, label: '30 นาที', sub: '~4,000 คำ' },
-                    { mins: 60, label: '60 นาที (1 ชม.)', sub: '~8,000 คำ (แนะนำ)' },
-                    { mins: 120, label: '120 นาที (2 ชม.)', sub: '~16,000 คำ มหากาพย์' },
-                  ].map((item) => (
-                    <button
-                      key={item.mins}
-                      type="button"
-                      onClick={() => setTargetDurationMinutes(item.mins)}
-                      className={`p-3 rounded-xl border text-left transition-all ${
-                        targetDurationMinutes === item.mins
-                          ? 'bg-amber-500/15 border-amber-500 text-white shadow-glow'
-                          : 'bg-studio-950/60 border-studio-800 text-gray-400 hover:border-studio-700'
-                      }`}
-                    >
-                      <p className="text-xs font-bold text-gray-100">{item.label}</p>
-                      <p className="text-[10px] text-gray-400 mt-0.5">{item.sub}</p>
-                    </button>
-                  ))}
-            </div>
           </div>
 
-          {/* Medium Selector: คนจริง vs การ์ตูน */}
+          {/* Step 3 & Step 4: Genre and Visual Art Style */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
-                <Palette className="w-3.5 h-3.5 inline mr-1 text-cyan-400" />
-                ประเภทภาพ
+            {/* Genre */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-gray-200 flex items-center gap-1.5">
+                <Tv className="w-3.5 h-3.5 text-purple-400" /> 3. แนวเรื่องเจาะจง (Genre &amp; Subgenre):
               </label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setVisualMedium('live_action');
-                    setStylePreset(genre === 'military_tactical' ? 'military_combat' : 'hollywood_cinematic');
-                  }}
-                  className={`p-3 rounded-xl border text-left transition-all ${
-                    visualMedium === 'live_action'
-                      ? 'bg-cyan-500/15 border-cyan-400 text-white shadow-cyanGlow'
-                      : 'bg-studio-950/60 border-studio-800 text-gray-400 hover:border-studio-700'
-                  }`}
-                >
-                  <p className="text-xs font-bold text-white">🎬 คนจริง (Live-Action)</p>
-                  <p className="text-[10px] text-gray-400 mt-0.5">ภาพยนตร์ 35mm / กล้องทหาร 4K</p>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setVisualMedium('animation');
-                    setStylePreset('donghua_3d');
-                  }}
-                  className={`p-3 rounded-xl border text-left transition-all ${
-                    visualMedium === 'animation'
-                      ? 'bg-amber-500/15 border-amber-400 text-white shadow-glow'
-                      : 'bg-studio-950/60 border-studio-800 text-gray-400 hover:border-studio-700'
-                  }`}
-                >
-                  <p className="text-xs font-bold text-white">🎨 อนิเมะ / แอนิเมชัน</p>
-                  <p className="text-[10px] text-gray-400 mt-0.5">3D Donghua / 2D Anime</p>
-                </button>
-              </div>
+              <select
+                value={selectedSubGenre}
+                onChange={(e) => setSelectedSubGenre(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl bg-studio-950 border border-studio-800 text-white text-xs focus:outline-none focus:border-cyan-500"
+              >
+                {availableSubgenres.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.emoji} {g.nameTh}
+                  </option>
+                ))}
+              </select>
+              <p className="text-[11px] text-gray-400 italic">
+                {availableSubgenres.find((g) => g.id === selectedSubGenre)?.description || ''}
+              </p>
             </div>
 
-            {/* Style Preset Dropdown */}
-            <div>
-              <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
-                สไตล์งานภาพเรนเดอร์ (AI Render Style)
+            {/* Visual Style */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-gray-200 flex items-center gap-1.5">
+                <Palette className="w-3.5 h-3.5 text-emerald-400" /> 4. สไตล์งานภาพ (Visual Art Style):
               </label>
               <select
                 value={stylePreset}
                 onChange={(e) => setStylePreset(e.target.value as StylePreset)}
-                className="w-full px-3.5 py-3 rounded-xl bg-studio-950 border border-studio-700 text-white text-xs focus:outline-none focus:border-amber-500"
+                className="w-full px-3 py-2 rounded-xl bg-studio-950 border border-studio-800 text-white text-xs focus:outline-none focus:border-cyan-500"
               >
-                {visualMedium === 'live_action' ? (
-                  <>
-                    <option value="military_combat">🎯 หน่วยรบ ยุทโธปกรณ์ ยานเกราะ Tactical 4K</option>
-                    <option value="hollywood_cinematic">🎞️ ภาพยนตร์คนจริง เลนส์ 35 มม. แสงเงาลุ่มลึก</option>
-                    <option value="imax_70mm">🎥 กล้องยักษ์ IMAX 70 มม. คมชัดสูงสุด</option>
-                    <option value="dark_noir">🌧️ ดาร์กฟิล์มนัวร์ ถนนเปียกฝน แสงสะท้อน</option>
-                  </>
-                ) : (
-                  <>
-                    <option value="donghua_3d">🔥 อนิเมะจีน 3D กำลังภายใน (เพื่อนที่ดีที่สุด SAN1)</option>
-                    <option value="anime_2d">🌸 อนิเมะญี่ปุ่น 2D ระดับโรงภาพยนตร์</option>
-                    <option value="western_3d">🎭 แอนิเมชัน 3D ระดับโลก (Arcane / Pixar)</option>
-                    <option value="manhwa_action">⚡ มันฮวาเกาหลี แอ็กชันดาร์กแฟนตาซี</option>
-                  </>
-                )}
+                {availableStyles.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.emoji} {s.nameTh}
+                  </option>
+                ))}
+              </select>
+              <p className="text-[11px] text-gray-400 italic">
+                {availableStyles.find((s) => s.id === stylePreset)?.description || ''}
+              </p>
+            </div>
+          </div>
+
+          {/* Step 5: Title & Story Synopsis */}
+          <div className="space-y-3 p-4 rounded-2xl bg-studio-950 border border-studio-800">
+            <div>
+              <label className="text-xs font-bold text-cyan-300 block mb-1">
+                📌 ชื่อเรื่อง / ชื่อภาพยนตร์หรืออนิเมะ (Title):
+              </label>
+              <input
+                type="text"
+                required
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder={
+                  worldCulture === 'chinese'
+                    ? 'เช่น มหาเทพกระบี่ข้ามภพ: พลิกชะตาฟ้าประทาน'
+                    : worldCulture === 'thai'
+                    ? 'เช่น มหากาพย์นาคราช: สงครามทวงคืนบาดาล'
+                    : worldCulture === 'japanese'
+                    ? 'เช่น ผู้กล้าดาบสายฟ้าต่างโลก: ทะลุมิติพิชิตจอมมาร'
+                    : 'เช่น ปฏิบัติการสายฟ้าแลบ ยุทธการถล่มฐานทัพศัตรู'
+                }
+                className="w-full px-3.5 py-2.5 rounded-xl bg-studio-900 border border-studio-700 text-white text-sm font-bold focus:outline-none focus:border-cyan-400"
+              />
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-bold text-gray-200">
+                  📖 พล็อตเรื่องย่อ / คอนเซปต์ (Story Synopsis / Logline):
+                </label>
+                <span className="text-[11px] text-cyan-400">
+                  💡 AI จะอ่านเนื้อเรื่องนี้เพื่อสร้างตัวละครให้อัตโนมัติ
+                </span>
+              </div>
+              <textarea
+                rows={3}
+                value={synopsis}
+                onChange={(e) => setSynopsis(e.target.value)}
+                placeholder="เขียนแนวคิดหรือเรื่องย่อสั้นๆ เช่น เมื่อชายหนุ่มผู้ถูกทำลายชีพจรและถูกแย่งชิงกระดูกเซียน ตกสู่หุบเหวแต่ค้นพบกระบี่บรรพกาล การหวนคืนมาทวงแค้นเก้าสำนักใหญ่จึงเริ่มขึ้น..."
+                className="w-full px-3.5 py-2.5 rounded-xl bg-studio-900 border border-studio-700 text-gray-200 text-xs sm:text-sm leading-relaxed focus:outline-none focus:border-cyan-400 placeholder-gray-500"
+              />
+            </div>
+          </div>
+
+          {/* Step 6: Specs: Aspect Ratio, Duration & AI Engine */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+            {/* Aspect Ratio */}
+            <div className="space-y-1">
+              <label className="text-gray-300 font-semibold block">สัดส่วนวิดีโอ (Aspect Ratio):</label>
+              <div className="grid grid-cols-2 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setAspectRatio('16:9')}
+                  className={`p-2 rounded-xl border text-center font-bold transition-all ${
+                    aspectRatio === '16:9'
+                      ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300'
+                      : 'bg-studio-950 border-studio-800 text-gray-400'
+                  }`}
+                >
+                  16:9 (แนวนอน)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAspectRatio('9:16')}
+                  className={`p-2 rounded-xl border text-center font-bold transition-all ${
+                    aspectRatio === '9:16'
+                      ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300'
+                      : 'bg-studio-950 border-studio-800 text-gray-400'
+                  }`}
+                >
+                  9:16 (Reels/TikTok)
+                </button>
+              </div>
+            </div>
+
+            {/* Target Duration */}
+            <div className="space-y-1">
+              <label className="text-gray-300 font-semibold block flex items-center gap-1">
+                <Clock className="w-3.5 h-3.5 text-amber-400" /> ความยาวเป้าหมาย:
+              </label>
+              <select
+                value={targetDurationMinutes}
+                onChange={(e) => setTargetDurationMinutes(Number(e.target.value))}
+                className="w-full px-2.5 py-2 rounded-xl bg-studio-950 border border-studio-800 text-white text-xs focus:outline-none focus:border-amber-400"
+              >
+                <option value={3}>~3 นาที (คลิปสั้น Reels / Shorts)</option>
+                <option value={5}>~5 นาที (มินิซีรีส์เข้มข้น)</option>
+                <option value={15}>~15 นาที (ตอนมาตรฐาน)</option>
+                <option value={30}>~30 นาที (ตอนพิเศษ / ครึ่งชั่วโมง)</option>
+                <option value={60}>~60 นาที (รวมตอน 1 ชั่วโมงเต็ม)</option>
+              </select>
+            </div>
+
+            {/* AI Engine */}
+            <div className="space-y-1">
+              <label className="text-gray-300 font-semibold block flex items-center gap-1">
+                <Bot className="w-3.5 h-3.5 text-cyan-400" /> AI Engine เขียนบท:
+              </label>
+              <select
+                value={scriptEngine}
+                onChange={(e) => setScriptEngine(e.target.value as ScriptEngine)}
+                className="w-full px-2.5 py-2 rounded-xl bg-studio-950 border border-studio-800 text-white text-xs focus:outline-none focus:border-cyan-400"
+              >
+                <option value="gemini_3_1_pro">Google Gemini 3.1 Pro</option>
+                <option value="gemini_3_8_flash">Google Gemini 3.8 Flash</option>
+                <option value="gemini_flash_lite">Gemini 3.5 Flash-Lite</option>
               </select>
             </div>
           </div>
 
-          {/* Multi-Character Setup with Google Flow Seed Locking */}
-          <div className="p-4 rounded-2xl bg-studio-950/80 border border-studio-800 space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="text-xs font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
-                  <Lock className="w-3.5 h-3.5 text-amber-400" />
-                  กำหนดตัวละครตั้งแต่เริ่มต้น &amp; ล็อคหน้าตาด้วย flow.google.com
-                </span>
-                <p className="text-[11px] text-gray-400 mt-0.5">
-                  ระบบจะสร้าง Seed และ Appearance Anchor เฉพาะตัวละคร เพื่อล็อคหน้าไม่ให้เพี้ยนข้ามฉากบน flow.google.com
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={handleAddCharacter}
-                className="px-2.5 py-1.5 rounded-xl bg-studio-800 hover:bg-studio-700 text-amber-400 text-xs font-semibold flex items-center gap-1 transition-colors"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>เพิ่มตัวละคร</span>
-              </button>
-            </div>
-
-            {/* Quick Character Count Selector Buttons (2, 3, 4) */}
-            <div className="flex flex-wrap items-center gap-2 pt-1 pb-1 border-y border-studio-800/80">
-              <span className="text-[11px] font-semibold text-gray-300 mr-1">เลือกจำนวนตัวละครสำเร็จรูป:</span>
-              {[
-                { count: 2, label: '👥 2 ตัวละคร', desc: 'ตัวเอก vs ศัตรู' },
-                { count: 3, label: '👥 3 ตัวละคร', desc: 'ตัวเอก + คู่หู + ศัตรู' },
-                { count: 4, label: '👥 4 ตัวละคร (มหากาพย์)', desc: 'ทีม 4 ตัวละครครบเซ็ต' },
-              ].map((preset) => {
-                const isSelected = characters.length === preset.count;
-                return (
-                  <button
-                    key={preset.count}
-                    type="button"
-                    onClick={() => setCharacterCountPreset(preset.count as 2 | 3 | 4)}
-                    className={`px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all ${
-                      isSelected
-                        ? 'bg-amber-500/20 border-amber-500 text-amber-300 shadow-glow'
-                        : 'bg-studio-900/80 border-studio-700 text-gray-400 hover:text-white hover:border-studio-600'
-                    }`}
-                  >
-                    {isSelected ? <Check className="w-3.5 h-3.5 text-amber-400" /> : null}
-                    <span>{preset.label}</span>
-                    <span className="text-[10px] text-gray-400 font-normal">({preset.desc})</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="space-y-3">
-              {characters.map((char, index) => (
-                <div
-                  key={index}
-                  className="p-3 rounded-xl bg-studio-900/90 border border-studio-800 space-y-2.5"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 flex-1">
-                      <span className="text-xs font-bold text-amber-400">#{index + 1}</span>
-                      <input
-                        type="text"
-                        value={char.name}
-                        onChange={(e) => handleUpdateCharacter(index, 'name', e.target.value)}
-                        placeholder="ชื่อตัวละคร"
-                        className="px-2.5 py-1 bg-studio-950 border border-studio-700 rounded-lg text-xs text-white font-bold w-36 focus:outline-none focus:border-amber-500"
-                      />
-                      <select
-                        value={char.role}
-                        onChange={(e) => handleUpdateCharacter(index, 'role', e.target.value)}
-                        className="px-2 py-1 bg-studio-950 border border-studio-700 rounded-lg text-xs text-gray-300 focus:outline-none"
-                      >
-                        <option value="protagonist">พระเอก / ตัวเอกนำ</option>
-                        <option value="antagonist">ตัวร้าย / คู่ปรับ</option>
-                        <option value="supporting">ตัวละครรอง / ผู้ช่วย</option>
-                      </select>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      {/* Seed locking display & refresh */}
-                      <div
-                        className="flex items-center gap-1 px-2 py-1 bg-studio-950 border border-studio-700 rounded-lg text-[11px] text-cyan-300 font-mono"
-                        title="Seed สำหรับ flow.google.com เพื่อล็อคหน้าตาตัวละคร"
-                      >
-                        <Lock className="w-3 h-3 text-cyan-400" />
-                        <span>Seed:</span>
-                        <input
-                          type="text"
-                          value={char.googleFlowSeed}
-                          onChange={(e) => handleUpdateCharacter(index, 'googleFlowSeed', e.target.value)}
-                          className="w-14 bg-transparent text-cyan-300 focus:outline-none text-center font-bold"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => randomizeSeed(index)}
-                          className="text-gray-400 hover:text-white"
-                          title="สุ่ม Seed ใหม่"
-                        >
-                          <RefreshCw className="w-3 h-3" />
-                        </button>
-                      </div>
-
-                      {characters.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveCharacter(index)}
-                          className="p-1 text-gray-400 hover:text-red-400 rounded transition-colors"
-                          title="ลบตัวละครนี้"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] text-gray-400 block mb-0.5">
-                      ลักษณะเด่น / Visual Prompt สำหรับ flow.google.com (หน้าตา, ทรงผม, รูปร่าง):
-                    </label>
-                    <input
-                      type="text"
-                      value={char.appearanceAnchor}
-                      onChange={(e) => handleUpdateCharacter(index, 'appearanceAnchor', e.target.value)}
-                      placeholder="เช่น ชายหนุ่มหน้าตาคมเข้ม แววตามุ่งมั่น สวมชุดเกราะ Tactical Vest ลายพราง 8k resolution"
-                      className="w-full px-2.5 py-1 bg-studio-950 border border-studio-700 rounded-lg text-xs text-gray-200 focus:outline-none focus:border-amber-500"
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Submit Buttons */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-studio-800">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors"
-            >
-              ยกเลิก
-            </button>
+          {/* Submit Button */}
+          <div className="pt-2">
             <button
               type="submit"
               disabled={loading}
-              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-bold text-sm shadow-glow transition-all flex items-center gap-2 disabled:opacity-50"
+              className="w-full p-4 rounded-2xl bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white font-extrabold text-sm shadow-[0_0_30px_rgba(6,182,212,0.35)] flex items-center justify-center gap-2 transition-all disabled:opacity-50"
             >
-              <Sparkles className="w-4 h-4" />
-              <span>{loading ? 'กำลังสร้างโปรเจกต์...' : 'เริ่มสร้างสตูดิโอ'}</span>
+              {loading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <span>{loadingStep || 'กำลังสร้างสตูดิโอ...'}</span>
+                </>
+              ) : (
+                <>
+                  <Zap className="w-4 h-4 text-cyan-200" />
+                  <span>🚀 สร้างสตูดิโอ &amp; วิเคราะห์ตัวละครอัตโนมัติ</span>
+                </>
+              )}
             </button>
           </div>
         </form>

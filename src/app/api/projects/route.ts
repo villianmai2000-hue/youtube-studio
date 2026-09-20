@@ -23,6 +23,10 @@ export async function POST(request: Request) {
       synopsis,
       genre = 'xianxia_cultivation',
       genreNameCustom,
+      worldCulture = 'chinese',
+      subGenre = '',
+      worldBuilding,
+      storyArchitecture,
       militaryCategory,
       visualMedium = 'animation',
       stylePreset = 'donghua_3d',
@@ -38,7 +42,7 @@ export async function POST(request: Request) {
 
     const projectId = `proj-${Date.now()}`;
 
-    // Build characters list
+    // Build characters list preserving all 11 dimensions
     let projectCharacters: CharacterBible[] = [];
 
     if (Array.isArray(customCharacters) && customCharacters.length > 0) {
@@ -48,12 +52,21 @@ export async function POST(request: Request) {
         role: c.role || (idx === 0 ? 'protagonist' : idx === 1 ? 'antagonist' : 'supporting'),
         gender: c.gender,
         ageGroup: c.ageGroup,
-        appearanceAnchor: c.appearanceAnchor || 'ลักษณะเด่นของตัวละคร คมชัดระดับภาพยนตร์',
+        age: c.age,
+        bodyBuild: c.bodyBuild,
+        facialFeatures: c.facialFeatures,
+        hairStyle: c.hairStyle,
         clothingStyle: c.clothingStyle || 'ชุดประจำตัวละคร',
-        voiceStyle: c.voiceStyle || 'เสียงพากย์น่าเกรงขาม ชัดเจน มีพลัง',
+        colorTheme: c.colorTheme,
         weaponsOrProps: c.weaponsOrProps || '',
+        personality: c.personality,
+        abilities: c.abilities,
+        weaknesses: c.weaknesses,
+        relationships: c.relationships,
+        appearanceAnchor: c.appearanceAnchor || 'ลักษณะเด่นของตัวละคร คมชัดระดับภาพยนตร์',
+        voiceStyle: c.voiceStyle || 'เสียงพากย์น่าเกรงขาม ชัดเจน มีพลัง',
         googleFlowSeed: c.googleFlowSeed || String(Math.floor(100000 + Math.random() * 900000)),
-        googleFlowPrompt: c.googleFlowPrompt || `${c.appearanceAnchor || ''}, character portrait, 8k resolution, cinematic lighting --seed ${c.googleFlowSeed || '12345'}`,
+        googleFlowPrompt: c.googleFlowPrompt || `${c.appearanceAnchor || ''}, character portrait, 8k resolution, cinematic lighting`,
       }));
     } else {
       const heroSeed = String(Math.floor(100000 + Math.random() * 900000));
@@ -114,6 +127,10 @@ export async function POST(request: Request) {
       synopsis: synopsis || '',
       genre: genre as MovieGenre,
       genreNameCustom,
+      worldCulture,
+      subGenre,
+      worldBuilding,
+      storyArchitecture,
       militaryCategory,
       visualMedium: visualMedium as VisualMedium,
       stylePreset: stylePreset as StylePreset,
