@@ -17,6 +17,8 @@ import {
   RefreshCw,
   Image as ImageIcon,
   Sparkles,
+  Music,
+  Volume2,
 } from 'lucide-react';
 
 interface SceneCardProps {
@@ -56,6 +58,30 @@ export default function SceneCard({
     navigator.clipboard.writeText(text);
     setCopiedPrompt(type);
     setTimeout(() => setCopiedPrompt(null), 2000);
+  };
+
+  // Helper to extract BGM & SFX cleanly
+  const extractAudio = (text: string) => {
+    const bgmMatch = text.match(/\[(?:BGM|ดนตรี):\s*([^\]]+)\]/i);
+    const sfxMatch = text.match(/\[(?:SFX|เอฟเฟกต์เสียง):\s*([^\]]+)\]/i);
+    return {
+      bgm: bgmMatch ? bgmMatch[1].trim() : text.includes('[SFX:') ? '' : text,
+      sfx: sfxMatch ? sfxMatch[1].trim() : '',
+    };
+  };
+
+  const currentAudio = extractAudio(scene.sfxBgm || '');
+
+  const handleUpdateBgm = (newBgm: string) => {
+    const sfx = currentAudio.sfx;
+    const combined = (newBgm ? `[BGM: ${newBgm.trim()}]` : '') + (sfx ? ` [SFX: ${sfx.trim()}]` : '');
+    onUpdate({ ...scene, sfxBgm: combined.trim() });
+  };
+
+  const handleUpdateSfx = (newSfx: string) => {
+    const bgm = currentAudio.bgm;
+    const combined = (bgm ? `[BGM: ${bgm.trim()}] ` : '') + (newSfx ? `[SFX: ${newSfx.trim()}]` : '');
+    onUpdate({ ...scene, sfxBgm: combined.trim() });
   };
 
   // Direct AI Image Generation
@@ -239,6 +265,9 @@ export default function SceneCard({
           <span className="px-2.5 py-1 rounded-lg bg-studio-950 border border-studio-800 text-gray-400">
             องค์ที่ {scene.actNumber}
           </span>
+          <span className="px-2.5 py-1 rounded-lg bg-cyan-500/15 border border-cyan-500/40 text-cyan-300 font-bold text-xs flex items-center gap-1 shadow-sm">
+            🎬 Seedream 5.0 Pro
+          </span>
           <span className="px-3 py-1 rounded-lg bg-amber-500/15 border border-amber-500/40 text-amber-300 font-bold font-mono flex items-center gap-1">
             ⏱️ 10 วินาที
           </span>
@@ -336,18 +365,49 @@ export default function SceneCard({
             )}
           </div>
 
-          {/* SFX / BGM Cues */}
-          <div>
-            <label className="text-[11px] font-semibold text-purple-400 uppercase tracking-wider block mb-1">
-              คิวเสียงประกอบ &amp; ดนตรี (SFX / BGM Cues):
+          {/* Separated Audio Layers: BGM + SFX */}
+          <div className="space-y-2 pt-1 border-t border-studio-800/80">
+            <label className="text-[11px] font-bold text-purple-400 uppercase tracking-wider flex items-center gap-1">
+              <Music className="w-3.5 h-3.5" /> ระบบเสียง &amp; ดนตรีแยกเลเยอร์ (Audio Layers):
             </label>
-            <input
-              type="text"
-              value={scene.sfxBgm}
-              onChange={(e) => onUpdate({ ...scene, sfxBgm: e.target.value })}
-              placeholder="[BGM: ดนตรีกู่เจิ้งระทึกใจ] [SFX: เสียงกระบี่ฟาดฟัน]"
-              className="w-full px-3 py-1.5 rounded-lg bg-studio-950 border border-studio-800 text-gray-300 text-xs font-mono"
-            />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="p-2.5 rounded-xl bg-purple-950/30 border border-purple-500/30 space-y-1">
+                <span className="text-[10px] font-bold text-purple-300 flex items-center gap-1">
+                  🎼 ดนตรีประกอบ (BGM):
+                </span>
+                <input
+                  type="text"
+                  value={currentAudio.bgm}
+                  onChange={(e) => handleUpdateBgm(e.target.value)}
+                  placeholder="เช่น กู่เจิ้งระทึกขวัญ ผสานกลองศึกจีน..."
+                  className="w-full px-2.5 py-1.5 rounded-lg bg-studio-950 border border-purple-500/30 text-gray-200 text-xs focus:outline-none focus:border-purple-400 font-sans"
+                />
+              </div>
+
+              <div className="p-2.5 rounded-xl bg-blue-950/30 border border-blue-500/30 space-y-1">
+                <span className="text-[10px] font-bold text-blue-300 flex items-center gap-1">
+                  🔊 เอฟเฟกต์เสียง (SFX):
+                </span>
+                <input
+                  type="text"
+                  value={currentAudio.sfx}
+                  onChange={(e) => handleUpdateSfx(e.target.value)}
+                  placeholder="เช่น เสียงกระบี่ฟาดฟัน, เสียงโซ่ขาด, Sub-bass drop..."
+                  className="w-full px-2.5 py-1.5 rounded-lg bg-studio-950 border border-blue-500/30 text-gray-200 text-xs focus:outline-none focus:border-blue-400 font-sans"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Seedream 5.0 Pro Director Tip */}
+          <div className="p-3 rounded-xl bg-cyan-950/30 border border-cyan-500/25 flex items-start gap-2 text-[11px] text-cyan-200">
+            <Sparkles className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <span className="font-bold text-cyan-300">💡 เคล็ดลับ Seedream 5.0 Pro (10 วิ ต่อเนื่อง):</span>{' '}
+              {index === 0
+                ? 'เปิดฉากด้วยเลนส์ Anamorphic 35mm ดอลลี่พุ่งตรงเข้าหาตัวเอก เพื่อตรึงสายตาคนดูใน 3 วินาทีแรก'
+                : `รักษาความต่อเนื่องจากฉากที่ ${index} โดยนำ End Frame ของฉากก่อนหน้ามาเป็น First Frame ใน Kling/Runway เพื่อสร้างช็อตเดียวจบ ไหลลื่น 100%`}
+            </div>
           </div>
         </div>
 

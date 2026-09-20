@@ -8,6 +8,7 @@ import SceneCard from '@/components/SceneCard';
 import CharacterBibleModal from '@/components/CharacterBibleModal';
 import VideoTimelinePlayer from '@/components/VideoTimelinePlayer';
 import LoginModal from '@/components/LoginModal';
+import MetaPackageModal from '@/components/MetaPackageModal';
 import {
   Film,
   Sparkles,
@@ -29,6 +30,7 @@ import {
   Check,
   Lock,
   LogIn,
+  Eye,
 } from 'lucide-react';
 
 export default function ProjectStudioPage() {
@@ -53,6 +55,9 @@ export default function ProjectStudioPage() {
 
   // Character Bible Modal
   const [isCharModalOpen, setIsCharModalOpen] = useState(false);
+
+  // Meta Reels Master Package Modal (Seedream 5.0 Pro)
+  const [isMetaModalOpen, setIsMetaModalOpen] = useState(false);
 
   // AI Script Generation in Studio
   const [generatingAct, setGeneratingAct] = useState(false);
@@ -447,6 +452,9 @@ export default function ProjectStudioPage() {
 
     navigator.clipboard.writeText(output);
     setCopyState(type);
+    if (type === 'meta') {
+      setIsMetaModalOpen(true);
+    }
     setTimeout(() => setCopyState(null), 2200);
   };
 
@@ -840,38 +848,41 @@ export default function ProjectStudioPage() {
         <div className="pt-1">
           <button
             type="button"
-            onClick={() => handleCopyType('meta')}
-            className="w-full p-3.5 rounded-2xl bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white font-bold text-xs sm:text-sm shadow-[0_0_20px_rgba(6,182,212,0.3)] flex items-center justify-between transition-all group border border-cyan-400/40"
+            onClick={() => {
+              handleCopyType('meta');
+              setIsMetaModalOpen(true);
+            }}
+            className="w-full p-4 rounded-2xl bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white font-bold text-xs sm:text-sm shadow-[0_0_25px_rgba(6,182,212,0.35)] flex items-center justify-between transition-all group border border-cyan-400/50"
           >
-            <div className="flex items-center gap-2.5">
-              <div className="p-1.5 rounded-xl bg-white/10 text-cyan-200">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-white/15 text-cyan-200 shadow-inner">
                 <Sparkles className="w-5 h-5 animate-pulse" />
               </div>
               <div className="text-left">
-                <div className="flex items-center gap-2">
-                  <span className="font-extrabold text-white">
-                    🚀 รวมทุกอย่างสำหรับสร้างคลิปใน Meta เบ็ดเสร็จ
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-extrabold text-white text-sm sm:text-base">
+                    🚀 รวมทุกอย่างสำหรับสร้างคลิปใน Meta เบ็ดเสร็จ (เปิดดูบนเว็บ)
                   </span>
-                  <span className="px-2 py-0.5 rounded-md bg-cyan-950/60 text-cyan-300 text-[10px] border border-cyan-400/30">
-                    Reels 1 คลิก
+                  <span className="px-2 py-0.5 rounded-md bg-cyan-950/80 text-cyan-300 text-[10px] font-bold border border-cyan-400/40">
+                    Seedream 5.0 Pro (10s ไหลลื่น)
                   </span>
                 </div>
-                <p className="text-[11px] text-cyan-100 font-normal">
-                  (บทพากย์รวมรวดเดียว + ไทม์ไลน์ทุกฉาก + บทพูด + ซาวด์ SFX/BGM + พร้อมต์วิดีโอ + แฮชแท็ก CapCut)
+                <p className="text-[11px] text-cyan-100 font-normal mt-0.5">
+                  (เปิดหน้าต่างสตูดิโอ: บทพากย์ 10 วิ + ไทม์ไลน์ภาพยนตร์ + บทพูด + ซาวด์แยก BGM/SFX + เช็กลิสต์แนะนำระดับโปร)
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 bg-white/15 px-3.5 py-1.5 rounded-xl text-xs font-semibold">
+            <div className="flex items-center gap-2 bg-white/20 group-hover:bg-white/30 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm">
               {copyState === 'meta' ? (
                 <>
                   <Check className="w-4 h-4 text-emerald-300" />
-                  <span className="text-emerald-300">คัดลอกเบ็ดเสร็จสำเร็จ!</span>
+                  <span className="text-emerald-300">เปิดดู &amp; คัดลอกแล้ว!</span>
                 </>
               ) : (
                 <>
-                  <Copy className="w-4 h-4 text-white group-hover:scale-110 transition-transform" />
-                  <span>คัดลอกชุดใหญ่</span>
+                  <Eye className="w-4 h-4 text-white group-hover:scale-110 transition-transform" />
+                  <span>เปิดดู &amp; คัดลอก</span>
                 </>
               )}
             </div>
@@ -1116,6 +1127,14 @@ export default function ProjectStudioPage() {
             : project.scenes
         }
         projectTitle={project.title}
+      />
+
+      {/* Meta Reels Master Package Modal (Seedream 5.0 Pro) */}
+      <MetaPackageModal
+        isOpen={isMetaModalOpen}
+        onClose={() => setIsMetaModalOpen(false)}
+        project={project}
+        selectedSceneIds={selectedSceneIds}
       />
     </div>
   );
