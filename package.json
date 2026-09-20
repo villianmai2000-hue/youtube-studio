@@ -1,6 +1,6 @@
 {
-  "name": "cinematic-anime-ai-studio",
-  "version": "1.0.0",
+  "name": "youtube-studio",
+  "version": "1.0.1",
   "private": true,
   "scripts": {
     "dev": "next dev",
