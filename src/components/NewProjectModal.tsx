@@ -15,6 +15,7 @@ import {
   Trash2,
   Lock,
   RefreshCw,
+  Check,
 } from 'lucide-react';
 import {
   MovieGenre,
@@ -41,6 +42,145 @@ interface TempCharacter {
   googleFlowSeed: string;
 }
 
+function getCharacterPresets(targetGenre: MovieGenre, count: number): TempCharacter[] {
+  if (targetGenre === 'military_tactical') {
+    const list: TempCharacter[] = [
+      {
+        name: 'ผู้การพายุ',
+        role: 'protagonist',
+        appearanceAnchor:
+          'ผู้บัญชาการหน่วยรบพิเศษหนุ่ม ผิวเข้มคมเข้ม สวมหมวกเบเรต์และชุดเกราะ Tactical Vest ลายพราง แววตาเด็ดเดี่ยว มีแผลเป็นเล็กๆ เหนือคิ้วซ้าย 8k photorealistic',
+        clothingStyle: 'ชุดเกราะ Tactical Vest ลายพรางสนามรบ วิทยุสื่อสารสะพายบ่า',
+        voiceStyle: 'ดุดัน หนักแน่น สั่งการเฉียบขาด',
+        weaponsOrProps: 'ปืนไรเฟิลจู่โจมติดกล้องเล็งและไฟเลเซอร์',
+        googleFlowSeed: '849201',
+      },
+      {
+        name: 'พลเอกศัตรู (มาร์คอฟ)',
+        role: 'antagonist',
+        appearanceAnchor:
+          'หัวหน้ากองกำลังฝ่ายตรงข้าม รูปร่างกำยำ สวมหน้ากากกันแก๊สและแว่นยุทธวิธีสีดำทมิฬ เสื้อเกราะหนักลายพรางเทาดำ แววตาดุดัน 8k photorealistic',
+        clothingStyle: 'เสื้อเกราะหนักลายพรางเทาดำ หน้ากากยุทธวิธี',
+        voiceStyle: 'ดุดัน ทะนงตัว เยือกเย็น',
+        weaponsOrProps: 'ปืนกลหนักและรีโมตจุดชนวนขีปนาวุธ',
+        googleFlowSeed: '631894',
+      },
+      {
+        name: 'หมวดฟ้าใส',
+        role: 'supporting',
+        appearanceAnchor:
+          'พลซุ่มยิงหญิงหน่วยปฏิบัติการพิเศษ ผมรวบหางม้า สายตาคมกริบ แว่นยุทธวิธี Night-Vision สวมชุดพรางกิลลี่สูท 8k photorealistic',
+        clothingStyle: 'ชุดกิลลี่สูทพรางตัว สไนเปอร์เวสต์',
+        voiceStyle: 'เยือกเย็น สุขุม รายงานเป้าหมายเฉียบคม',
+        weaponsOrProps: 'ปืนไรเฟิลซุ่มยิงลำกล้องยาวเก็บเสียงพร้อมกล้องจับความร้อน',
+        googleFlowSeed: '518293',
+      },
+      {
+        name: 'พลเอกธนา (ศบภ.)',
+        role: 'supporting',
+        appearanceAnchor:
+          'นายพลผู้บัญชาการศูนย์ยุทธการร่วม ผมสีดอกเลา ใบหน้าสุขุมน่าเกรงขาม สวมเครื่องแบบทหารระดับสูง ประดับเหรียญเกียรติยศ 8k cinematic portrait',
+        clothingStyle: 'เครื่องแบบทหารระดับสูง คุมหน้าจอโฮโลแกรมยุทธวิธี',
+        voiceStyle: 'สุขุม หนักแน่น ทรงอำนาจสั่งการระดับชาติ',
+        weaponsOrProps: 'แท็บเล็ตสั่งการระบบขีปนาวุธป้องกันภัยทางอากาศ',
+        googleFlowSeed: '394102',
+      },
+    ];
+    return list.slice(0, count);
+  }
+
+  if (targetGenre === 'xianxia_cultivation') {
+    const list: TempCharacter[] = [
+      {
+        name: 'เซียวหลิน',
+        role: 'protagonist',
+        appearanceAnchor:
+          'จอมยุทธ์หนุ่มรูปงาม ผมยาวสีขาวเงินเกล้ามวยด้วยปิ่นหยกขาว สวมชุดคลุมเต๋าผ้าไหมสีดำปักดิ้นทอง แววตาสีอำพัน สะพายกระบี่เทพโบราณสีคราม สไตล์อนิเมะจีน 3D สวยสง่า',
+        clothingStyle: 'ชุดคลุมผ้าไหมโบราณพริ้วไหวปักดิ้นทอง',
+        voiceStyle: 'ทุ้ม นิ่ง สุขุม แฝงพลังความมุ่งมั่น',
+        weaponsOrProps: 'กระบี่ครามโบราณลอยกลางอากาศ',
+        googleFlowSeed: '741258',
+      },
+      {
+        name: 'จ้าวอสูรโลหิต',
+        role: 'antagonist',
+        appearanceAnchor:
+          'จ้าวอสูรผู้เกรงขาม แววตาสีแดงเพลิงเรืองรอง สวมชุดเกราะหนามสีดำทมิฬ มีไอหมอกมารสีเลือดแผ่ออกมารอบตัว สไตล์อนิเมะจีน 3D',
+        clothingStyle: 'ชุดเกราะหนามทมิฬ แผ่ไอหมอกมารสีเลือด',
+        voiceStyle: 'ดุดัน ทะนงตัว เยือกเย็น',
+        weaponsOrProps: 'ง้าวโลหิตทมิฬ / พลังออร่ามาร',
+        googleFlowSeed: '952314',
+      },
+      {
+        name: 'ไป๋หลิง',
+        role: 'supporting',
+        appearanceAnchor:
+          'เซียนสาวรูปโฉมงดงามดุจภาพวาด ผมดำขลับประดับดอกเหมย สวมชุดผ้าไหมแพรพรรณสีขาวบริสุทธิ์ แววตาอ่อนโยนแต่เปี่ยมพลังกระบี่บงกช สไตล์อนิเมะจีน 3D',
+        clothingStyle: 'ชุดคลุมผ้าไหมสีขาวพริ้วไหว ประดับหยกพิสุทธิ์',
+        voiceStyle: 'ไพเราะ นุ่มนวล แต่หนักแน่นในคุณธรรม',
+        weaponsOrProps: 'กระบี่ดอกบัวหิมะ / พิณโบราณสะกดมาร',
+        googleFlowSeed: '482190',
+      },
+      {
+        name: 'เจ้าสำนักเฒ่าหาน',
+        role: 'supporting',
+        appearanceAnchor:
+          'ปรมาจารย์ผู้เฒ่าเครายาวสีหิมะ ดวงตาแจ่มใสเปี่ยมปัญญา นั่งสมาธิบนแท่นหิน มีกลิ่นอายเซียนทองคำหมุนวนรอบกาย สไตล์อนิเมะจีน 3D',
+        clothingStyle: 'ชุดนักพรตเต๋าสีครามปักลายแปดทิศ',
+        voiceStyle: 'ก้องกังวาน เปี่ยมบารมี ให้แง่คิดคมคาย',
+        weaponsOrProps: 'แส้ปัดหางม้าขาว / ค่ายกลแปดทิศทองคำ',
+        googleFlowSeed: '617283',
+      },
+    ];
+    return list.slice(0, count);
+  }
+
+  // Default / Action Scifi
+  const list: TempCharacter[] = [
+    {
+      name: 'เอเป็กซ์ (Apex)',
+      role: 'protagonist',
+      appearanceAnchor:
+        'นักรบไซบอร์กหนุ่ม แขนกลชีวภาพเรืองแสงนีออนสีฟ้า สวมแจ็กเก็ตแทคติคอลหนังสีดำ แววตาเด็ดเดี่ยว 8k cyberpunk cinematic',
+      clothingStyle: 'แจ็กเก็ตหนังไซเบอร์พังก์ อุปกรณ์เกราะเบา',
+      voiceStyle: 'เท่ คม ชัดเจน',
+      weaponsOrProps: 'ดาบพลาสม่าคู่ / ปืนพกพลังงาน',
+      googleFlowSeed: '782910',
+    },
+    {
+      name: 'โอเมก้า (Omega Prime)',
+      role: 'antagonist',
+      appearanceAnchor:
+        'หุ่นรบ AI สังหารขนาดยักษ์ ดวงตาเซนเซอร์สีแดงเลือด เกราะเหล็กไททาเนียมทมิฬ มีไอความร้อนพวยพุ่ง 8k sci-fi cinematic',
+      clothingStyle: 'เกราะเหล็กนาโนสีเทาดำ',
+      voiceStyle: 'หุ่นยนต์สังเคราะห์ เยือกเย็น ไร้ความปรานี',
+      weaponsOrProps: 'ปืนใหญ่เลเซอร์ประจุควอนตัม',
+      googleFlowSeed: '891024',
+    },
+    {
+      name: 'โนวา (Nova)',
+      role: 'supporting',
+      appearanceAnchor:
+        'แฮกเกอร์สาวอัจฉริยะ ผมสั้นสีนีออนม่วง แว่นไซเบอร์สโคป คอยซัพพอร์ตระบบดาวเทียม 8k sci-fi cinematic',
+      clothingStyle: 'ชุดสูทนาโนเรืองแสงสีม่วง ถุงมือควบคุมโฮโลแกรม',
+      voiceStyle: 'คล่องแคล่ว ตื่นตัว รวดเร็ว',
+      weaponsOrProps: 'โดรนแฮกกิ้งขนาดจิ๋ว',
+      googleFlowSeed: '620194',
+    },
+    {
+      name: 'คอมมานเดอร์เร็กซ์',
+      role: 'supporting',
+      appearanceAnchor:
+        'ผู้บัญชาการอาวุโสแห่งกองกำลังพิทักษ์โลก สวมเกราะพาวเวอร์สูทสีทองแดง บาดแผลจากสงครามอวกาศ 8k sci-fi cinematic',
+      clothingStyle: 'เกราะพาวเวอร์สูทสั่งการสงคราม',
+      voiceStyle: 'ทรงพลัง ดังก้อง ปลุกใจ',
+      weaponsOrProps: 'บาเรียสนามพลังและปืนใหญ่พลังไอออน',
+      googleFlowSeed: '401928',
+    },
+  ];
+  return list.slice(0, count);
+}
+
 export default function NewProjectModal({ isOpen, onClose, onCreated }: NewProjectModalProps) {
   const [title, setTitle] = useState('');
   const [synopsis, setSynopsis] = useState('');
@@ -55,28 +195,9 @@ export default function NewProjectModal({ isOpen, onClose, onCreated }: NewProje
   const [targetDurationMinutes, setTargetDurationMinutes] = useState<number>(3);
 
   // Characters List
-  const [characters, setCharacters] = useState<TempCharacter[]>([
-    {
-      name: 'ผู้การพายุ',
-      role: 'protagonist',
-      appearanceAnchor:
-        'ผู้บัญชาการหน่วยรบพิเศษหนุ่ม ผิวเข้มคมเข้ม สวมหมวกเบเรต์และชุดเกราะ Tactical Vest ลายพราง แววตาเด็ดเดี่ยว มีแผลเป็นเล็กๆ เหนือคิ้วซ้าย 8k photorealistic',
-      clothingStyle: 'ชุดเกราะ Tactical Vest ลายพรางสนามรบ วิทยุสื่อสารสะพายบ่า',
-      voiceStyle: 'ดุดัน หนักแน่น สั่งการเฉียบขาด',
-      weaponsOrProps: 'ปืนไรเฟิลจู่โจมติดกล้องเล็งและไฟเลเซอร์',
-      googleFlowSeed: '849201',
-    },
-    {
-      name: 'พลเอกศัตรู',
-      role: 'antagonist',
-      appearanceAnchor:
-        'หัวหน้ากองกำลังฝ่ายตรงข้าม รูปร่างกำยำ สวมหน้ากากกันแก๊สและแว่นยุทธวิธีสีดำทมิฬ เสื้อเกราะหนักลายพรางเทาดำ แววตาดุดัน 8k photorealistic',
-      clothingStyle: 'เสื้อเกราะหนักลายพรางเทาดำ หน้ากากยุทธวิธี',
-      voiceStyle: 'ดุดัน ทะนงตัว เยือกเย็น',
-      weaponsOrProps: 'ปืนกลหนักและรีโมตจุดชนวนขีปนาวุธ',
-      googleFlowSeed: '631894',
-    },
-  ]);
+  const [characters, setCharacters] = useState<TempCharacter[]>(() =>
+    getCharacterPresets('military_tactical', 2)
+  );
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -85,61 +206,26 @@ export default function NewProjectModal({ isOpen, onClose, onCreated }: NewProje
 
   const handleGenreChange = (newGenre: MovieGenre) => {
     setGenre(newGenre);
+    const count = characters.length >= 2 && characters.length <= 4 ? characters.length : 2;
     if (newGenre === 'military_tactical') {
       setVisualMedium('live_action');
       setStylePreset('military_combat');
       setAspectRatio('9:16');
       setTargetDurationMinutes(3);
-      setCharacters([
-        {
-          name: 'ผู้การพายุ',
-          role: 'protagonist',
-          appearanceAnchor:
-            'ผู้บัญชาการหน่วยรบพิเศษหนุ่ม ผิวเข้มคมเข้ม สวมหมวกเบเรต์และชุดเกราะ Tactical Vest ลายพราง แววตาเด็ดเดี่ยว 8k photorealistic',
-          clothingStyle: 'ชุดเกราะ Tactical Vest ลายพรางสนามรบ วิทยุสื่อสารสะพายบ่า',
-          voiceStyle: 'ดุดัน หนักแน่น สั่งการเฉียบขาด',
-          weaponsOrProps: 'ปืนไรเฟิลจู่โจมติดกล้องเล็งและไฟเลเซอร์',
-          googleFlowSeed: '849201',
-        },
-        {
-          name: 'แม่ทัพศัตรู',
-          role: 'antagonist',
-          appearanceAnchor:
-            'หัวหน้ากองกำลังฝ่ายตรงข้าม รูปร่างกำยำ สวมหน้ากากกันแก๊สและแว่นยุทธวิธีสีดำทมิฬ เสื้อเกราะหนักลายพรางเทาดำ แววตาดุดัน',
-          clothingStyle: 'เสื้อเกราะหนักลายพรางเทาดำ หน้ากากยุทธวิธี',
-          voiceStyle: 'ดุดัน ทะนงตัว เยือกเย็น',
-          weaponsOrProps: 'ปืนกลหนักและรีโมตจุดชนวนขีปนาวุธ',
-          googleFlowSeed: '631894',
-        },
-      ]);
+      setCharacters(getCharacterPresets('military_tactical', count));
     } else if (newGenre === 'xianxia_cultivation') {
       setVisualMedium('animation');
       setStylePreset('donghua_3d');
       setAspectRatio('16:9');
       setTargetDurationMinutes(60);
-      setCharacters([
-        {
-          name: 'เซียวหลิน',
-          role: 'protagonist',
-          appearanceAnchor:
-            'จอมยุทธ์หนุ่มรูปงาม ผมยาวสีขาวเงินเกล้ามวยด้วยปิ่นหยกขาว สวมชุดคลุมเต๋าผ้าไหมสีดำปักดิ้นทอง แววตาสีอำพัน สะพายกระบี่เทพโบราณสีคราม สไตล์อนิเมะจีน 3D สวยสง่า',
-          clothingStyle: 'ชุดคลุมผ้าไหมโบราณพริ้วไหวปักดิ้นทอง',
-          voiceStyle: 'ทุ้ม นิ่ง สุขุม แฝงพลังความมุ่งมั่น',
-          weaponsOrProps: 'กระบี่ครามโบราณลอยกลางอากาศ',
-          googleFlowSeed: '741258',
-        },
-        {
-          name: 'จ้าวอสูรโลหิต',
-          role: 'antagonist',
-          appearanceAnchor:
-            'จ้าวอสูรผู้เกรงขาม แววตาสีแดงเพลิงเรืองรอง สวมชุดเกราะหนามสีดำทมิฬ มีไอหมอกมารสีเลือดแผ่ออกมารอบตัว สไตล์อนิเมะจีน 3D',
-          clothingStyle: 'ชุดเกราะหนามทมิฬ แผ่ไอหมอกมารสีเลือด',
-          voiceStyle: 'ดุดัน ทะนงตัว เยือกเย็น',
-          weaponsOrProps: 'ง้าวโลหิตทมิฬ / พลังออร่ามาร',
-          googleFlowSeed: '952314',
-        },
-      ]);
+      setCharacters(getCharacterPresets('xianxia_cultivation', count));
+    } else {
+      setCharacters(getCharacterPresets(newGenre, count));
     }
+  };
+
+  const setCharacterCountPreset = (count: 2 | 3 | 4) => {
+    setCharacters(getCharacterPresets(genre, count));
   };
 
   const handleAddCharacter = () => {
@@ -585,6 +671,34 @@ export default function NewProjectModal({ isOpen, onClose, onCreated }: NewProje
                 <Plus className="w-3.5 h-3.5" />
                 <span>เพิ่มตัวละคร</span>
               </button>
+            </div>
+
+            {/* Quick Character Count Selector Buttons (2, 3, 4) */}
+            <div className="flex flex-wrap items-center gap-2 pt-1 pb-1 border-y border-studio-800/80">
+              <span className="text-[11px] font-semibold text-gray-300 mr-1">เลือกจำนวนตัวละครสำเร็จรูป:</span>
+              {[
+                { count: 2, label: '👥 2 ตัวละคร', desc: 'ตัวเอก vs ศัตรู' },
+                { count: 3, label: '👥 3 ตัวละคร', desc: 'ตัวเอก + คู่หู + ศัตรู' },
+                { count: 4, label: '👥 4 ตัวละคร (มหากาพย์)', desc: 'ทีม 4 ตัวละครครบเซ็ต' },
+              ].map((preset) => {
+                const isSelected = characters.length === preset.count;
+                return (
+                  <button
+                    key={preset.count}
+                    type="button"
+                    onClick={() => setCharacterCountPreset(preset.count as 2 | 3 | 4)}
+                    className={`px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                      isSelected
+                        ? 'bg-amber-500/20 border-amber-500 text-amber-300 shadow-glow'
+                        : 'bg-studio-900/80 border-studio-700 text-gray-400 hover:text-white hover:border-studio-600'
+                    }`}
+                  >
+                    {isSelected ? <Check className="w-3.5 h-3.5 text-amber-400" /> : null}
+                    <span>{preset.label}</span>
+                    <span className="text-[10px] text-gray-400 font-normal">({preset.desc})</span>
+                  </button>
+                );
+              })}
             </div>
 
             <div className="space-y-3">

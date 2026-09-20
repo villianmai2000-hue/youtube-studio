@@ -119,6 +119,8 @@ export interface User {
   username: string;
   password?: string;
   displayName: string;
+  phoneNumber?: string; // เบอร์โทรศัพท์สำหรับกู้คืนรหัสผ่านและ 2FA
+  email?: string;       // อีเมลสำหรับแจ้งเตือนและป้องกันการแฮก
   role: UserRole;
   isActive: boolean;
   createdAt: string;

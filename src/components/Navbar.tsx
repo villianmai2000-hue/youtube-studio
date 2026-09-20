@@ -2,10 +2,11 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Film, Database, Sparkles, Github, ExternalLink, ShieldCheck, Users, LogIn, LogOut, User as UserIcon } from 'lucide-react';
+import { Film, Database, Sparkles, Github, ExternalLink, ShieldCheck, Users, LogIn, LogOut, User as UserIcon, Shield } from 'lucide-react';
 import { User } from '@/lib/types';
 import LoginModal from './LoginModal';
 import UserManagementModal from './UserManagementModal';
+import OwnerSecurityModal from './OwnerSecurityModal';
 
 export const DEFAULT_OWNER_USER: User = {
   id: 'user-owner-yutthakan',
@@ -20,6 +21,7 @@ export default function Navbar() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showUserModal, setShowUserModal] = useState(false);
+  const [showSecurityModal, setShowSecurityModal] = useState(false);
 
   const [atlasStatus, setAtlasStatus] = useState<{
     connected: boolean;
@@ -132,16 +134,27 @@ export default function Navbar() {
                   </div>
                 </div>
 
-                {/* Owner Only: Manage Users Button */}
+                {/* Owner Only: Actions */}
                 {isOwnerUser && (
-                  <button
-                    onClick={() => setShowUserModal(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-950/50 border border-cyan-500/40 text-cyan-300 hover:bg-cyan-900/50 text-xs font-semibold transition-all shadow-[0_0_12px_rgba(6,182,212,0.15)]"
-                    title="จัดการผู้ใช้งานในระบบ (เฉพาะเจ้าของ)"
-                  >
-                    <Users className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">จัดการผู้ใช้งาน</span>
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => setShowUserModal(true)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-950/50 border border-cyan-500/40 text-cyan-300 hover:bg-cyan-900/50 text-xs font-semibold transition-all shadow-[0_0_12px_rgba(6,182,212,0.15)]"
+                      title="จัดการผู้ใช้งานในระบบ (เฉพาะเจ้าของ)"
+                    >
+                      <Users className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">จัดการผู้ใช้งาน</span>
+                    </button>
+
+                    <button
+                      onClick={() => setShowSecurityModal(true)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-950/50 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-900/50 text-xs font-semibold transition-all shadow-[0_0_12px_rgba(16,185,129,0.15)]"
+                      title="ความปลอดภัยบัญชีเจ้าของ: ผูกเบอร์โทรศัพท์และอีเมล"
+                    >
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">ผูกเบอร์ & อีเมล</span>
+                    </button>
+                  </div>
                 )}
 
                 {/* Logout / Switch Button */}
@@ -201,6 +214,12 @@ export default function Navbar() {
         isOpen={showUserModal}
         onClose={() => setShowUserModal(false)}
         currentUser={currentUser}
+      />
+
+      {/* Owner Security Modal (Phone / Email Binding) */}
+      <OwnerSecurityModal
+        isOpen={showSecurityModal}
+        onClose={() => setShowSecurityModal(false)}
       />
 
       {/* Database Info Modal */}

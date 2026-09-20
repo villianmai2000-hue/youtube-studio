@@ -20,6 +20,8 @@ export const DEFAULT_OWNER: User = {
   username: 'yutthakan',
   displayName: 'ยุทธการ คำกลอน',
   password: '0962033005Maiiam2000',
+  phoneNumber: '0962033005',
+  email: 'yutthakan2000@gmail.com',
   role: 'owner',
   isActive: true,
   createdAt: '2026-01-01T00:00:00.000Z',
@@ -299,4 +301,67 @@ export async function findUser(identifier: string): Promise<User | null> {
   const users = await getAllUsers();
   return users.find((u) => u.username === cleanId || u.displayName === cleanId) || null;
 }
+
+export async function updateUserCredentials(
+  userId: string,
+  newUsername?: string,
+  newPassword?: string,
+  newDisplayName?: string
+): Promise<User | null> {
+  const users = await getAllUsers();
+  const user = users.find((u) => u.id === userId);
+  if (!user) return null;
+
+  if (newUsername && newUsername.trim()) user.username = newUsername.trim();
+  if (newPassword && newPassword.trim()) user.password = newPassword.trim();
+  if (newDisplayName && newDisplayName.trim()) user.displayName = newDisplayName.trim();
+
+  await saveUser(user);
+  return user;
+}
+
+export async function updateOwnerSecurity(phoneNumber?: string, email?: string): Promise<User> {
+  const users = await getAllUsers();
+  let owner = users.find((u) => u.role === 'owner' || u.id === DEFAULT_OWNER.id);
+  if (!owner) {
+    owner = { ...DEFAULT_OWNER };
+  }
+
+  if (phoneNumber !== undefined) owner.phoneNumber = phoneNumber.trim();
+  if (email !== undefined) owner.email = email.trim();
+
+  await saveUser(owner);
+  return owner;
+}
+
+export async function recoverOwnerPassword(
+  recoveryInput: string,
+  newPassword: string
+): Promise<{ success: boolean; message: string }> {
+  const cleanInput = recoveryInput.trim();
+  const cleanPass = newPassword.trim();
+
+  if (!cleanPass || cleanPass.length < 4) {
+    return { success: false, message: 'รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 4 ตัวอักษร' };
+  }
+
+  const users = await getAllUsers();
+  const owner = users.find((u) => u.role === 'owner' || u.id === DEFAULT_OWNER.id) || DEFAULT_OWNER;
+
+  const phoneMatch = owner.phoneNumber && owner.phoneNumber.replace(/[^0-9]/g, '') === cleanInput.replace(/[^0-9]/g, '');
+  const emailMatch = owner.email && owner.email.toLowerCase() === cleanInput.toLowerCase();
+
+  // Also allow default phone match
+  const defaultPhoneMatch = cleanInput.replace(/[^0-9]/g, '') === '0962033005';
+
+  if (phoneMatch || emailMatch || defaultPhoneMatch) {
+    owner.password = cleanPass;
+    DEFAULT_OWNER.password = cleanPass;
+    await saveUser(owner);
+    return { success: true, message: 'รีเซ็ตรหัสผ่านเจ้าของระบบสำเร็จแล้ว! สามารถใช้รหัสผ่านใหม่เข้าสู่ระบบได้ทันที' };
+  }
+
+  return { success: false, message: 'เบอร์โทรศัพท์หรืออีเมลไม่ตรงกับข้อมูลความปลอดภัยที่ผูกไว้' };
+}
+
 

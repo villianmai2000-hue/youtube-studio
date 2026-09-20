@@ -274,7 +274,7 @@ export default function ProjectStudioPage() {
   // Multi-type batch copy handler
   const [copyState, setCopyState] = useState<string | null>(null);
 
-  const handleCopyType = (type: 'narration' | 'dialogues' | 'images' | 'videos' | 'flow' | 'full') => {
+  const handleCopyType = (type: 'narration' | 'dialogues' | 'images' | 'videos' | 'flow' | 'full' | 'meta') => {
     if (!project) return;
     const targets = project.scenes
       .filter((s) => (selectedSceneIds.length > 0 ? selectedSceneIds.includes(s.id) : true))
@@ -324,6 +324,52 @@ export default function ProjectStudioPage() {
           return `[ฉากที่ ${s.sceneNumber}: ${s.title} - flow.google.com] (Seed: ${flowSeed})\n${flowPrompt}`;
         })
         .join('\n\n');
+    } else if (type === 'meta') {
+      // All-in-One Meta/Facebook Reels Production Package (บทพากย์ + ฉาก + บทพูด + SFX + พร้อมต์วิดีโอ + แฮชแท็ก)
+      output = `🚀 รวมทุกอย่างสำหรับสร้างคลิปใน Meta / Facebook Reels เบ็ดเสร็จ\n`;
+      output += `==========================================================\n`;
+      output += `📌 ชื่อเรื่อง / แคปชันวิดีโอ: ${project.title}\n`;
+      output += `📐 สัดส่วน: ${project.aspectRatio || '9:16'} (Reels / Shorts) | ความยาว: ~${targets.length * 10} วินาที (${targets.length} ฉาก @ 10 วิ/ฉาก)\n`;
+      output += `🤖 AI Engine: ${project.scriptEngine || 'Google Gemini'} | โหมด: ${project.visualMedium === 'live_action' ? 'ภาพยนตร์คนจริง (Live-Action)' : 'อนิเมะ 3D'}\n\n`;
+
+      output += `📖 [1. บทบรรยายสำหรับลงเสียงพากย์ / Voiceover รวดเดียวจบ]:\n`;
+      output += `----------------------------------------------------------\n`;
+      output += targets
+        .map((s) => s.narration.trim())
+        .filter(Boolean)
+        .join(' ');
+      output += `\n\n`;
+
+      output += `🎬 [2. ไทม์ไลน์แจกแจงทีละฉาก (ลำดับภาพ + บทพูด + ซาวด์ SFX/BGM + พร้อมต์วิดีโอ)]:\n`;
+      output += `----------------------------------------------------------\n`;
+      targets.forEach((s, idx) => {
+        const startSec = idx * 10;
+        const endSec = (idx + 1) * 10;
+        const startMinStr = `${Math.floor(startSec / 60)}:${String(startSec % 60).padStart(2, '0')}`;
+        const endMinStr = `${Math.floor(endSec / 60)}:${String(endSec % 60).padStart(2, '0')}`;
+        output += `[ฉากที่ ${s.sceneNumber}] (${startMinStr} - ${endMinStr}) : ${s.title}\n`;
+        output += `🎙️ เสียงพากย์: ${s.narration}\n`;
+        if (s.dialogues.length > 0) {
+          output += `💬 บทพูดตัวละคร:\n`;
+          s.dialogues.forEach((d) => {
+            output += `   • ${d.speaker} (${d.emotion}): "${d.text}"\n`;
+          });
+        }
+        output += `🎵 ดนตรี & เอฟเฟกต์เสียง: ${s.sfxBgm}\n`;
+        output += `🎥 มุมกล้อง & แสง: ${s.cameraMovement} | ${s.lighting}\n`;
+        output += `📹 พร้อมต์เจนวิดีโอ AI (Kling/Runway/Haiper): ${s.videoMotionPrompt}\n`;
+        output += `🌊 flow.google.com (Seed: ${s.googleFlowSeed || '12345'}): ${s.googleFlowPrompt || `${s.imagePrompt} --seed ${s.googleFlowSeed || '12345'}`}\n`;
+        output += `\n`;
+      });
+
+      output += `🏷️ [3. แฮชแท็กสำหรับโพสต์ลง Meta Reels / TikTok / CapCut]:\n`;
+      if (project.genre === 'military_tactical') {
+        output += `#Reels #ทหาร #ยุทธการทหาร #ขีปนาวุธ #กองทัพ #แสนยานุภาพ #อาวุธสงคราม #เทคโนโลยีทหาร #MilitaryReels #Shorts\n`;
+      } else if (project.genre === 'xianxia_cultivation') {
+        output += `#Reels #อนิเมะจีน3D #กำลังภายใน #เซียนกระบี่ #Donghua #SAN1 #อนิเมะ #Shorts #ซีรีส์จีน\n`;
+      } else {
+        output += `#Reels #ภาพยนตร์AI #หนังไซไฟ #วิดีโอสั้น #Shorts #MetaReels #AIAnimation\n`;
+      }
     } else if (type === 'full') {
       // Full Production Script
       output = `🎬 บทภาพยนตร์ / คลิปฉบับสมบูรณ์: ${project.title}\n`;
@@ -693,10 +739,52 @@ export default function ProjectStudioPage() {
           </div>
         )}
 
+        {/* Meta Reels All-in-One Feature Button */}
+        <div className="pt-1">
+          <button
+            type="button"
+            onClick={() => handleCopyType('meta')}
+            className="w-full p-3.5 rounded-2xl bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white font-bold text-xs sm:text-sm shadow-[0_0_20px_rgba(6,182,212,0.3)] flex items-center justify-between transition-all group border border-cyan-400/40"
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="p-1.5 rounded-xl bg-white/10 text-cyan-200">
+                <Sparkles className="w-5 h-5 animate-pulse" />
+              </div>
+              <div className="text-left">
+                <div className="flex items-center gap-2">
+                  <span className="font-extrabold text-white">
+                    🚀 รวมทุกอย่างสำหรับสร้างคลิปใน Meta เบ็ดเสร็จ
+                  </span>
+                  <span className="px-2 py-0.5 rounded-md bg-cyan-950/60 text-cyan-300 text-[10px] border border-cyan-400/30">
+                    Reels 1 คลิก
+                  </span>
+                </div>
+                <p className="text-[11px] text-cyan-100 font-normal">
+                  (บทพากย์รวมรวดเดียว + ไทม์ไลน์ทุกฉาก + บทพูด + ซาวด์ SFX/BGM + พร้อมต์วิดีโอ + แฮชแท็ก CapCut)
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 bg-white/15 px-3.5 py-1.5 rounded-xl text-xs font-semibold">
+              {copyState === 'meta' ? (
+                <>
+                  <Check className="w-4 h-4 text-emerald-300" />
+                  <span className="text-emerald-300">คัดลอกเบ็ดเสร็จสำเร็จ!</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="w-4 h-4 text-white group-hover:scale-110 transition-transform" />
+                  <span>คัดลอกชุดใหญ่</span>
+                </>
+              )}
+            </div>
+          </button>
+        </div>
+
         {/* 6 1-Click Batch Copier Buttons Grid */}
         <div className="space-y-2 pt-1">
           <span className="text-[11px] font-bold text-amber-300 uppercase tracking-wider block">
-            📋 คัดลอกรวมฉากในคลิกเดียว (1-Click Batch Copier):
+            📋 คัดลอกแยกหมวดหมู่ย่อย (1-Click Batch Copier):
           </span>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
             {/* 1. Voiceover Narration */}

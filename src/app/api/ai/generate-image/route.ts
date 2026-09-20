@@ -8,8 +8,12 @@ export const dynamic = 'force-dynamic';
 const LOCAL_MEDIA_DIR = path.join(process.cwd(), '.studio_media');
 
 function ensureLocalMediaDir() {
-  if (!fs.existsSync(LOCAL_MEDIA_DIR)) {
-    fs.mkdirSync(LOCAL_MEDIA_DIR, { recursive: true });
+  try {
+    if (!fs.existsSync(LOCAL_MEDIA_DIR)) {
+      fs.mkdirSync(LOCAL_MEDIA_DIR, { recursive: true });
+    }
+  } catch {
+    // ignore on Vercel read-only
   }
 }
 
@@ -85,6 +89,7 @@ export async function POST(request: Request) {
           success: true,
           fileId,
           mediaUrl,
+          imageUrl: mediaUrl,
           filename,
           storage: 'MongoDB Atlas GridFS (Cloud)',
         });
@@ -93,26 +98,40 @@ export async function POST(request: Request) {
       }
     }
 
-    // 2. Fallback: บันทึกลง Local Dev Cache หากยังไม่ได้ใส่ MONGODB_URI
-    ensureLocalMediaDir();
-    const fallbackId = `local-ai-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-    const filePath = path.join(LOCAL_MEDIA_DIR, `${fallbackId}.jpg`);
-    fs.writeFileSync(filePath, buffer);
+    // 2. Fallback: บันทึกลง Local Dev Cache หรือคืนค่า Base64 Data URI ตรงๆ (ปลอดภัย 100% บน Vercel)
+    try {
+      ensureLocalMediaDir();
+      const fallbackId = `local-ai-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      const filePath = path.join(LOCAL_MEDIA_DIR, `${fallbackId}.jpg`);
+      fs.writeFileSync(filePath, buffer);
 
-    const metaPath = path.join(LOCAL_MEDIA_DIR, `${fallbackId}.json`);
-    fs.writeFileSync(
-      metaPath,
-      JSON.stringify({ contentType, filename, size: buffer.length, projectId: projectId || '', sceneId: sceneId || '', generatedByAI: true }),
-      'utf-8'
-    );
+      const metaPath = path.join(LOCAL_MEDIA_DIR, `${fallbackId}.json`);
+      fs.writeFileSync(
+        metaPath,
+        JSON.stringify({ contentType, filename, size: buffer.length, projectId: projectId || '', sceneId: sceneId || '', generatedByAI: true }),
+        'utf-8'
+      );
 
-    return NextResponse.json({
-      success: true,
-      fileId: fallbackId,
-      mediaUrl: `/api/media/${fallbackId}`,
-      filename,
-      storage: 'Local Dev Cache (พร้อมส่งเข้า Atlas Cloud เมื่อตั้งค่า MONGODB_URI)',
-    });
+      return NextResponse.json({
+        success: true,
+        fileId: fallbackId,
+        mediaUrl: `/api/media/${fallbackId}`,
+        imageUrl: `/api/media/${fallbackId}`,
+        filename,
+        storage: 'Local Dev Cache',
+      });
+    } catch {
+      // Vercel read-only filesystem fallback: return base64 Data URI directly
+      const base64 = buffer.toString('base64');
+      const dataUri = `data:${contentType};base64,${base64}`;
+      return NextResponse.json({
+        success: true,
+        mediaUrl: dataUri,
+        imageUrl: dataUri,
+        filename,
+        storage: 'Direct AI Memory Stream (Vercel Cloud Safe)',
+      });
+    }
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Failed to generate image';
     return NextResponse.json({ success: false, error: message }, { status: 500 });

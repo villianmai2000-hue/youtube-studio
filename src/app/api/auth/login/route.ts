@@ -30,6 +30,8 @@ export async function POST(request: Request) {
         id: user.id,
         username: user.username,
         displayName: user.displayName,
+        phoneNumber: user.phoneNumber,
+        email: user.email,
         role: user.role,
         isActive: user.isActive,
       },

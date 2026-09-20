@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getAllUsers, saveUser, deleteUser, DEFAULT_OWNER } from '@/lib/storage';
+import { getAllUsers, saveUser, deleteUser, updateUserCredentials, DEFAULT_OWNER } from '@/lib/storage';
 import { User } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -78,6 +78,44 @@ export async function POST(request: Request) {
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Failed to add user';
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
+  }
+}
+
+export async function PUT(request: Request) {
+  try {
+    const body = await request.json();
+    const { id, username, password, displayName, requesterRole, requesterName } = body;
+
+    // Verify only owner can edit users
+    if (requesterRole !== 'owner' && requesterName !== DEFAULT_OWNER.displayName && requesterName !== DEFAULT_OWNER.username) {
+      return NextResponse.json(
+        { success: false, error: 'สงวนสิทธิ์เฉพาะเจ้าของระบบ (คุณยุทธการ คำกลอน) เท่านั้นที่สามารถแก้ไขข้อมูลผู้ใช้ได้' },
+        { status: 403 }
+      );
+    }
+
+    if (!id) {
+      return NextResponse.json({ success: false, error: 'User ID is required' }, { status: 400 });
+    }
+
+    const updatedUser = await updateUserCredentials(id, username, password, displayName);
+    if (!updatedUser) {
+      return NextResponse.json({ success: false, error: 'ไม่พบผู้ใช้นี้ในระบบ' }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      user: {
+        id: updatedUser.id,
+        username: updatedUser.username,
+        displayName: updatedUser.displayName,
+        role: updatedUser.role,
+        isActive: updatedUser.isActive,
+      },
+    });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to update user';
     return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }
