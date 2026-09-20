@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { CharacterBible, VisualMedium, StylePreset, Project } from '@/lib/types';
 import {
   User,
+  Users,
   Plus,
   Trash2,
   Check,
@@ -54,6 +55,8 @@ export default function CharacterBibleModal({
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [expandedCharIds, setExpandedCharIds] = useState<Record<string, boolean>>({});
   const [activeTabPerChar, setActiveTabPerChar] = useState<Record<string, 'dimensions' | 'prompts'>>({});
+  const [selectedCount, setSelectedCount] = useState<number>(10);
+  const [factionFilter, setFactionFilter] = useState<'all' | 'protagonist' | 'supporting' | 'antagonist' | 'mentor'>('all');
 
   // Sync when initialCharacters changes
   useEffect(() => {
@@ -95,7 +98,7 @@ export default function CharacterBibleModal({
       hairStyle: 'ผมยาวสีดำขลับ รวบสูงประดับปิ่น',
       clothingStyle: 'ชุดคลุมผ้าไหมประณีต สวมเกราะอ่อน',
       colorTheme: 'คราม-เงิน (Navy Blue & Silver)',
-      weaponsOrProps: 'กระบี่โบราณลวดลายมังกร',
+      weaponsOrProps: 'กระบี่โบราณลวดลายมังกร / ปืนกลไฮเทค',
       personality: 'สุขุม กล้าหาญ ยึดมั่นในความถูกต้อง',
       abilities: 'ทักษะวิทยายุทธ์ขั้นสูง พลังลมปราณสายฟ้า',
       weaknesses: 'ห่วงใยพวกพ้อง ยึดมั่นในสัญญา',
@@ -106,6 +109,43 @@ export default function CharacterBibleModal({
       googleFlowPrompt: `character portrait, distinct facial features, 8k resolution, cinematic lighting --seed ${randomSeed}`,
     };
     setCharacters([...characters, newChar]);
+  };
+
+  const handleAddMultipleCharacters = (countToAdd: number) => {
+    const rolePresets: Array<{ role: CharacterBible['role']; namePrefix: string; weapons: string; abilities: string; desc: string }> = [
+      { role: 'supporting', namePrefix: 'สหายนักดาบ/มือขวา', weapons: 'ดาบคู่เล่มโต / ปืนพกยุทธวิธี', abilities: 'เพลงดาบทะลวงคลื่น / ยิงสกัดแม่นยำ', desc: 'ยอดฝีมือแนวหน้าผู้จงรักภักดี' },
+      { role: 'supporting', namePrefix: 'ต้นหน/สไนเปอร์', weapons: 'เข็มทิศดารา / ไรเฟิลซุ่มยิง', abilities: 'อ่านสภาพอากาศ / ซุ่มยิงทะลวงเกราะ', desc: 'ผู้กำหนดเส้นทางและคอยระวังภัย' },
+      { role: 'antagonist', namePrefix: 'แม่ทัพศัตรู/ขุนพลมาร', weapons: 'หอกทมิฬ / ดาบเพลิงอสูร', abilities: 'พลังงานมืดทำลายล้าง / หมัดลาวา', desc: 'ผู้บัญชาการระดับสูงฝ่ายตรงข้าม' },
+      { role: 'mentor', namePrefix: 'ผู้อาวุโส/อาจารย์', weapons: 'ไม้เท้าเต๋าโบราณ / จี้มนตรา', abilities: 'วิชาลับโบราณ / ถ่ายทอดพลังปราณ', desc: 'ผู้ชี้นำชะตากรรมและไขปริศนา' },
+      { role: 'beast_companion', namePrefix: 'สัตว์เทวะ/ผู้พิทักษ์', weapons: 'กรงเล็บสายฟ้า / เพลิงวิญญาณ', abilities: 'คำรามเปิดมิติ / พุ่งทะยานความเร็วแสง', desc: 'สหายร่วมรบที่ไม่ใช่มนุษย์' },
+    ];
+
+    const newChars: CharacterBible[] = [];
+    for (let k = 0; k < countToAdd; k++) {
+      const randomSeed = String(Math.floor(100000 + Math.random() * 900000));
+      const preset = rolePresets[(characters.length + k) % rolePresets.length];
+      newChars.push({
+        id: `char-${Date.now()}-${k}`,
+        name: `${preset.namePrefix} ${characters.length + k + 1}`,
+        role: preset.role,
+        age: '20-30 ปี',
+        bodyBuild: 'สมส่วน คล่องแคล่ว แข็งแกร่ง',
+        facialFeatures: 'แววตาเฉียบคม บุคลิกโดดเด่น',
+        hairStyle: 'ทรงผมเป็นเอกลักษณ์ ทันสมัย',
+        clothingStyle: 'ชุดผ้าคลุมยุทธวิธี สวมเกราะอ่อน',
+        colorTheme: 'ดำ-ทอง / คราม-เงิน',
+        weaponsOrProps: preset.weapons,
+        personality: 'กล้าหาญ เด็ดเดี่ยว รักศักดิ์ศรี',
+        abilities: preset.abilities,
+        weaknesses: 'ยึดมั่นในความถูกต้อง',
+        relationships: 'พันธมิตรคนสำคัญในเรื่องราว',
+        appearanceAnchor: 'distinct cinematic features, sharp expressive eyes, detailed iconic attire, 8k resolution',
+        voiceStyle: 'น้ำเสียงหนักแน่น น่าเชื่อถือ มีเอกลักษณ์',
+        googleFlowSeed: randomSeed,
+        googleFlowPrompt: `character portrait, distinct cinematic features, detailed attire, 8k resolution, cinematic lighting --seed ${randomSeed}`,
+      });
+    }
+    setCharacters([...characters, ...newChars]);
   };
 
   const handleUpdate = (index: number, field: keyof CharacterBible, value: any) => {
@@ -135,11 +175,12 @@ export default function CharacterBibleModal({
     setCharacters(updated);
   };
 
-  // 1. AI Auto-Analyze Story & Generate Characters
-  const handleAiAutoGenerateCharacters = async () => {
+  // 1. AI Auto-Analyze Story & Generate Characters (รองรับตัวละครไม่จำกัด 8-12+ ตัว สไตล์วันพีช)
+  const handleAiAutoGenerateCharacters = async (targetCountOverride?: number) => {
+    const targetCount = targetCountOverride || selectedCount;
     const confirmMsg = characters.length > 0
-      ? `ต้องการให้ AI วิเคราะห์พล็อตเรื่อง "${project?.title || 'ปัจจุบัน'}" และสร้างตัวละครชุดใหม่ที่ตรงกับเนื้อเรื่องทั้งหมดใช่หรือไม่? (ข้อมูลเดิมจะถูกแทนที่)`
-      : `ให้ AI วิเคราะห์พล็อตเรื่องและสร้างตัวละครอัตโนมัติ?`;
+      ? `ต้องการให้ AI วิเคราะห์พล็อตเรื่อง "${project?.title || 'ปัจจุบัน'}" และสร้างทีมตัวละครชุดใหม่ ${targetCount} ตัว (สไตล์วันพีช/มหากาพย์) ใช่หรือไม่? (ข้อมูลเดิมจะถูกแทนที่)`
+      : `ให้ AI วิเคราะห์พล็อตเรื่องและสร้างทีมตัวละคร ${targetCount} ตัวอัตโนมัติ?`;
 
     if (!confirm(confirmMsg)) return;
 
@@ -156,14 +197,14 @@ export default function CharacterBibleModal({
           subGenre: project?.subGenre || '',
           visualMedium: project?.visualMedium || visualMedium,
           stylePreset: project?.stylePreset || stylePreset,
-          characterCount: 3,
+          characterCount: targetCount,
         }),
       });
 
       const data = await res.json();
       if (data.success && data.characters && data.characters.length > 0) {
         setCharacters(data.characters);
-        alert(`✨ สร้างตัวละครตรงตามพล็อตเรื่องสำเร็จ ${data.characters.length} ตัว (${data.source || 'AI Narrative Engine'})`);
+        alert(`✨ สร้างทีมตัวละครตรงตามพล็อตเรื่องสำเร็จ ${data.characters.length} ตัว (${data.source || 'AI Narrative Ensemble Engine'})\n\n💡 แนะนำ: เมื่อตรวจสอบตัวละครแล้ว ให้กด "บันทึกข้อมูลตัวละครทั้งหมด" จากนั้นกดปุ่ม "⚡ สร้างเต็มเวลา" ที่หน้าสตูดิโอ เพื่อให้ระบบคำนวณบทพูด 10 วินาทีให้ตัวละครทุกคนมีแอร์ไทม์ครบถ้วน!`);
       } else {
         alert(data.error || 'สร้างตัวละครจาก AI ไม่สำเร็จ');
       }
@@ -293,79 +334,226 @@ export default function CharacterBibleModal({
           </button>
         </div>
 
-        {/* Action Banner: AI Story-Driven Character Generator + Batch Image Generator */}
-        <div className="mt-4 p-4 rounded-2xl bg-gradient-to-r from-amber-950/40 via-studio-950 to-cyan-950/40 border border-amber-500/30 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 flex-shrink-0">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-amber-300">🤖 AI สร้างตัวละครตามเนื้อเรื่องอัตโนมัติ</span>
-              <span className="text-[10px] px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-mono">
-                Story Premise Synced
-              </span>
+        {/* Action Banner: AI Story-Driven Character Generator (Unlimited Ensemble Cast) */}
+        <div className="mt-4 p-4 rounded-2xl bg-gradient-to-r from-amber-950/50 via-studio-950 to-cyan-950/50 border border-amber-500/40 flex flex-col gap-3.5 flex-shrink-0">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                  <Users className="w-4 h-4 text-amber-400" />
+                  🤖 ระบบตัวละครไม่จำกัด & AI สร้างตามเนื้อเรื่อง (สไตล์วันพีช)
+                </span>
+                <span className="text-[10px] px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-mono">
+                  Ensemble Cast Engine
+                </span>
+              </div>
+              <p className="text-xs text-gray-300">
+                สร้างทีมตัวละครครบทุกมิติ (กัปตัน, มือขวา, ต้นหน, พลแม่นปืน, กองหน้า, หมอ, นักปราชญ์, นายช่าง, จอมมาร, อาจารย์)
+              </p>
             </div>
-            <p className="text-xs text-gray-300">
-              วิเคราะห์พล็อตเรื่อง &quot;{project?.title || 'ของสตูดิโอ'}&quot; เพื่อสร้างตัวละครที่มีบทบาท ครบทั้ง 11 มิติ
-            </p>
+
+            {/* Quick action buttons right header */}
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* flow.google.com link */}
+              <a
+                href="https://flow.google.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-1.5 rounded-xl bg-studio-800 hover:bg-studio-700 text-cyan-300 text-xs font-semibold flex items-center gap-1.5 transition-colors border border-cyan-500/30"
+                title="เปิด Google Flow (VideoFX / ImageFX)"
+              >
+                <span>flow.google.com</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+
+              {/* Generate all images */}
+              <button
+                type="button"
+                onClick={handleGenerateAllImages}
+                disabled={generatingAll}
+                className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-bold text-xs shadow-glow transition-all flex items-center gap-1.5 disabled:opacity-50"
+              >
+                {generatingAll ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>กำลังสร้างครบทุกตัว...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4" />
+                    <span>✨ เจนภาพตัวละครทั้งหมด</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* AI Auto-generate characters button */}
-            <button
-              type="button"
-              onClick={handleAiAutoGenerateCharacters}
-              disabled={generatingAiCharacters}
-              className="px-3.5 py-2 rounded-xl bg-studio-800 hover:bg-studio-700 text-amber-300 text-xs font-bold flex items-center gap-1.5 transition-all border border-amber-500/40 hover:border-amber-400 shadow-sm disabled:opacity-50"
-              title="วิเคราะห์เรื่องและสร้างตัวละครอัตโนมัติ"
-            >
-              {generatingAiCharacters ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
-                  <span>กำลังวิเคราะห์พล็อต...</span>
-                </>
-              ) : (
-                <>
-                  <Bot className="w-4 h-4 text-amber-400" />
-                  <span>🤖 AI เจนตัวละครจากพล็อตเรื่อง</span>
-                </>
-              )}
-            </button>
+          {/* Character count selector and Generation triggers */}
+          <div className="pt-2 border-t border-studio-800/80 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+            {/* Count Selector Pills */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-xs text-gray-400 mr-1">จำนวนตัวละคร:</span>
+              {[8, 10, 12, 16].map((num) => (
+                <button
+                  key={num}
+                  type="button"
+                  onClick={() => setSelectedCount(num)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                    selectedCount === num
+                      ? 'bg-amber-500 text-black shadow-sm'
+                      : 'bg-studio-900 hover:bg-studio-800 text-gray-300 border border-studio-700'
+                  }`}
+                >
+                  {num} ตัว {num === 10 ? '🏴‍☠️ วันพีช' : ''}
+                </button>
+              ))}
+              <div className="flex items-center gap-1 bg-studio-900 border border-studio-700 rounded-lg px-2 py-0.5">
+                <span className="text-[11px] text-gray-400">กำหนดเอง:</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={50}
+                  value={selectedCount}
+                  onChange={(e) => setSelectedCount(Math.max(1, Number(e.target.value) || 1))}
+                  className="w-12 bg-transparent text-amber-300 font-bold text-xs text-center focus:outline-none"
+                />
+              </div>
+            </div>
 
-            {/* flow.google.com link */}
-            <a
-              href="https://flow.google.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-3 py-2 rounded-xl bg-studio-800 hover:bg-studio-700 text-cyan-300 text-xs font-semibold flex items-center gap-1.5 transition-colors border border-cyan-500/30"
-              title="เปิด Google Flow (VideoFX / ImageFX)"
-            >
-              <span>flow.google.com</span>
-              <ExternalLink className="w-3.5 h-3.5" />
-            </a>
+            {/* Triggers: 1-Click AI Generation & Quick Add */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={() => handleAiAutoGenerateCharacters(selectedCount)}
+                disabled={generatingAiCharacters}
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-bold text-xs shadow-glow flex items-center gap-2 transition-all disabled:opacity-50"
+                title={`วิเคราะห์เรื่องและสร้างตัวละคร ${selectedCount} ตัว`}
+              >
+                {generatingAiCharacters ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-black" />
+                    <span>กำลังวิเคราะห์พล็อตและสร้าง {selectedCount} ตัว...</span>
+                  </>
+                ) : (
+                  <>
+                    <Bot className="w-4 h-4 text-black" />
+                    <span>🤖 AI เจนทีมตัวละครยกแก๊ง ({selectedCount} ตัว สไตล์วันพีช)</span>
+                  </>
+                )}
+              </button>
 
-            {/* Generate all images */}
-            <button
-              type="button"
-              onClick={handleGenerateAllImages}
-              disabled={generatingAll}
-              className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-bold text-xs shadow-glow transition-all flex items-center gap-1.5 disabled:opacity-50"
-            >
-              {generatingAll ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>กำลังสร้างครบทุกตัว...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4" />
-                  <span>✨ เจนภาพตัวละครทั้งหมด</span>
-                </>
-              )}
-            </button>
+              <button
+                type="button"
+                onClick={() => handleAddMultipleCharacters(3)}
+                className="px-3 py-2 rounded-xl bg-studio-800 hover:bg-studio-700 text-cyan-300 text-xs font-semibold flex items-center gap-1 transition-all border border-cyan-500/30"
+                title="เพิ่ม 3 ตัวละครด่วน (สหาย / ศัตรู / อาจารย์)"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>+3 ตัวละคร</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Helpful Tip Alert */}
+          <div className="px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-300 flex items-center gap-2">
+            <span>💡</span>
+            <span>
+              <strong>ตัวละครไม่จำกัด:</strong> เมื่อสร้างหรือปรับเปลี่ยนตัวละครแล้ว กด <strong>&quot;บันทึกข้อมูลตัวละครทั้งหมด&quot;</strong> แล้วกดปุ่ม <strong>&quot;⚡ สร้างเต็มเวลา&quot;</strong> ที่หน้าสตูดิโอ เพื่อให้ระบบคำนวณบทพูด 10 วินาทีให้ตัวละครทุกคนมีแอร์ไทม์และฉากต่อสู้ครบถ้วน!
+            </span>
           </div>
         </div>
 
+        {/* Faction Filter Tabs */}
+        <div className="mt-3 flex items-center gap-1.5 overflow-x-auto pb-1 flex-shrink-0">
+          <button
+            type="button"
+            onClick={() => setFactionFilter('all')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${
+              factionFilter === 'all'
+                ? 'bg-amber-500 text-black'
+                : 'bg-studio-950 text-gray-400 hover:text-white border border-studio-800'
+            }`}
+          >
+            <span>ทั้งหมด</span>
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/20 font-mono">
+              {characters.length}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setFactionFilter('protagonist')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${
+              factionFilter === 'protagonist'
+                ? 'bg-amber-500 text-black'
+                : 'bg-studio-950 text-gray-400 hover:text-white border border-studio-800'
+            }`}
+          >
+            <span>👑 ฝ่ายตัวเอก &amp; กัปตัน</span>
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/20 font-mono">
+              {characters.filter((c) => c.role === 'protagonist').length}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setFactionFilter('supporting')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${
+              factionFilter === 'supporting'
+                ? 'bg-amber-500 text-black'
+                : 'bg-studio-950 text-gray-400 hover:text-white border border-studio-800'
+            }`}
+          >
+            <span>🛡️ สหาย &amp; ลูกเรือ</span>
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/20 font-mono">
+              {characters.filter((c) => c.role === 'supporting').length}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setFactionFilter('antagonist')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${
+              factionFilter === 'antagonist'
+                ? 'bg-amber-500 text-black'
+                : 'bg-studio-950 text-gray-400 hover:text-white border border-studio-800'
+            }`}
+          >
+            <span>⚔️ ฝ่ายศัตรู &amp; จอมมาร</span>
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/20 font-mono">
+              {characters.filter((c) => c.role === 'antagonist').length}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setFactionFilter('mentor')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${
+              factionFilter === 'mentor'
+                ? 'bg-amber-500 text-black'
+                : 'bg-studio-950 text-gray-400 hover:text-white border border-studio-800'
+            }`}
+          >
+            <span>📜 อาจารย์ &amp; อื่นๆ</span>
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/20 font-mono">
+              {characters.filter((c) => c.role === 'mentor' || c.role === 'beast_companion').length}
+            </span>
+          </button>
+        </div>
+
         {/* Character Cards List */}
-        <div className="mt-4 space-y-4 overflow-y-auto pr-1 flex-1">
-          {characters.map((char, idx) => {
+        <div className="mt-3 space-y-4 overflow-y-auto pr-1 flex-1">
+          {characters
+            .map((char, idx) => ({ char, idx }))
+            .filter(({ char }) => {
+              if (factionFilter === 'all') return true;
+              if (factionFilter === 'protagonist') return char.role === 'protagonist';
+              if (factionFilter === 'supporting') return char.role === 'supporting';
+              if (factionFilter === 'antagonist') return char.role === 'antagonist';
+              if (factionFilter === 'mentor') return char.role === 'mentor' || char.role === 'beast_companion';
+              return true;
+            })
+            .map(({ char, idx }) => {
             const expanded = isExpanded(char.id);
             const activeTab = getCharTab(char.id);
 
@@ -379,6 +567,17 @@ export default function CharacterBibleModal({
                   <div className="flex items-center gap-2.5 flex-wrap">
                     <span className="w-7 h-7 rounded-xl bg-studio-800 text-amber-400 text-xs font-bold flex items-center justify-center">
                       #{idx + 1}
+                    </span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-studio-900 text-amber-300 border border-studio-700">
+                      {char.role === 'protagonist'
+                        ? '👑 กัปตัน/ตัวเอก'
+                        : char.role === 'antagonist'
+                        ? '⚔️ ศัตรู/จอมมาร'
+                        : char.role === 'mentor'
+                        ? '📜 อาจารย์/ผู้ชี้แนะ'
+                        : char.role === 'beast_companion'
+                        ? '🐉 สัตว์เทวะ/ผู้พิทักษ์'
+                        : '🛡️ สหาย/ลูกเรือ'}
                     </span>
                     <input
                       type="text"
@@ -742,14 +941,24 @@ export default function CharacterBibleModal({
             );
           })}
 
-          <button
-            type="button"
-            onClick={handleAddCharacter}
-            className="w-full py-3 rounded-2xl border border-dashed border-studio-700 hover:border-amber-500/50 hover:bg-studio-950 text-gray-400 hover:text-amber-300 text-xs font-semibold flex items-center justify-center gap-2 transition-all"
-          >
-            <Plus className="w-4 h-4" />
-            <span>เพิ่มตัวละครใหม่ในโปรเจกต์</span>
-          </button>
+          <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
+            <button
+              type="button"
+              onClick={handleAddCharacter}
+              className="flex-1 w-full py-3 rounded-2xl border border-dashed border-studio-700 hover:border-amber-500/50 hover:bg-studio-950 text-gray-400 hover:text-amber-300 text-xs font-semibold flex items-center justify-center gap-2 transition-all"
+            >
+              <Plus className="w-4 h-4" />
+              <span>+ เพิ่มตัวละครใหม่ 1 ตัว</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleAddMultipleCharacters(3)}
+              className="flex-1 w-full py-3 rounded-2xl border border-dashed border-cyan-500/40 hover:border-cyan-400 hover:bg-cyan-950/20 text-cyan-400 hover:text-cyan-300 text-xs font-semibold flex items-center justify-center gap-2 transition-all"
+            >
+              <Plus className="w-4 h-4" />
+              <span>+ เพิ่ม 3 ตัวละครด่วน (สหาย / ศัตรู / อาจารย์)</span>
+            </button>
+          </div>
         </div>
 
         {/* Footer */}

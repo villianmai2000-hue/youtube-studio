@@ -97,37 +97,38 @@ export function generateContinuousMovieScenes(options: GenerateScriptOptions): S
   const calc = calculateMovieScenesCount(targetDurationMinutes);
   const totalScenes = calc.totalScenes;
 
-  // 2. ดึงตัวละครหลัก
-  const leadChar = characters.find((c) => c.role === 'protagonist') || {
+  // 2. จัดกลุ่มตัวละครทั้งหมดในโปรเจกต์ (Ensemble Cast Engine สไตล์วันพีช / ชาแนลดัง)
+  const leadChar = characters.find((c) => c.role === 'protagonist') || characters[0] || {
     id: 'char-1',
-    name: 'ตัวเอก',
+    name: 'กัปตัน/ผู้นำ',
     role: 'protagonist' as const,
-    appearanceAnchor: 'handsome young hero, confident gaze, signature attire',
-    clothingStyle: 'adventurer warrior attire',
-    voiceStyle: 'ทุ้ม นิ่ง น่าเกรงขาม มุ่งมั่น',
+    appearanceAnchor: 'charismatic heroic captain, sharp determined eyes, iconic signature coat, 8k resolution',
+    clothingStyle: 'captain adventurer attire',
+    weaponsOrProps: 'หมัดอัคคี / ดาบประจำตระกูล',
+    personality: 'มุ่งมั่น รักพวกพ้อง ไม่ยอมแพ้ต่อโชคชะตา',
+    abilities: 'ทักษะต่อสู้ขั้นสูง ฮาคิราชันย์/ลมปราณเทพ',
+    voiceStyle: 'กระตือรือร้น ทรงพลัง มุ่งมั่นเด็ดเดี่ยว',
   };
 
   const antagonist = characters.find((c) => c.role === 'antagonist') || {
-    id: 'char-2',
+    id: 'char-boss',
     name: 'จอมมารศัตรู',
     role: 'antagonist' as const,
-    appearanceAnchor: 'sinister powerful adversary, glowing crimson eyes, formidable armor',
-    clothingStyle: 'dark armor robes',
-    voiceStyle: 'เย็นชา ทะนงตน ดุดัน',
+    appearanceAnchor: 'sinister powerful overlord, dark aura, imposing posture, 8k resolution',
+    clothingStyle: 'dark commander attire',
+    weaponsOrProps: 'ดาบยักษ์ทมิฬ / เคียววิญญาณ',
+    personality: 'ทะนงตน โหดเหี้ยม ทรงอำนาจ',
+    abilities: 'พลังมืดทำลายล้าง หลุมดำมิติ',
+    voiceStyle: 'เยือกเย็น ทรงอำนาจ ดุดัน',
   };
 
-  const ally = characters.find((c) => c.role === 'supporting' || c.role === 'mentor') || {
-    id: 'char-3',
-    name: 'สหายร่วมรบ',
-    role: 'supporting' as const,
-    appearanceAnchor: 'trusted companion warrior',
-    clothingStyle: 'scout tactical robes',
-    voiceStyle: 'กระตือรือร้น จริงใจ สุขุม',
-  };
+  // รวมตัวละครสหาย/ลูกเรือ/อาจารย์/หน่วยรบทั้งหมดที่มีในโปรเจกต์
+  const comrades = characters.filter((c) => c.id !== leadChar.id && c.id !== antagonist.id);
 
   // 3. ตรวจจับแก่นเรื่องจากชื่อเรื่อง เรื่องย่อ และหมวดหมู่
   const contextText = `${title} ${synopsis} ${genre} ${subGenre} ${worldCulture}`.toLowerCase();
   
+  const isPirateOrAdventure = /วันพีช|วันพีซ|โจรสลัด|ทะเล|เกาะ|เรือ|ลูฟี|ล่าสมบัติ|pirate|one piece|sailing|treasure|ocean/i.test(contextText);
   const isTowerOrDungeon = /หอคอย|ดันเจี้ยน|ชั้นที่|tower|dungeon|hunter|floor|gate|level|solo|คุปเวล่า/i.test(contextText);
   const isCultivation = /เซียน|กำลังภายใน|ลมปราณ|ตบะ|กระบี่|เสวียนหยวน|สำนัก|เต๋า|มหายาน|xianxia|cultivation/i.test(contextText);
   const isMilitary = /ทหาร|ยุทธการ|ขีปนาวุธ|หน่วยรบ|รบพิเศษ|ดาวเทียม|กองทัพ|สงคราม|military|tactical/i.test(contextText);
@@ -191,11 +192,79 @@ export function generateContinuousMovieScenes(options: GenerateScriptOptions): S
     const cameraMotion = cameraMotions[i % cameraMotions.length];
     const transition = timeTransitions[i % timeTransitions.length];
 
+    // คัดเลือกตัวละครที่ร่วมเฟรมในช็อต 10 วินาทีนี้ (Dynamic Ensemble Squad)
+    // เพื่อให้ตัวละครทุกคนมีบทบาท พูดคุย และโชว์ทักษะสลับกันอย่างสมบูรณ์แบบ
+    let activeSquad: CharacterBible[] = [];
+
+    if (comrades.length === 0) {
+      if (actNumber === 3) {
+        activeSquad = [leadChar, antagonist];
+      } else {
+        activeSquad = [leadChar];
+      }
+    } else if (comrades.length === 1) {
+      if (actNumber === 3 && i % 2 === 1) {
+        activeSquad = [leadChar, antagonist];
+      } else {
+        activeSquad = [leadChar, comrades[0]];
+      }
+    } else {
+      // มีสหาย/ลูกเรือ 2 ตัวขึ้นไป (หมุนเวียนบทบาทให้ครบทุกคน)
+      const crewIdxA = i % comrades.length;
+      const crewIdxB = (i + 1) % comrades.length;
+      const comradeA = comrades[crewIdxA];
+      const comradeB = comrades[crewIdxB];
+
+      if (actNumber === 1) {
+        // องค์ที่ 1: กัปตันนำทัพ สลับแนะนำความสามารถของลูกเรือแต่ละคน
+        if (i % 3 === 0) {
+          activeSquad = [leadChar, comradeA];
+        } else if (i % 3 === 1) {
+          activeSquad = [comradeA, comradeB];
+        } else {
+          activeSquad = [leadChar, comradeB];
+        }
+      } else if (actNumber === 2) {
+        // องค์ที่ 2: สมรภูมิเดือด สหายแต่ละคนแยกสายต่อสู้และจับคู่ประสานงาน
+        if (i % 4 === 0) {
+          activeSquad = [comradeA, comradeB];
+        } else if (i % 4 === 1) {
+          activeSquad = [comradeA, leadChar];
+        } else if (i % 4 === 2) {
+          activeSquad = [comradeA];
+        } else {
+          activeSquad = [comradeB, leadChar];
+        }
+      } else if (actNumber === 3) {
+        // องค์ที่ 3: ไคลแม็กซ์ ประจันหน้าจอมมารใหญ่ และรวมพลังทั้งทีม
+        if (progress > 0.68) {
+          activeSquad = [leadChar, antagonist, comradeA];
+        } else if (i % 3 === 0) {
+          activeSquad = [comradeA, antagonist];
+        } else if (i % 3 === 1) {
+          activeSquad = [leadChar, comradeA];
+        } else {
+          activeSquad = [comradeA, comradeB];
+        }
+      } else {
+        // องค์ที่ 4: ชัยชนะ รุ่งอรุณใหม่ สมาชิกทุกคนเฉลิมฉลอง
+        if (i % 3 === 0) {
+          activeSquad = [leadChar, comradeA];
+        } else if (i % 3 === 1) {
+          activeSquad = [comradeA, comradeB];
+        } else {
+          activeSquad = [leadChar, comradeA, comradeB];
+        }
+      }
+    }
+
+    const primaryChar = activeSquad[0] || leadChar;
+
     // ทิศทางกล้อง Seedream 5.0 Pro (Single Take เชื่อมโยงจากฉากก่อนหน้า)
     const cameraMovement =
       i === 0
-        ? `มุมกล้อง Seedream 5.0 Pro: เปิดฉากด้วยเลนส์ Anamorphic 35mm f/2.0 แพนมุมกว้างเปิดเผยบรรยากาศ ดอลลี่อินเข้าหา ${leadChar.name} อย่างต่อเนื่อง 10 วินาทีไร้รอยต่อ`
-        : `มุมกล้อง Seedream 5.0 Pro: ช็อตต่อเนื่องแบบ Single Take (ไหลลื่นรับช็อตจากฉากที่ ${i}) เลนส์ Anamorphic 35mm f/2.0 ${cameraMotion} ถ่ายทำต่อเนื่อง 10 วินาทีไม่ตัดข้าม`;
+        ? `มุมกล้อง Seedream 5.0 Pro: เปิดฉากด้วยเลนส์ Anamorphic 35mm f/2.0 แพนมุมกว้างเปิดเผยบรรยากาศ ดอลลี่อินเข้าหา ${primaryChar.name} อย่างต่อเนื่อง 10 วินาทีไร้รอยต่อ`
+        : `มุมกล้อง Seedream 5.0 Pro: ช็อตต่อเนื่องแบบ Single Take (ไหลลื่นรับช็อตจากฉากที่ ${i}) เลนส์ Anamorphic 35mm f/2.0 ${cameraMotion} โฟกัสการเคลื่อนไหวของ ${primaryChar.name} ถ่ายทำต่อเนื่อง 10 วินาทีไม่ตัดข้าม`;
 
     // สร้างเนื้อเรื่อง บทพากย์ บทสนทนา และเสียง ตามแก่นเรื่องและช่วงองค์
     const sceneData = buildContinuousSceneContent({
@@ -207,7 +276,9 @@ export function generateContinuousMovieScenes(options: GenerateScriptOptions): S
       synopsis,
       leadChar,
       antagonist,
-      ally,
+      activeSquad,
+      comrades,
+      isPirateOrAdventure,
       isTowerOrDungeon,
       isCultivation,
       isMilitary,
@@ -226,7 +297,7 @@ export function generateContinuousMovieScenes(options: GenerateScriptOptions): S
       genre,
       cameraMovement,
       lighting: sceneData.lighting,
-      charactersInScene: [leadChar, antagonist],
+      charactersInScene: activeSquad,
       sceneNumber,
       aspectRatio,
     });
@@ -239,7 +310,7 @@ export function generateContinuousMovieScenes(options: GenerateScriptOptions): S
       narration: sceneData.narration,
       dialogues: sceneData.dialogues,
       sfxBgm: sceneData.sfxBgm,
-      characterIds: [leadChar.id],
+      characterIds: activeSquad.map((c) => c.id),
       visualMedium,
       stylePreset,
       cameraMovement,
@@ -260,6 +331,7 @@ export function generateContinuousMovieScenes(options: GenerateScriptOptions): S
 
 /**
  * ผู้ช่วยสร้างบทบรรยาย บทพูด แสงเงา และดนตรีของแต่ละฉากให้ไหลลื่นและสัมพันธ์กับพล็อตเรื่อง
+ * รองรับ Ensemble Cast: ตัวละครทุกคนจะมีบทพูดและบทบาทตามบุคลิกและอาวุธ
  */
 function buildContinuousSceneContent(params: {
   sceneNumber: number;
@@ -270,7 +342,9 @@ function buildContinuousSceneContent(params: {
   synopsis: string;
   leadChar: CharacterBible;
   antagonist: CharacterBible;
-  ally: CharacterBible;
+  activeSquad: CharacterBible[];
+  comrades: CharacterBible[];
+  isPirateOrAdventure: boolean;
   isTowerOrDungeon: boolean;
   isCultivation: boolean;
   isMilitary: boolean;
@@ -280,14 +354,14 @@ function buildContinuousSceneContent(params: {
 }) {
   const {
     sceneNumber,
-    totalScenes,
     actNumber,
     progress,
     cleanTitleStr,
     synopsis,
     leadChar,
     antagonist,
-    ally,
+    activeSquad,
+    isPirateOrAdventure,
     isTowerOrDungeon,
     isCultivation,
     isMilitary,
@@ -301,117 +375,167 @@ function buildContinuousSceneContent(params: {
   let sfxBgm = '';
   let lighting = '';
 
+  const primaryChar = activeSquad[0] || leadChar;
+  const secondaryChar = activeSquad[1] || (activeSquad[0] !== leadChar ? leadChar : antagonist);
+
   // สรุปข้อมูลย่อเพื่อให้เนื้อเรื่องอ้างอิงถึง
   const synopsisSnippet = synopsis ? synopsis.slice(0, 100).trim() : cleanTitleStr;
 
-  if (isTowerOrDungeon) {
+  if (isPirateOrAdventure) {
+    // แนวมหากาพย์การผจญภัยโจรสลัด / ลูกเรือ / ล่าสมบัติ (สไตล์ ลูฟี่ วันพีช)
+    if (actNumber === 1) {
+      pureTitle = `การแล่นเรือเปิดฉาก & ${primaryChar.name} ตรวจสอบทิศทางมุ่งหน้าสู่เส้นขอบฟ้า`;
+      narration = `${transition} บนเรือที่กำลังแล่นฝ่าคลื่นลมมหึมา ${primaryChar.name} ยืนประจำการอย่างมุ่งมั่น สายตามองไปยังเป้าหมายข้างหน้า ขณะที่ ${secondaryChar.name} เตรียมความพร้อมของอาวุธ ${secondaryChar.weaponsOrProps || 'ประจำกาย'} เพื่อรับมือกับคลื่นลมและศัตรูที่อาจจู่โจมได้ทุกเมื่อ!`;
+      dialogues = [
+        { speaker: primaryChar.name, emotion: 'กระตือรือร้น ท้าทายคลื่นลม', text: `พายุแค่นี้ทำอะไรพวกเราไม่ได้หรอก... กางใบเรือเต็มที่แล้วลุยไปข้างหน้า!` },
+        { speaker: secondaryChar.name, emotion: 'ยิ้มมั่นใจ กระชับอาวุธ', text: `วางใจได้เลย! ตราบใดที่พวกเรายังอยู่พร้อมหน้า จะมีอุปสรรคไหนก็ขวางไม่อยู่!` },
+      ];
+      sfxBgm = `[BGM: ธีมเพลงผจญภัยโจรสลัดอันยิ่งใหญ่ เร้าใจด้วยเสียงเครื่องสายและกลองทิมปานี] [SFX: เสียงเกลียวคลื่นซัดกราบเรือ, เสียงใบเรือขึงตึงปะทะลม]`;
+      lighting = 'แสงอาทิตย์สีทองสาดส่องกระทบผิวน้ำทะเลระยิบระยับ ตัดกับเงาเสากระโดงเรืออันสง่างาม';
+    } else if (actNumber === 2) {
+      pureTitle = `ทะลวงแนวป้องกันเกาะ & ${primaryChar.name} ประสานการโจมตีกับ ${secondaryChar.name}`;
+      narration = `${transition} กองเรือและป้อมปราการข้าศึกระดมยิงปืนใหญ่ขวางทาง ${primaryChar.name} ปลดปล่อย ${primaryChar.abilities || 'วิชาการต่อสู้อันทรงพลัง'} ทะลวงแนวป้องกัน โดยมี ${secondaryChar.name} คอยซุ่มยิงและสกัดกั้นกำลังเสริมข้าศึกอย่างแม่นยำไร้ที่ติ!`;
+      dialogues = [
+        { speaker: primaryChar.name, emotion: 'ดุดัน ทะยานเข้าประชิด', text: `เปิดทางข้างหน้าให้ที... ฉันจะพุ่งเข้าไปพังแนวป้องกันของมันเอง!` },
+        { speaker: secondaryChar.name, emotion: 'เฉียบคม ล็อกเป้าหมาย', text: `เคลียร์เส้นทางเรียบร้อยแล้ว... รับการโจมตีประสานของพวกเราไปซะ!` },
+      ];
+      sfxBgm = `[BGM: ดนตรีแอ็กชันแบทเทิลจังหวะเร็ว กลองศึกรัวกระหน่ำ] [SFX: เสียงปืนใหญ่ระเบิดดังกึกก้อง, เสียงคมดาบแหวกอากาศฟันกระสุนปืนใหญ่ขาดครึ่ง]`;
+      lighting = 'ประกายไฟจากการระเบิดและแสงคมดาบส่องสว่างวาบสะท้อนบนใบหน้าของทั้งสอง';
+    } else if (actNumber === 3) {
+      pureTitle = `มหาศึกแตกหัก & รวมพลังลูกเรือปะทะ ${antagonist.name}`;
+      narration = `${transition} ท้องฟ้าเหนือสมรภูมิปั่นป่วนด้วยแรงกดดันมหาศาล ${antagonist.name} ปลดปล่อยพลังทำลายล้างที่สั่นสะเทือนทั้งเกาะ แต่ ${leadChar.name} พร้อมด้วย ${primaryChar.name} ยืนหยัดร่วมใจ การผสานท่าไม้ตายของทุกคนระเบิดขึ้นเพื่อปกป้องมิตรภาพและความฝัน!`;
+      dialogues = [
+        { speaker: antagonist.name, emotion: 'เย้ยหยัน คำรามก้องสมรภูมิ', text: `คิดว่าพวกเศษสวะอย่างพวกเจ้าจะหยุดยั้งข้าได้งั้นรึ?!` },
+        { speaker: primaryChar.name, emotion: 'ตะโกนก้อง ไม่ยอมถอย', text: `พวกเราเชื่อมั่นในกัปตันและเพื่อนทุกคน... พลังของมิตรภาพไม่มีวันพ่ายแพ้!` },
+        { speaker: leadChar.name, emotion: 'คำรามสุดเสียง ปลดปล่อยพลังเต็มร้อย', text: `นี่คือหมัดเผด็จศึกของพวกเราทุกคน... ลุยเลย!!` },
+      ];
+      sfxBgm = `[BGM: มหากาพย์ไคลแม็กซ์ออร์เคสตรา ซิมโฟนีพลังฮีโร่กระหึ่มสะท้านฟ้า] [SFX: เสียงคลื่นกระแทกโซนิคบูมระเบิดเปรี้ยง, แผ่นดินและคลื่นทะเลยกตัวสูง]`;
+      lighting = 'ลำแสงออร่าสีทองบริสุทธิ์ปะทะกับเปลวเพลิงสีดำทมิฬ คอนทราสต์แสงเงาจัดจ้านระดับภาพยนตร์';
+    } else {
+      pureTitle = `รุ่งอรุณแห่งชัยชนะ & การก้าวสู่ผืนทะเลมิติใหม่`;
+      narration = `${transition} เมื่อควันระเบิดจางหาย ธงประจำกลุ่มยังคงโบกสะบัดอย่างสง่างาม ${primaryChar.name} และ ${secondaryChar.name} ยิ้มให้กันท่ามกลางเสียงหัวเราะของทุกคน ชัยชนะครั้งนี้ยิ่งใหญ่ แต่การผจญภัยสู่จุดหมายปลายทางยังคงรอคอยพวกเขาอยู่เบื้องหน้า!`;
+      dialogues = [
+        { speaker: primaryChar.name, emotion: 'ยิ้มกว้าง แววตาเปี่ยมสุข', text: `พวกเราทำสำเร็จแล้ว! ทะเลผืนนี้เป็นของพวกเราแล้วล่ะ!` },
+        { speaker: secondaryChar.name, emotion: 'หัวเราะร่า สูดลมหายใจลึก', text: `รีบเก็บสมบัติแล้วกางใบเรือกันเถอะ... สู่การผจญภัยครั้งใหม่!` },
+      ];
+      sfxBgm = `[BGM: ท่วงทำนองชัยชนะอบอุ่นเปี่ยมความหวังและอิสรภาพ] [SFX: เสียงคลื่นกระทบฝั่งแผ่วเบา, นกนางนวลบินร้องก้องเวหา]`;
+      lighting = 'แสงอรุณสีส้มทองสาดส่องลงมายังผิวน้ำ ส่องประกายเลนส์แฟลร์สวยงามจับตา';
+    }
+  } else if (isTowerOrDungeon) {
     // แนวยอดนิยม: หอคอย / ดันเจี้ยน / ฮันเตอร์ / คุปเวล่า (เช่น ผู้หวนคืนจากชั้นที่ 100)
     const currentFloor = Math.min(100, Math.max(1, Math.round(progress * 100)));
 
     if (actNumber === 1) {
-      pureTitle = `การหวนคืนสู่สมรภูมิหอคอย & การระบุพิกัดชั้นที่ ${currentFloor}`;
-      narration = `${transition} ม่านหมอกทมิฬแห่งหอคอยมรณะเริ่มขยับไหว ${leadChar.name} ยืนตระหง่านอยู่หน้าประตูมิติโบราณ สายตาที่ผ่านสมรภูมิเลือดนับร้อยชั้นไม่เคยหวั่นไหว แรงกดดันเวทมนตร์รอบตัวเริ่มหมุนวนเพื่อเตรียมเปิดฉากการล้างแค้น!`;
+      pureTitle = `หวนคืนสู่หอคอยชั้นที่ ${currentFloor} & ${primaryChar.name} ระบุพิกัดมิติ`;
+      narration = `${transition} ม่านหมอกทมิฬแห่งหอคอยมรณะเริ่มขยับไหว ${primaryChar.name} ยืนตระหง่านอยู่หน้าประตูมิติโบราณ สายตามุ่งมั่นสแกนคลื่นพลังงานรอบทิศ ขณะที่ ${secondaryChar.name} เตรียมพร้อม ${secondaryChar.weaponsOrProps || 'ไอเทมประจำตัว'} เพื่อรองรับการเปิดฉากตะลุยด่าน!`;
       dialogues = [
-        { speaker: leadChar.name, emotion: 'มุ่งมั่น แววตาเยือกเย็น', text: `ครั้งนี้... จะไม่มีใครมาขวางการพิชิตชั้นที่ 100 ของข้าได้อีก!` },
+        { speaker: primaryChar.name, emotion: 'มุ่งมั่น แววตาเยือกเย็น', text: `ครั้งนี้... จะไม่มีใครมาขวางการพิชิตชั้นที่ 100 ของพวกเราได้อีก!` },
+        { speaker: secondaryChar.name, emotion: 'รอบคอบ ตรวจสอบวงเวท', text: `พิกัดเปิดแล้ว สัญญาณมานาคงที่... ทีมพร้อมลุยเต็มอัตราศึก!` },
       ];
       sfxBgm = `[BGM: ดนตรีซินธ์ดาร์กผสมออร์เคสตราบิลด์ความลึกลับ] [SFX: เสียงประตูหินยักษ์เลื่อนเปิดกึกก้อง, เสียงฮัมของวงเวทมนตร์โบราณ]`;
       lighting = 'แสงสีม่วงนีออนจากวงเวทตัดกับเงามืดทมิฬของโถงทางเดินหินในหอคอย';
     } else if (actNumber === 2) {
-      pureTitle = `ทะลวงแนวป้องกันหอคอยชั้นที่ ${currentFloor} & การปะทะกองทัพอสูร`;
-      narration = `${transition} เสียงคำรามของอสูรประจำชั้นดังก้องทั่วทางเดินหิน คมดาบและพลังงานเวทมนตร์ของ ${leadChar.name} วาดผ่านอากาศด้วยความเร็วสูง ร่างของศัตรูถูกกำจัดอย่างเด็ดขาดโดยไม่เปิดช่องว่างให้โต้กลับแม้แต่วินาทีเดียว!`;
+      pureTitle = `ทะลวงแนวป้องกันชั้นที่ ${currentFloor} & ${primaryChar.name} ปะทะฝูงอสูร`;
+      narration = `${transition} เสียงคำรามของอสูรประจำชั้นดังก้องทั่วทางเดินหิน ${primaryChar.name} ปลดปล่อย ${primaryChar.abilities || 'ทักษะความเร็วสูง'} ฟาดฟันทะลวงแนวหน้าอย่างเฉียบขาด โดยมี ${secondaryChar.name} ร่ายสกิลสนับสนุนและคุ้มกันจุดบอดอย่างแม่นยำ!`;
       dialogues = [
-        { speaker: ally.name, emotion: 'เตือนภัยอย่างเร่งด่วน', text: `ระวังตัวด้วย! ค่าพลังของบอสประจำชั้นกำลังพุ่งสูงขึ้น!` },
-        { speaker: leadChar.name, emotion: 'สุขุม ฟาดฟันไม่ชะงัก', text: `แค่นี้ยังไม่พอจะหยุดยั้งข้า... เดินหน้าต่อไป!` },
+        { speaker: secondaryChar.name, emotion: 'เตือนภัยอย่างเร่งด่วน', text: `ฝูงมอนสเตอร์ระลอกใหม่กำลังกรูเข้ามา! ระวังทางปีกซ้าย!` },
+        { speaker: primaryChar.name, emotion: 'สุขุม ฟาดฟันไม่ชะงัก', text: `แค่นี้ยังไม่พอจะหยุดยั้งพวกเรา... เดินหน้าต่อเนื่อง อย่าเสียจังหวะ!` },
       ];
       sfxBgm = `[BGM: ดนตรีต่อสู้จังหวะเร็ว กลองไฮบริดกระแทกกระทั้นเร้าอารมณ์] [SFX: เสียงฟันดาบความเร็วสูงฉับไว, เสียงกรงเล็บอสูรฟาดกระทบเกราะหิน]`;
       lighting = 'ประกายไฟจากการปะทะอาวุธส่องสว่างวาบตัดกับเปลวเพลิงสีฟ้าของเสาคบเพลิง';
     } else if (actNumber === 3) {
-      pureTitle = `ประจันหน้าผู้พิทักษ์ชั้นสูงสุด & ปลดล็อกพลังแท้จริง`;
-      narration = `${transition} เบื้องหน้าบัลลังก์ชั้นที่ 100 ${antagonist.name} ปรากฏกายขึ้นพร้อมออร่าพลังทำลายล้างที่สั่นสะเทือนมิติ ${leadChar.name} ปลดปล่อยแก่นแท้แห่งทักษะที่เก็บงำไว้ คลื่นพลังสะท้อนกลับจนโครงสร้างหอคอยแตกร้าวเป็นเสี่ยง!`;
+      pureTitle = `ประจันหน้าผู้พิทักษ์ชั้นสูงสุด & ${primaryChar.name} ปะทะ ${antagonist.name}`;
+      narration = `${transition} เบื้องหน้าบัลลังก์ชั้นที่ 100 ${antagonist.name} ปรากฏกายขึ้นพร้อมออร่าพลังทำลายล้างที่สั่นสะเทือนมิติ ${primaryChar.name} และ ${leadChar.name} ปลดปล่อยแก่นแท้แห่งทักษะที่เก็บงำไว้ คลื่นพลังสะท้อนกลับจนโครงสร้างหอคอยแตกร้าวเป็นเสี่ยง!`;
       dialogues = [
-        { speaker: antagonist.name, emotion: 'เย้ยหยัน คำรามก้องบัลลังก์', text: `คิดว่าการปีนขึ้นมาถึงชั้นที่ 100 จะเปลี่ยนชะตากรรมของเจ้าได้งั้นรึ?` },
-        { speaker: leadChar.name, emotion: 'ดุดัน ปลดปล่อยพลังขีดสุด', text: `ที่นี่ไม่ใช่จุดจบของข้า... แต่มันคือสุสานของเจ้าต่างหาก!` },
+        { speaker: antagonist.name, emotion: 'เย้ยหยัน คำรามก้องบัลลังก์', text: `คิดว่าการปีนขึ้นมาถึงชั้นที่ 100 จะเปลี่ยนชะตากรรมของพวกเจ้าได้งั้นรึ?` },
+        { speaker: primaryChar.name, emotion: 'ดุดัน ปลดปล่อยพลังขีดสุด', text: `ที่นี่ไม่ใช่จุดจบของพวกเรา... แต่มันคือสุสานของเจ้าต่างหาก!` },
       ];
       sfxBgm = `[BGM: มหากาพย์ไคลแม็กซ์ออร์เคสตรา ซับเบส 808 สั่นสะเทือนสะท้านอก] [SFX: คลื่นกระแทกโซนิคบูมระเบิดเปรี้ยง, เสียงกำแพงหินทลายลงมา]`;
       lighting = 'ลำแสงสีทองบริสุทธิ์ปะทะกับเปลวเพลิงสีแดงเลือด คอนทราสต์สูงสุดสะกดสายตา';
     } else {
-      pureTitle = `การพิชิตชั้นที่ 100 เด็ดขาด & เบาะแสมิติใหม่`;
-      narration = `${transition} การระเบิดครั้งสุดท้ายกลืนกินทุกสิ่ง เมื่อกลุ่มควันจางหาย บอสผู้ยิ่งใหญ่พังทลายลงกลายเป็นละอองแสง ชัยชนะเหนือหอคอยชั้นที่ 100 ตกเป็นของ ${leadChar.name} แต่ที่ปลายทาง ประตูสู่มิติใหม่ที่เหนือกว่ากลับกำลังค่อยๆ ปรากฏขึ้น...`;
+      pureTitle = `การพิชิตชั้นที่ 100 เด็ดขาด & ${primaryChar.name} พบเบาะแสมิติใหม่`;
+      narration = `${transition} การระเบิดครั้งสุดท้ายกลืนกินทุกสิ่ง เมื่อกลุ่มควันจางหาย บอสผู้ยิ่งใหญ่พังทลายลงกลายเป็นละอองแสง ชัยชนะเหนือหอคอยชั้นที่ 100 ตกเป็นของทีม แต่ที่ปลายทาง ประตูสู่มิติใหม่ที่เหนือกว่ากลับกำลังค่อยๆ ปรากฏขึ้น...`;
       dialogues = [
-        { speaker: leadChar.name, emotion: 'แววตามุ่งมั่น เก็บดาบเข้าฝัก', text: `นี่ไม่ใช่จุดสิ้นสุด... แต่คือการเริ่มต้นของบททดสอบที่แท้จริง!` },
+        { speaker: primaryChar.name, emotion: 'แววตามุ่งมั่น เก็บอาวุธเข้าที่', text: `นี่ไม่ใช่จุดสิ้นสุด... แต่คือการเริ่มต้นของบททดสอบที่แท้จริง!` },
+        { speaker: secondaryChar.name, emotion: 'ยิ้มอย่างโล่งอก', text: `พวกเราทำได้จริงๆ... กิลด์ของพวกเราคือผู้พิชิตชั้นที่ 100 แล้ว!` },
       ];
       sfxBgm = `[BGM: ท่วงทำนองชัยชนะอันยิ่งใหญ่และสง่างาม ผสานคอรัสประสานเสียง] [SFX: เสียงละอองพลังงานสลายตัวระยิบระยับ, เสียงลมพัดผ่านซากปรักหักพัง]`;
-      lighting = 'แสงสว่างสีทองจากประตูมิติเบื้องบนสาดส่องลงมายังร่างของตัวเอกอย่างงดงาม';
+      lighting = 'แสงสว่างสีทองจากประตูมิติเบื้องบนสาดส่องลงมายังร่างของตัวละครอย่างงดงาม';
     }
   } else if (isCultivation) {
     // แนวกำลังภายใน / เซียน / บำเพ็ญเพียร (สไตล์ เพื่อนที่ดีที่สุด SAN1)
     if (actNumber === 1) {
-      pureTitle = `การตื่นรู้ของลมปราณเซียน & ความอยุติธรรมแห่งยุทธภพ`;
-      narration = `${transition} ในดินแดนที่ผู้แข็งแกร่งคือกฎเกณฑ์ ${leadChar.name} รวบรวมสมาธิบนยอดผาหมอกสวรรค์ แก่นลมปราณที่เคยหลับใหลเริ่มส่องประกายอักขระสีทอง ท่ามกลางสายลมแห่งโชคชะตาที่กำลังจะพลิกฟ้าคว่ำแผ่นดิน!`;
+      pureTitle = `การตื่นรู้ของลมปราณเซียน & ${primaryChar.name} โคจรพลังฟ้าดิน`;
+      narration = `${transition} ในดินแดนที่ผู้แข็งแกร่งคือกฎเกณฑ์ ${primaryChar.name} รวบรวมสมาธิบนยอดผาหมอกสวรรค์ แก่นลมปราณที่เคยหลับใหลเริ่มส่องประกายอักขระสีทอง โดยมี ${secondaryChar.name} คอยคุ้มครองด่านเคราะห์อย่างใกล้ชิด!`;
       dialogues = [
-        { speaker: leadChar.name, emotion: 'มุ่งมั่น กัดฟันแน่วแน่', text: `ฟ้าดินนี้จะไม่มีวันกักขังข้าได้อีก... วันนี้ข้าจะก้าวข้ามโชคชะตา!` },
+        { speaker: primaryChar.name, emotion: 'มุ่งมั่น กัดฟันแน่วแน่', text: `ฟ้าดินนี้จะไม่มีวันกักขังข้าได้อีก... วันนี้พวกเราจะก้าวข้ามโชคชะตา!` },
+        { speaker: secondaryChar.name, emotion: 'สุขุม คอยเฝ้าระวัง', text: `รวมจิตสู่จุดตันเถียน... ข้าจะคอยคุ้มกันลมปราณของเจ้าเอง!` },
       ];
       sfxBgm = `[BGM: เมโลดี้กู่เจิ้งลึกลับผสานเสียงกลองศึกจีนโบราณ] [SFX: เสียงลมปราณหมุนวนรอบกาย, เสียงลมหวีดหวิวบนยอดผา]`;
       lighting = 'แสงจันทร์ส่องทะลุผ่านม่านหมอกสีเงิน สาดประกายออร่าลมปราณสีครามเรืองรอง';
     } else if (actNumber === 2) {
-      pureTitle = `ฝ่าด่านค่ายกลสำนักใหญ่ & เผชิญหน้ายอดฝีมือฝ่ายมาร`;
-      narration = `${transition} คมกระบี่ของ ${leadChar.name} พุ่งแหวกม่านอากาศดั่งมังกรผงาด ทะลวงผ่านค่ายกลเก้าสุริยันอย่างแม่นยำ ทุกกระบวนท่าแฝงไปด้วยเจตจำนงกระบี่ที่คมกริบเกินกว่าที่ใครจะต้านทานได้!`;
+      pureTitle = `ฝ่าค่ายกลสำนักมาร & ${primaryChar.name} ร่ายเพลงกระบี่สะบั้นพสุธา`;
+      narration = `${transition} คมกระบี่ของ ${primaryChar.name} พุ่งแหวกม่านอากาศดั่งมังกรผงาด ทะลวงผ่านค่ายกลเก้าสุริยันอย่างแม่นยำ ขณะที่ ${secondaryChar.name} ใช้ ${secondaryChar.abilities || 'วิชาประจำตัว'} สกัดกั้นยอดฝีมือฝ่ายมารไม่ให้ลอบโจมตี!`;
       dialogues = [
-        { speaker: ally.name, emotion: 'ชื่นชมอย่างตื่นตะลึง', text: `เจตจำนงกระบี่ของเขา... ก้าวข้ามระดับขอบเขตเดิมไปแล้ว!` },
-        { speaker: leadChar.name, emotion: 'เยือกเย็น สุขุม', text: `กระบี่ไร้เงา ผ่าค่ายกลมาร!` },
+        { speaker: secondaryChar.name, emotion: 'ชื่นชมอย่างตื่นตะลึง', text: `เจตจำนงกระบี่ของเจ้า... ก้าวข้ามระดับขอบเขตเดิมไปแล้ว!` },
+        { speaker: primaryChar.name, emotion: 'เยือกเย็น สุขุม', text: `กระบี่ไร้เงา ผ่าค่ายกลมาร... ลุยเข้าไปพร้อมกัน!` },
       ];
       sfxBgm = `[BGM: จังหวะกระบี่เร็วเร้าใจ เครื่องสายจีนผสานกลองศึกหนักแน่น] [SFX: เสียงกระบี่ฟันแหวกอากาศ 'ชิ้ง', เสียงอักขระเวทมนตร์แตกสลาย]`;
       lighting = 'แสงประกายกระบี่สีฟ้าครามตัดกับไอหมอกพิษสีเขียวมรกตอย่างดุเดือด';
     } else if (actNumber === 3) {
-      pureTitle = `มหาศึกแตกหัก & สำแดงเก้ากระบี่สะบั้นสวรรค์`;
-      narration = `${transition} ฟากฟ้าคำรามลั่น ${antagonist.name} ปลดปล่อยเปลวเพลิงทมิฬกลืนกินผืนป่า แต่ ${leadChar.name} ยืนหยัดอยู่ใจกลางพายุ รวบรวมกระบี่ทั้งเก้าเล่มรวมเป็นหนึ่งเดียวเพื่อฟาดฟันศัตรูคู่อาฆาต!`;
+      pureTitle = `มหาศึกแตกหัก & ผสานเก้ากระบี่สะบั้นสวรรค์ปะทะ ${antagonist.name}`;
+      narration = `${transition} ฟากฟ้าคำรามลั่น ${antagonist.name} ปลดปล่อยเปลวเพลิงทมิฬกลืนกินผืนป่า แต่ ${primaryChar.name} พร้อมด้วย ${leadChar.name} ยืนหยัดใจกลางพายุ รวบรวมพลังกระบี่ทั้งหมดหลอมรวมเป็นหนึ่งเพื่อฟาดฟันศัตรูคู่อาฆาต!`;
       dialogues = [
-        { speaker: antagonist.name, emotion: 'ตื่นตระหนก หน้าถอดสี', text: `แรงกดดันระดับมหาเทพนี้... เจ้าบรรลุสู่ขั้นเซียนตั้งแต่เมื่อไหร่?!` },
-        { speaker: leadChar.name, emotion: 'คำรามกึกก้องสะท้านฟ้า', text: `หนี้แค้นในวันวาน... จงชดใช้ด้วยชีวิตของเจ้า!` },
+        { speaker: antagonist.name, emotion: 'ตื่นตระหนก หน้าถอดสี', text: `แรงกดดันระดับมหาเทพนี้... พวกเจ้าบรรลุสู่ขั้นเซียนตั้งแต่เมื่อไหร่?!` },
+        { speaker: primaryChar.name, emotion: 'คำรามกึกก้องสะท้านฟ้า', text: `หนี้แค้นในวันวาน... จงชดใช้ด้วยชีวิตของเจ้า!` },
       ];
       sfxBgm = `[BGM: ดนตรีไคลแม็กซ์ออร์เคสตราจีนเต็มวง เสียงร้องประสานเสียงกังวาน] [SFX: เสียงระเบิดพลังมังกรฟ้าปะทะเพลิงทมิฬ, แผ่นดินสั่นสะเทือน]`;
       lighting = 'ลำแสงสีขาวทองบริสุทธิ์ส่องทะลุความมืดมิด สว่างจ้าดั่งดวงอาทิตย์ดวงใหม่';
     } else {
-      pureTitle = `ปิดฉากศึกยุทธภพ & ก้าวสู่แดนเซียนเบื้องบน`;
-      narration = `${transition} เมื่อคลื่นพลังสงบลง เศษซากแห่งความมืดก็มลายสิ้น ชัยชนะของ ${leadChar.name} ได้จารึกลงในหน้าประวัติศาสตร์ แต่เสียงเรียกจากแดนเซียนเบื้องบนคือสัญญาณว่า การเดินทางที่แท้จริงเพิ่งจะเริ่มต้นขึ้นเท่านั้น!`;
+      pureTitle = `ปิดฉากศึกยุทธภพ & ${primaryChar.name} ก้าวสู่แดนเซียนเบื้องบน`;
+      narration = `${transition} เมื่อคลื่นพลังสงบลง เศษซากแห่งความมืดก็มลายสิ้น ชัยชนะของ ${primaryChar.name} และเหล่าสหายถูกจารึกลงในหน้าประวัติศาสตร์ แต่เสียงเรียกจากแดนเซียนเบื้องบนคือสัญญาณว่า การเดินทางที่แท้จริงเพิ่งจะเริ่มต้นขึ้นเท่านั้น!`;
       dialogues = [
-        { speaker: leadChar.name, emotion: 'สุขุม แววตาเปี่ยมหวัง', text: `แดนเซียนเบื้องบน... ข้าจะฟาดฟันขึ้นไปให้ถึง!` },
+        { speaker: primaryChar.name, emotion: 'สุขุม แววตาเปี่ยมหวัง', text: `แดนเซียนเบื้องบน... พวกเราจะฟาดฟันขึ้นไปให้ถึง!` },
+        { speaker: secondaryChar.name, emotion: 'ยิ้มพร้อมเก็บกระบี่', text: `ไม่ว่าจะกี่ชั้นฟ้า ข้าก็จะร่วมเดินทางไปกับเจ้าเสมอ!` },
       ];
       sfxBgm = `[BGM: ทำนองดนตรีซาบซึ้งและยิ่งใหญ่ สื่อถึงชัยชนะและการออกเดินทางต่อ] [SFX: เสียงลมพัดชายเสื้อคลุมพริ้วไหว, เสียงกระดิ่งสวรรค์กังวานใส]`;
       lighting = 'ลำแสงสวรรค์สีทองสาดส่องลงมาจากหมู่เมฆอย่างสง่างาม';
     }
   } else if (isMilitary) {
-    // แนวทหาร & ยุทธการสงคราม (Facebook Reels / YouTube Shorts 2-5 นาที หรือมหากาพย์)
+    // แนวทหาร & ยุทธการสงคราม
     if (actNumber === 1) {
-      pureTitle = `ตรวจจับสัญญาณภัยคุกคาม & ยุทธการระดมพลสายฟ้าแลบ`;
-      narration = `${transition} พิกัดดาวเทียมตรวจจับการเคลื่อนไหวของขีปนาวุธข้าศึก ผู้การ ${leadChar.name} นำหน่วยรบพิเศษเข้าสู่สถานะพร้อมรบระดับสูงสุด ระบบควบคุมอาวุธทั้งหมดถูกปลดล็อกในทันที!`;
+      pureTitle = `ตรวจจับสัญญาณภัยคุกคาม & ${primaryChar.name} ระดมพลสายฟ้าแลบ`;
+      narration = `${transition} พิกัดดาวเทียมตรวจจับการเคลื่อนไหวของขีปนาวุธข้าศึก ${primaryChar.name} นำหน่วยรบพิเศษเข้าสู่สถานะพร้อมรบระดับสูงสุด โดยมี ${secondaryChar.name} ควบคุมระบบเรดาร์และชี้เป้าทางยุทธวิธี!`;
       dialogues = [
-        { speaker: leadChar.name, emotion: 'สั่งการเด็ดขาดผ่านวิทยุ', text: `ทุกหน่วยเข้าประจำตำแหน่ง ล็อกเป้าหมาย... ภารกิจนี้ห้ามพลาดแม้แต่วินาทีเดียว!` },
+        { speaker: primaryChar.name, emotion: 'สั่งการเด็ดขาดผ่านวิทยุ', text: `ทุกหน่วยเข้าประจำตำแหน่ง ล็อกเป้าหมาย... ภารกิจนี้ห้ามพลาดแม้แต่วินาทีเดียว!` },
+        { speaker: secondaryChar.name, emotion: 'รายงานความเร็วสูง', text: `พิกัดล็อกแล้ว ช่องสื่อสารปลอดภัย พร้อมเปิดฉากยิง!` },
       ];
       sfxBgm = `[BGM: ซาวด์แทร็กทหารตื่นเต้นเร้าใจ เบสหนักกระแทกกระทั้น] [SFX: เสียงไซเรนเตือนภัย, เสียงบรรจุกระสุนและระบบไฮดรอลิกส์]`;
       lighting = 'แสงไฟฉุกเฉินสีแดงในห้องยุทธวิธี ตัดกับแสงหน้าจอเรดาร์แสดงพิกัดดาวเทียม';
     } else if (actNumber === 2) {
-      pureTitle = `การปล่อยขีปนาวุธไฮเปอร์โซนิก & การทะลวงแนวรบ`;
-      narration = `${transition} ไซโลยิงขีปนาวุธเปิดออก เปลวเพลิงสีส้มขนาดมหึมาพุ่งทะยานฉีกชั้นบรรยากาศ โดรนสังหารไร้คนขับและหน่วยยานเกราะรุกคืบเข้าทำลายแนวป้องกันข้าศึกอย่างแม่นยำ!`;
+      pureTitle = `ยิงขีปนาวุธไฮเปอร์โซนิก & ${primaryChar.name} ทะลวงแนวรบ`;
+      narration = `${transition} ไซโลยิงขีปนาวุธเปิดออก เปลวเพลิงสีส้มมหึมาพุ่งทะยานฉีกชั้นบรรยากาศ ${primaryChar.name} และ ${secondaryChar.name} นำหน่วยยานเกราะรุกคืบเข้าทำลายแนวป้องกันข้าศึกอย่างแม่นยำ!`;
       dialogues = [
-        { speaker: ally.name, emotion: 'รายงานความเร็วสูง', text: `ขีปนาวุธความเร็ว 8 มัคเข้าสู่เป้าหมายแล้ว... ทลายแนวป้องกันสำเร็จ!` },
+        { speaker: secondaryChar.name, emotion: 'รายงานความเร็วสูง', text: `ขีปนาวุธความเร็ว 8 มัคเข้าสู่เป้าหมายแล้ว... ทลายแนวป้องกันสำเร็จ!` },
+        { speaker: primaryChar.name, emotion: 'รุกคืบเด็ดขาด', text: `บุกต่อเนื่อง! อย่ายอมให้ข้าศึกตั้งแนวรับใหม่ได้!` },
       ];
       sfxBgm = `[BGM: กลองศึกและเครื่องเป่าทรงพลังสไตล์ภาพยนตร์สงคราม] [SFX: เสียงขีปนาวุธพุ่งแหวกอากาศ Sonic Boom, เสียงปืนกลหนักยิงรัว]`;
       lighting = 'เปลวเพลิงจากท้ายขีปนาวุธส่องสว่างเจิดจ้าตัดกับท้องฟ้ายามพลบค่ำ';
     } else if (actNumber === 3) {
-      pureTitle = `การแทรกซึมระยะประชิด & ปะทะเดือดในฐานบัญชาการ`;
-      narration = `${transition} ท่ามกลางม่านควันปืน ${leadChar.name} นำทีมบุกทะลวงเข้าสู่ศูนย์บัญชาการของ ${antagonist.name} การปะทะด้วยอาวุธหนักเกิดขึ้นอย่างดุเดือดและไม่ปรานี!`;
+      pureTitle = `แทรกซึมระยะประชิด & ${primaryChar.name} ปะทะเดือดกับ ${antagonist.name}`;
+      narration = `${transition} ท่ามกลางม่านควันปืน ${primaryChar.name} นำทีมบุกทะลวงเข้าสู่ศูนย์บัญชาการของ ${antagonist.name} การปะทะด้วยอาวุธหนักเกิดขึ้นอย่างดุเดือดและไม่ปรานี!`;
       dialogues = [
         { speaker: antagonist.name, emotion: 'ตื่นตระหนก ตะโกนสั่งการ', text: `ตั้งแนวป้องกัน! อย่ายอมให้พวกมันเข้าถึงระบบควบคุม!` },
-        { speaker: leadChar.name, emotion: 'ดุดัน ยิงสวนกลับทันที', text: `สายเกินไปแล้ว... ฐานทัพนี้ถูกยึดครองทั้งหมดแล้ว!` },
+        { speaker: primaryChar.name, emotion: 'ดุดัน ยิงสวนกลับทันที', text: `สายเกินไปแล้ว... ฐานทัพนี้ถูกยึดครองทั้งหมดแล้ว!` },
       ];
       sfxBgm = `[BGM: ดนตรีแอ็กชันอิเล็กทรอนิกส์ระทึกขวัญขั้นสูงสุด] [SFX: ปลอกกระสุนตกกระทบพื้นคอนกรีต, เสียงสะเก็ดระเบิดทำลายล้าง]`;
       lighting = 'แสงเลเซอร์ชี้เป้าสีเขียวและสีแดงตัดผ่านม่านควันปืนหนาทึบ บรรยากาศดิบเท่สมจริง';
     } else {
-      pureTitle = `ชัยชนะเชิงยุทธวิธี & การถอนกำลังอย่างปลอดภัย`;
+      pureTitle = `ชัยชนะเชิงยุทธวิธี & ${primaryChar.name} นำทีมถอนกำลังอย่างปลอดภัย`;
       narration = `${transition} การระเบิดครั้งสุดท้ายปิดฉากสมรภูมิ ควันไฟที่ลอยขึ้นสู่ท้องฟ้าคือหลักฐานแห่งชัยชนะเชิงยุทธวิธีที่เด็ดขาด กองกำลังศัตรูถูกกวาดล้างอย่างสมบูรณ์แบบ!`;
       dialogues = [
-        { speaker: leadChar.name, emotion: 'รายงานผลสำเร็จผ่านวิทยุ', text: `ศูนย์บัญชาการ... ภารกิจสำเร็จลุล่วง ฐานศัตรูถูกทำลายทั้งหมด พร้อมถอนกำลัง!` },
+        { speaker: primaryChar.name, emotion: 'รายงานผลสำเร็จผ่านวิทยุ', text: `ศูนย์บัญชาการ... ภารกิจสำเร็จลุล่วง ฐานศัตรูถูกทำลายทั้งหมด พร้อมถอนกำลัง!` },
+        { speaker: secondaryChar.name, emotion: 'ยิ้มด้วยความภาคภูมิใจ', text: `ทุกนายปลอดภัย ปฏิบัติการสมบูรณ์แบบร้อยเปอร์เซ็นต์!` },
       ];
       sfxBgm = `[BGM: ดนตรีสรุปบทเรียนสงคราม ซาบซึ้งและยิ่งใหญ่สะกดอารมณ์] [SFX: เสียงฮัมของใบพัดเฮลิคอปเตอร์กู้ภัย, เสียงลมพัดผ่านสมรภูมิ]`;
       lighting = 'แสงอาทิตย์ยามเช้าสาดส่องผ่านม่านควันที่ค่อยๆ จางหาย สะท้อนประกายชุดเกราะยุทธวิธี';
@@ -419,36 +543,38 @@ function buildContinuousSceneContent(params: {
   } else if (isSciFi) {
     // แนวไซไฟ / หุ่นยนต์ / ไซเบอร์พังก์
     if (actNumber === 1) {
-      pureTitle = `ตรวจจับความผิดปกติของโครงข่ายควอนตัม & การตื่นของระบบ`;
-      narration = `${transition} ในมหานครที่ถูกควบคุมด้วยอัลกอริทึม ${leadChar.name} ตรวจพบความผันผวนของระบบพลังงานแกนกลาง สัญญาณเตือนภัยสีแดงกะพริบถี่ทั่วหน้าจออินเทอร์เฟซโฮโลแกรม!`;
+      pureTitle = `ตรวจพบความผิดปกติของควอนตัม & ${primaryChar.name} เจาะเข้าระบบเมนเฟรม`;
+      narration = `${transition} ในมหานครที่ถูกควบคุมด้วยอัลกอริทึม ${primaryChar.name} ตรวจพบความผันผวนของแกนพลังงาน โดยมี ${secondaryChar.name} คอยถอดรหัสไฟร์วอลล์และสแกนพิกัดหลบหนี!`;
       dialogues = [
-        { speaker: leadChar.name, emotion: 'สุขุม พิมพ์คำสั่งปลดล็อก', text: `ระบบกำลังถูกแทรกแซง... เราต้องชัตดาวน์แกนกลางก่อนที่มันจะระเบิด!` },
+        { speaker: primaryChar.name, emotion: 'สุขุม พิมพ์คำสั่งปลดล็อก', text: `ระบบกำลังถูกแทรกแซง... เราต้องชัตดาวน์แกนกลางก่อนที่มันจะระเบิด!` },
+        { speaker: secondaryChar.name, emotion: 'จับตาดูกราฟพลังงาน', text: `รหัสผ่านด่านแรกทะลุแล้ว เร่งมือเข้า ข้าศึกกำลังส่งโดรนมา!` },
       ];
       sfxBgm = `[BGM: ซาวด์ไซไฟล้ำยุค ผสานเบสสังเคราะห์ความถี่ต่ำ] [SFX: เสียงพิมพ์คีย์บอร์ดความเร็วสูง, เสียงบี๊บของอินเทอร์เฟซโฮโลแกรม]`;
       lighting = 'แสงนีออนสีฟ้าไซเบอร์และสีชมพูส่องกระทบใบหน้าท่ามกลางความมืด';
     } else if (actNumber === 2) {
-      pureTitle = `การไล่ล่าด้วยยานความเร็วสูง & ทลายการสกัดกั้น`;
-      narration = `${transition} ยานลอยตัวความเร็วเหนือเสียงพุ่งทะยานลัดเลาะผ่านตึกระฟ้า ฝูงโดรนสังหารของศัตรูไล่ล่าตามหลังอย่างกระชั้นชิด คลื่นพลังงานพลาสมาถูกยิงสกัดกั้นอย่างดุเดือด!`;
+      pureTitle = `ไล่ล่าด้วยยานความเร็วสูง & ${primaryChar.name} ยิงสกัดโดรนสังหาร`;
+      narration = `${transition} ยานลอยตัวความเร็วเหนือเสียงพุ่งทะยานลัดเลาะผ่านตึกระฟ้า ${primaryChar.name} เล็งปืนอนุภาคสอยโดรนข้าศึกร่วงทีละลำ ขณะที่ ${secondaryChar.name} ดริฟต์ยานหลบหลีกมิสไซล์อย่างหวุดหวิด!`;
       dialogues = [
-        { speaker: ally.name, emotion: 'บังคับยานอย่างตื่นเต้น', text: `โดรนศัตรูล็อกเป้าเราแล้ว! เตรียมตัวรับแรงกระแทก!` },
-        { speaker: leadChar.name, emotion: 'เล็งปืนพลาสมาอย่างแม่นยำ', text: `ปล่อยให้เป็นหน้าที่ของฉัน... ยิงสกัดทันที!` },
+        { speaker: secondaryChar.name, emotion: 'บังคับยานอย่างตื่นเต้น', text: `โดรนศัตรูล็อกเป้าเราแล้ว! เตรียมตัวรับแรงกระแทก!` },
+        { speaker: primaryChar.name, emotion: 'เล็งปืนพลาสมาอย่างแม่นยำ', text: `ปล่อยให้เป็นหน้าที่ของฉัน... ยิงสกัดทันที!` },
       ];
       sfxBgm = `[BGM: ดนตรีอิเล็กทรอนิกส์ซินธ์เวฟจังหวะเร็วเร้าใจ] [SFX: เสียงเครื่องยนต์ต่อต้านแรงโน้มถ่วงหวีดร้อง, ลำแสงพลาสมายิงระรัว]`;
       lighting = 'ลำแสงเลเซอร์สีส้มและสีฟ้าพุ่งตัดกันบนท้องฟ้ายามค่ำคืน';
     } else if (actNumber === 3) {
-      pureTitle = `เจาะทะลวงแกนประมวลผล & ปะทะจักรกลสังหาร`;
-      narration = `${transition} ณ ใจกลางเมนเฟรม ${antagonist.name} ปรากฏตัวในร่างไซบอร์กเกราะหนัก การแลกเปลี่ยนหมัดพลังงานกลและลำแสงอนุภาคทำลายล้างห้องเซิร์ฟเวอร์จนพังทลาย!`;
+      pureTitle = `เจาะทะลวงแกนประมวลผล & ${primaryChar.name} ปะทะจักรกล ${antagonist.name}`;
+      narration = `${transition} ณ ใจกลางเมนเฟรม ${antagonist.name} ปรากฏตัวในร่างไซบอร์กเกราะหนัก ${primaryChar.name} และ ${leadChar.name} ร่วมมือกันแลกเปลี่ยนหมัดพลังงานกลและลำแสงอนุภาคทำลายล้างห้องเซิร์ฟเวอร์จนพังทลาย!`;
       dialogues = [
         { speaker: antagonist.name, emotion: 'เสียงหุ่นยนต์สังเคราะห์เยือกเย็น', text: `สิ่งมีชีวิตชีวภาพอย่างพวกเจ้า... สมควรถูกกำจัดออกจากระบบ!` },
-        { speaker: leadChar.name, emotion: 'ดุดัน เสียบไวรัสโอเวอร์โหลด', text: `ตราบใดที่มีหัวใจ... ข้าจะไม่ยอมให้เครื่องจักรอย่างแกมาบงการ!` },
+        { speaker: primaryChar.name, emotion: 'ดุดัน เสียบไวรัสโอเวอร์โหลด', text: `ตราบใดที่มีหัวใจและพวกพ้อง... ข้าจะไม่ยอมให้เครื่องจักรอย่างแกมาบงการ!` },
       ];
       sfxBgm = `[BGM: ดนตรีไคลแม็กซ์อินดัสเทรียลเมทัลผสานออร์เคสตรา] [SFX: เสียงประกายไฟช็อตเปรี๊ยะ, เสียงโลหะปะทะโลหะก้องกังวาน]`;
       lighting = 'แสงประกายไฟฟ้ารั่วไหลสีฟ้าสลับกับแสงไฟฉุกเฉินกะพริบ';
     } else {
-      pureTitle = `รีบูตระบบสู่อิสรภาพ & แสงอรุณเหนือมหานคร`;
-      narration = `${transition} ระบบแกนกลางถูกรีเซ็ตสำเร็จ ม่านพลังงานที่กักขังเมืองดับลงทีละส่วน ${leadChar.name} ยืนมองแสงแรกของวันใหม่ที่สาดส่องลงสู่มหานครที่ได้รับอิสรภาพกลับคืนมา`;
+      pureTitle = `รีบูตระบบสู่อิสรภาพ & ${primaryChar.name} สบตากับวันใหม่`;
+      narration = `${transition} ระบบแกนกลางถูกรีเซ็ตสำเร็จ ม่านพลังงานที่กักขังเมืองดับลงทีละส่วน ${primaryChar.name} และ ${secondaryChar.name} ยืนมองแสงแรกของวันใหม่ที่สาดส่องลงสู่มหานครที่ได้รับอิสรภาพกลับคืนมา`;
       dialogues = [
-        { speaker: leadChar.name, emotion: 'รำพึงด้วยความโล่งใจ', text: `ระบบล่มสลายแล้ว... วันนี้คือวันแรกของโลกใหม่` },
+        { speaker: primaryChar.name, emotion: 'รำพึงด้วยความโล่งใจ', text: `ระบบล่มสลายแล้ว... วันนี้คือวันแรกของโลกใหม่ที่พวกเราเลือกเอง` },
+        { speaker: secondaryChar.name, emotion: 'ยิ้มอย่างมีความหวัง', text: `อิสรภาพกลับคืนมาแล้ว... ไปดูเมืองใหม่กันเถอะ` },
       ];
       sfxBgm = `[BGM: ท่วงทำนองเปียโนและซินธ์อบอุ่นเปี่ยมความหวัง] [SFX: เสียงระบบค่อยๆ ชัตดาวน์, เสียงสายลมพัดผ่านยอดตึก]`;
       lighting = 'แสงอาทิตย์สีทองยามเช้าสาดส่องผ่านเงาตึกระฟ้า เผยให้เห็นท้องฟ้าโปร่งใส';
@@ -456,36 +582,38 @@ function buildContinuousSceneContent(params: {
   } else {
     // แนวทั่วไป / แฟนตาซีมหากาพย์ / แอ็กชัน
     if (actNumber === 1) {
-      pureTitle = `การเปิดม่านแห่งโชคชะตา & สัญญาณแห่งวิกฤต`;
-      narration = `${transition} ในดินแดนที่เรื่องราวของ ${synopsisSnippet} เริ่มต้นขึ้น ${leadChar.name} ต้องเผชิญหน้ากับทางเลือกที่จะเปลี่ยนชีวิตไปตลอดกาล บรรยากาศแห่งความไม่แน่นอนปกคลุมไปทั่วทุกหนแห่ง!`;
+      pureTitle = `การเปิดม่านแห่งโชคชะตา & ${primaryChar.name} นำทีมออกเดินทาง`;
+      narration = `${transition} ในดินแดนที่เรื่องราวของ ${synopsisSnippet} เริ่มต้นขึ้น ${primaryChar.name} พร้อมด้วย ${secondaryChar.name} ต้องเผชิญหน้ากับทางเลือกที่จะเปลี่ยนชีวิตไปตลอดกาล บรรยากาศแห่งความไม่แน่นอนปกคลุมไปทั่วทุกหนแห่ง!`;
       dialogues = [
-        { speaker: leadChar.name, emotion: 'สุขุม มุ่งมั่น', text: `ถ้าเราไม่เริ่มต้นก้าวออกไปตอนนี้ ทุกอย่างจะสายเกินแก้!` },
+        { speaker: primaryChar.name, emotion: 'สุขุม มุ่งมั่น', text: `ถ้าเราไม่เริ่มต้นก้าวออกไปตอนนี้ ทุกอย่างจะสายเกินแก้!` },
+        { speaker: secondaryChar.name, emotion: 'จริงใจ ร่วมใจ', text: `ไม่ว่าทางข้างหน้าจะอันตรายแค่ไหน... ข้าจะร่วมสู้เคียงข้างเจ้าเสมอ!` },
       ];
       sfxBgm = `[BGM: ซาวด์แทร็กภาพยนตร์ลึกลับชวนติดตาม] [SFX: เสียงสายลมพัดกระโชก, เสียงฝีเท้าหนักแน่น]`;
       lighting = 'แสงแดดยามเย็นทอดยาวเป็นเงาลึก บรรยากาศเข้มขลังสมจริง';
     } else if (actNumber === 2) {
-      pureTitle = `การฝ่าฟันอุปสรรค & บททดสอบแห่งความกล้าหาญ`;
-      narration = `${transition} ทุกย่างก้าวเต็มไปด้วยอันตรายที่มองไม่เห็น ${leadChar.name} นำทีมผ่านพ้นกับดักและศัตรูที่คอยซุ่มโจมตี ความเฉียบคมและความไว้วางใจซึ่งกันและกันคืออาวุธที่สำคัญที่สุด!`;
+      pureTitle = `ฝ่าฟันอุปสรรค & ${primaryChar.name} ประสานพลังกับ ${secondaryChar.name}`;
+      narration = `${transition} ทุกย่างก้าวเต็มไปด้วยอันตรายที่มองไม่เห็น ${primaryChar.name} นำทีมผ่านพ้นกับดักและศัตรูที่คอยซุ่มโจมตี ความเฉียบคมและความไว้วางใจซึ่งกันและกันคืออาวุธที่สำคัญที่สุด!`;
       dialogues = [
-        { speaker: ally.name, emotion: 'จริงจัง เตือนสติ', text: `ข้างหน้ามีกับดัก! ระวังตัวด้วย!` },
-        { speaker: leadChar.name, emotion: 'สุขุม เด็ดขาด', text: `ตามฉันมา... อย่าคลาดสายตา!` },
+        { speaker: secondaryChar.name, emotion: 'จริงจัง เตือนสติ', text: `ข้างหน้ามีกับดัก! ระวังตัวด้วย!` },
+        { speaker: primaryChar.name, emotion: 'สุขุม เด็ดขาด', text: `ตามฉันมา... อย่าคลาดสายตา!` },
       ];
       sfxBgm = `[BGM: ดนตรีแอ็กชันผจญภัย จังหวะเร่งเร้า] [SFX: เสียงอาวุธปะทะกัน, เสียงก้อนหินถล่ม]`;
       lighting = 'แสงคบเพลิงส่องกระทบใบหน้า ตัดกับเงามืดลึกในถ้ำหรือป่าทึบ';
     } else if (actNumber === 3) {
-      pureTitle = `การปะทะตัดสินชะตากรรม & รวมพลังขั้นสูงสุด`;
-      narration = `${transition} การเผชิญหน้าครั้งสำคัญระหว่าง ${leadChar.name} และ ${antagonist.name} ระเบิดขึ้นอย่างไม่อาจหลีกเลี่ยง การต่อสู้นี้จะเป็นตัวตัดสินชะตากรรมของทุกคน!`;
+      pureTitle = `การปะทะตัดสินชะตากรรม & รวมพลังสยบ ${antagonist.name}`;
+      narration = `${transition} การเผชิญหน้าครั้งสำคัญระหว่าง ${primaryChar.name} และ ${antagonist.name} ระเบิดขึ้นอย่างไม่อาจหลีกเลี่ยง การต่อสู้นี้จะเป็นตัวตัดสินชะตากรรมของทุกคน!`;
       dialogues = [
         { speaker: antagonist.name, emotion: 'เย้ยหยัน มั่นใจ', text: `เจ้าไม่มีทางเอาชนะข้าได้!` },
-        { speaker: leadChar.name, emotion: 'ตะโกนก้อง สวนกลับ', text: `นี่คือคำตอบของข้า... ลุยกันให้แหลก!` },
+        { speaker: primaryChar.name, emotion: 'ตะโกนก้อง สวนกลับ', text: `นี่คือคำตอบของพวกเราทุกคน... ลุยกันให้แหลก!` },
       ];
       sfxBgm = `[BGM: ดนตรีไคลแม็กซ์มหากาพย์เต็มวง เร้าอารมณ์ถึงขีดสุด] [SFX: เสียงระเบิดครั้งใหญ่, เสียงคลื่นพลังปะทะกัน]`;
       lighting = 'แสงวาบจากการระเบิดสาดส่องใบหน้า คอนทราสต์แสงเงาจัดจ้าน';
     } else {
-      pureTitle = `ชัยชนะแห่งมหากาพย์ & บทสรุปที่ตราตรึง`;
-      narration = `${transition} หลังผ่านพ้นการต่อสู้อันยาวนาน ชัยชนะที่ได้มาด้วยความเสียสละได้นำพาความสงบสุขกลับคืนมา ${leadChar.name} ยืนหยัดอย่างสง่างาม พร้อมที่จะก้าวเดินต่อไปในเส้นทางข้างหน้า`;
+      pureTitle = `ชัยชนะแห่งมหากาพย์ & ${primaryChar.name} ยืนหยัดสู่บทสรุปตราตรึง`;
+      narration = `${transition} หลังผ่านพ้นการต่อสู้อันยาวนาน ชัยชนะที่ได้มาด้วยความเสียสละได้นำพาความสงบสุขกลับคืนมา ${primaryChar.name} และเหล่าสหายยืนหยัดอย่างสง่างาม พร้อมที่จะก้าวเดินต่อไปในเส้นทางข้างหน้า`;
       dialogues = [
-        { speaker: leadChar.name, emotion: 'แววตาเปี่ยมหวังและเกียรติยศ', text: `การต่อสู้ครั้งนี้จบลงแล้ว... แต่มิตรภาพและเกียรติยศจะคงอยู่ตลอดไป` },
+        { speaker: primaryChar.name, emotion: 'แววตาเปี่ยมหวังและเกียรติยศ', text: `การต่อสู้ครั้งนี้จบลงแล้ว... แต่มิตรภาพและเกียรติยศของพวกเราจะคงอยู่ตลอดไป` },
+        { speaker: secondaryChar.name, emotion: 'ยิ้มอย่างอบอุ่น', text: `ขอบคุณที่สู้ร่วมกันมาตลอด... เส้นทางข้างหน้ายังคงสดใส!` },
       ];
       sfxBgm = `[BGM: ดนตรีธีมชัยชนะอันสง่างามและซาบซึ้ง] [SFX: เสียงสายลมอ่อนโยน, เสียงโห่ร้องยินดีจากระยะไกล]`;
       lighting = 'แสงอาทิตย์ส่องย้อนจากด้านหลัง สาดเป็นเลนส์แฟลร์สวยงามแบบภาพยนตร์';
@@ -498,6 +626,7 @@ function buildContinuousSceneContent(params: {
     dialogues,
     sfxBgm,
     lighting,
+    activeSquad,
   };
 }
 
