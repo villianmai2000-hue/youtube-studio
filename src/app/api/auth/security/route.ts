@@ -50,7 +50,8 @@ export async function PUT(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { recoveryInput, newPassword } = body;
+    const recoveryInput = body.recoveryInput || body.recoveryKey || body.phoneNumber || body.email;
+    const newPassword = body.newPassword;
 
     if (!recoveryInput || !newPassword) {
       return NextResponse.json(

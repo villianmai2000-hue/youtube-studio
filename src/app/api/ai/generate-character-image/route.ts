@@ -49,22 +49,50 @@ export async function POST(request: Request) {
     const seed = Number(googleFlowSeed) || Math.floor(Math.random() * 1000000);
     const encodedPrompt = encodeURIComponent(promptEn.slice(0, 300));
     const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=768&height=1024&nologo=true&seed=${seed}&model=flux`;
+    const fallbackUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=512&height=768&nologo=true&seed=${seed}`;
 
-    // Fetch image
-    const imgRes = await fetch(imageUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-      },
-    });
-
-    if (!imgRes.ok) {
-      throw new Error(`สร้างภาพตัวละครล้มเหลว: รหัสสถานะ ${imgRes.status}`);
-    }
-
-    const arrayBuffer = await imgRes.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    let buffer: Buffer | null = null;
     const contentType = 'image/jpeg';
     const filename = `char-${characterId || Date.now()}-${Date.now()}.jpg`;
+
+    // Try fetching with timeout
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 12000);
+      let imgRes = await fetch(imageUrl, {
+        signal: controller.signal,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+        },
+      });
+      clearTimeout(timeout);
+
+      if (!imgRes.ok) {
+        imgRes = await fetch(fallbackUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+          },
+        });
+      }
+
+      if (imgRes.ok) {
+        const arrayBuffer = await imgRes.arrayBuffer();
+        buffer = Buffer.from(arrayBuffer);
+      }
+    } catch {
+      // Backend fetch timeout or error
+    }
+
+    // Direct CDN Fallback: If buffer couldn't be fetched on backend, return direct CDN URL immediately
+    if (!buffer) {
+      return NextResponse.json({
+        success: true,
+        mediaUrl: fallbackUrl,
+        imageUrl: fallbackUrl,
+        filename,
+        storage: 'Direct AI CDN Stream (Fast)',
+      });
+    }
 
     // 1. บันทึกเข้า Atlas GridFS หากมี
     if (isMongoConfigured()) {
