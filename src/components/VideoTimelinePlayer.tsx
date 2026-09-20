@@ -101,11 +101,11 @@ export default function VideoTimelinePlayer({
       merged += `[ฉากที่ ${s.sceneNumber} - เวลา 10 วินาที] : ${s.title}\n`;
       merged += `มุมกล้อง: ${s.cameraMovement}\n`;
       merged += `แสงเงา: ${s.lighting}\n`;
-      merged += `บทบรรยาย: ${s.narration}\n`;
-      if (s.dialogues.length > 0) {
+      merged += `บทบรรยาย: ${s.narration || ''}\n`;
+      if (s.dialogues && s.dialogues.length > 0) {
         merged += `บทสนทนา:\n`;
         s.dialogues.forEach((d) => {
-          merged += `  - ${d.speaker} (${d.emotion}): "${d.text}"\n`;
+          merged += `  - ${d.speaker || 'ตัวละคร'} (${d.emotion || 'ปกติ'}): "${d.text || ''}"\n`;
         });
       }
       merged += `คำสั่งวิดีโอต่อเนื่อง: ${s.videoMotionPrompt}\n`;

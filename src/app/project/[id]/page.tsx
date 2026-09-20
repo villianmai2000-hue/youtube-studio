@@ -530,29 +530,33 @@ export default function ProjectStudioPage() {
   const metrics = useMemo(() => {
     if (!project) return { totalWords: 0, totalSeconds: 0, durationMinutes: 0, progressPercent: 0 };
     let totalText = '';
-    project.scenes.forEach((s) => {
-      totalText += s.narration + ' ';
-      s.dialogues.forEach((d) => {
-        totalText += d.text + ' ';
-      });
+    const scenes = Array.isArray(project.scenes) ? project.scenes : [];
+    scenes.forEach((s) => {
+      totalText += (s.narration || '') + ' ';
+      if (Array.isArray(s.dialogues)) {
+        s.dialogues.forEach((d) => {
+          totalText += (d?.text || '') + ' ';
+        });
+      }
     });
 
     const words = Math.round(totalText.replace(/\s+/g, '').length / 4); // Thai word approx
-    const totalSeconds = project.scenes.length * 10; // ฉากละ 10 วินาที!
+    const totalSeconds = scenes.length * 10; // ฉากละ 10 วินาที!
     const durationMinutes = Math.round((totalSeconds / 60) * 10) / 10;
-    const progressPercent = Math.min(100, Math.round((durationMinutes / (project.targetDurationMinutes || 60)) * 100));
+    const targetMins = project.targetDurationMinutes || 60;
+    const progressPercent = Math.min(100, Math.round((durationMinutes / targetMins) * 100));
 
     return { totalWords: words, totalSeconds, durationMinutes, progressPercent };
   }, [project]);
 
   // Filter scenes by selected act
   const filteredScenes = useMemo(() => {
-    if (!project) return [];
+    if (!project || !Array.isArray(project.scenes)) return [];
     if (selectedAct === 'all') return project.scenes;
     return project.scenes.filter((s) => s.actNumber === selectedAct);
   }, [project, selectedAct]);
 
-  const totalStudioPages = studioPageSize === 'all' ? 1 : Math.ceil(filteredScenes.length / (studioPageSize as number));
+  const totalStudioPages = studioPageSize === 'all' ? 1 : Math.max(1, Math.ceil(filteredScenes.length / (studioPageSize as number)));
   const paginatedScenes = useMemo(() => {
     if (studioPageSize === 'all') return filteredScenes;
     const start = (studioPage - 1) * (studioPageSize as number);
@@ -692,7 +696,7 @@ export default function ProjectStudioPage() {
             className="px-3 py-2 rounded-xl bg-studio-900 border border-studio-700 text-gray-300 hover:text-white hover:border-studio-600 text-xs font-semibold flex items-center gap-1.5 transition-colors"
           >
             <User className="w-3.5 h-3.5 text-amber-400" />
-            <span>สมุดคุมตัวละคร ({project.characters.length})</span>
+            <span>สมุดคุมตัวละคร ({(project.characters || []).length})</span>
           </button>
 
           {/* World & Story Bible Button */}
@@ -719,13 +723,13 @@ export default function ProjectStudioPage() {
             onClick={handleGenerateFullMovieScenes}
             disabled={generatingFullScenes}
             className="px-3 py-2 rounded-xl bg-gradient-to-r from-amber-500/25 via-cyan-500/25 to-blue-500/25 hover:from-amber-500/35 hover:to-cyan-500/35 border border-amber-500/50 hover:border-amber-400 text-amber-300 hover:text-white text-xs font-extrabold flex items-center gap-1.5 transition-all shadow-sm"
-            title={`คำนวณและสร้างฉากให้เต็มเวลา ${project.targetDurationMinutes} นาที (${Math.round((project.targetDurationMinutes * 60) / 10)} ฉาก @ 10 วิ/ฉาก ไหลลื่นไม่ตัด)`}
+            title={`คำนวณและสร้างฉากให้เต็มเวลา ${project.targetDurationMinutes || 60} นาที (${Math.round(((project.targetDurationMinutes || 60) * 60) / 10)} ฉาก @ 10 วิ/ฉาก ไหลลื่นไม่ตัด)`}
           >
             <Zap className={`w-3.5 h-3.5 text-amber-400 ${generatingFullScenes ? 'animate-spin' : ''}`} />
             <span>
               {generatingFullScenes
                 ? 'กำลังสร้างฉากเต็มเวลา...'
-                : `⚡ สร้างเต็มเวลา (${Math.round((project.targetDurationMinutes * 60) / 10)} ฉาก)`}
+                : `⚡ สร้างเต็มเวลา (${Math.round(((project.targetDurationMinutes || 60) * 60) / 10)} ฉาก)`}
             </span>
           </button>
 
@@ -865,23 +869,23 @@ export default function ProjectStudioPage() {
           <div className="flex items-center gap-3 flex-wrap text-gray-300">
             <span>คำทั้งหมด: <strong className="text-white">{metrics.totalWords} คำ</strong></span>
             <span>
-              ฉากปัจจุบัน: <strong className="text-white">{project.scenes.length} ฉาก</strong>
+              ฉากปัจจุบัน: <strong className="text-white">{(project.scenes || []).length} ฉาก</strong>
               {' / '}
-              เป้าหมาย: <strong className="text-amber-400">{Math.round((project.targetDurationMinutes * 60) / 10)} ฉาก</strong>
+              เป้าหมาย: <strong className="text-amber-400">{Math.round(((project.targetDurationMinutes || 60) * 60) / 10)} ฉาก</strong>
             </span>
             <span className="text-amber-400 font-bold">{metrics.progressPercent}%</span>
 
             {/* Quick Expand Button if scenes < target */}
-            {project.scenes.length < Math.round((project.targetDurationMinutes * 60) / 10) && (
+            {(project.scenes || []).length < Math.round(((project.targetDurationMinutes || 60) * 60) / 10) && (
               <button
                 type="button"
                 onClick={handleGenerateFullMovieScenes}
                 disabled={generatingFullScenes}
                 className="px-3 py-1 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-extrabold text-[11px] shadow-glow flex items-center gap-1 transition-all animate-pulse"
-                title={`คลิกเพื่อคำนวณและสร้างฉากให้ครบตามเวลาเป้าหมาย (${Math.round((project.targetDurationMinutes * 60) / 10)} ฉาก)`}
+                title={`คลิกเพื่อคำนวณและสร้างฉากให้ครบตามเวลาเป้าหมาย (${Math.round(((project.targetDurationMinutes || 60) * 60) / 10)} ฉาก)`}
               >
                 <Zap className="w-3.5 h-3.5" />
-                <span>⚡ ขยายฉากให้เต็ม {Math.round((project.targetDurationMinutes * 60) / 10)} ฉาก</span>
+                <span>⚡ ขยายฉากให้เต็ม {Math.round(((project.targetDurationMinutes || 60) * 60) / 10)} ฉาก</span>
               </button>
             )}
           </div>
@@ -1022,7 +1026,7 @@ export default function ProjectStudioPage() {
               <span>
                 {selectedSceneIds.length > 0
                   ? `เล่นภาพต่อเนื่องที่เลือก (${selectedSceneIds.length * 10} วิ)`
-                  : `เล่นภาพต่อเนื่องทุกฉาก (${project.scenes.length * 10} วิ)`}
+                  : `เล่นภาพต่อเนื่องทุกฉาก (${(project.scenes || []).length * 10} วิ)`}
               </span>
             </button>
 
@@ -1050,7 +1054,7 @@ export default function ProjectStudioPage() {
               ลำดับฉากที่ถูกเลือก (Sequential Flow):
             </span>
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 pr-2">
-              {project.scenes
+              {(project.scenes || [])
                 .filter((s) => selectedSceneIds.includes(s.id))
                 .sort((a, b) => a.sceneNumber - b.sceneNumber)
                 .map((s, idx) => (
@@ -1349,7 +1353,7 @@ export default function ProjectStudioPage() {
                 key={scene.id}
                 scene={scene}
                 index={studioPageSize === 'all' ? index : (studioPage - 1) * (studioPageSize as number) + index}
-                characters={project.characters}
+                characters={project.characters || []}
                 visualMedium={project.visualMedium}
                 stylePreset={project.stylePreset}
                 genre={project.genre}
@@ -1461,7 +1465,7 @@ export default function ProjectStudioPage() {
       <CharacterBibleModal
         isOpen={isCharModalOpen}
         onClose={() => setIsCharModalOpen(false)}
-        characters={project.characters}
+        characters={project.characters || []}
         project={project}
         projectId={project.id}
         visualMedium={project.visualMedium}
@@ -1495,8 +1499,8 @@ export default function ProjectStudioPage() {
         onClose={() => setIsTimelinePlayerOpen(false)}
         selectedScenes={
           selectedSceneIds.length > 0
-            ? project.scenes.filter((s) => selectedSceneIds.includes(s.id))
-            : project.scenes
+            ? (project.scenes || []).filter((s) => selectedSceneIds.includes(s.id))
+            : (project.scenes || [])
         }
         projectTitle={project.title}
       />

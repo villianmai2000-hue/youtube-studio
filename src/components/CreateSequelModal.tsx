@@ -38,7 +38,7 @@ export default function CreateSequelModal({
 
   // Auto-generate smart sequel title
   const generateDefaultTitle = () => {
-    const base = project.seriesTitle || project.title;
+    const base = (project?.seriesTitle || project?.title || 'ภาพยนตร์').trim();
     // If title ends with "ภาค X", replace it
     const match = base.match(/(.*?)\s*(?:ภาค|Part|Season|ซีซั่น)\s*(\d+)/i);
     if (match) {

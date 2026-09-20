@@ -73,12 +73,12 @@ export default function ExportPage() {
     out += `เรื่องย่อ: ${project.synopsis}\n`;
     out += `---------------------------------------------------\n\n`;
 
-    project.scenes.forEach((s) => {
+    (project.scenes || []).forEach((s) => {
       out += `=== ฉากที่ ${s.sceneNumber}: ${s.title} (องค์ที่ ${s.actNumber}) ===\n`;
-      out += `คิวเสียง: ${s.sfxBgm}\n\n`;
-      out += `[เสียงบรรยาย / พากย์]:\n${s.narration}\n\n`;
+      out += `คิวเสียง: ${s.sfxBgm || ''}\n\n`;
+      out += `[เสียงบรรยาย / พากย์]:\n${s.narration || ''}\n\n`;
 
-      if (s.dialogues.length > 0) {
+      if (s.dialogues && s.dialogues.length > 0) {
         out += `[บทสนทนา]:\n`;
         s.dialogues.forEach((d) => {
           out += `- ${d.speaker} (${d.emotion}): "${d.text}"\n`;

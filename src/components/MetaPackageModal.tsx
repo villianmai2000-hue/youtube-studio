@@ -39,13 +39,20 @@ export default function MetaPackageModal({
   const [activeTab, setActiveTab] = useState<'timeline' | 'voiceover' | 'recommendations' | 'captions'>('timeline');
   const [copiedType, setCopiedType] = useState<string | null>(null);
 
-  if (!isOpen || !project) return null;
+  // Tab 1 Timeline Pagination
+  const [timelinePage, setTimelinePage] = useState(1);
+  const [pageSize, setPageSize] = useState<number | 'all'>(50);
+  const [jumpSceneInput, setJumpSceneInput] = useState('');
 
   // Filter scenes if user selected specific ones, otherwise all scenes
-  const targetScenes =
-    selectedSceneIds.length > 0
-      ? project.scenes.filter((s) => selectedSceneIds.includes(s.id))
-      : project.scenes;
+  const allScenes = project?.scenes || [];
+  const targetScenes = useMemo(() => {
+    if (!project || !Array.isArray(project.scenes)) return [];
+    if (selectedSceneIds.length > 0) {
+      return project.scenes.filter((s) => selectedSceneIds.includes(s.id));
+    }
+    return project.scenes;
+  }, [project, selectedSceneIds]);
 
   const totalDurationSec = targetScenes.length * 10;
   const totalMinutes = Math.floor(totalDurationSec / 60);
@@ -53,20 +60,19 @@ export default function MetaPackageModal({
   const durationStr = `${totalMinutes > 0 ? `${totalMinutes} นาที ` : ''}${totalSecRemainder} วินาที`;
 
   const calc = useMemo(() => {
-    return calculateMovieScenesCount(project.targetDurationMinutes || (targetScenes.length * 10) / 60);
-  }, [project.targetDurationMinutes, targetScenes.length]);
+    const mins = project?.targetDurationMinutes || (targetScenes.length * 10) / 60 || 60;
+    return calculateMovieScenesCount(mins);
+  }, [project?.targetDurationMinutes, targetScenes.length]);
 
-  // Tab 1 Timeline Pagination
-  const [timelinePage, setTimelinePage] = useState(1);
-  const [pageSize, setPageSize] = useState<number | 'all'>(50);
-  const [jumpSceneInput, setJumpSceneInput] = useState('');
-
-  const totalPages = pageSize === 'all' ? 1 : Math.ceil(targetScenes.length / (pageSize as number));
+  const totalPages = pageSize === 'all' ? 1 : Math.max(1, Math.ceil(targetScenes.length / (pageSize as number)));
   const displayedScenes = useMemo(() => {
     if (pageSize === 'all') return targetScenes;
     const start = (timelinePage - 1) * (pageSize as number);
     return targetScenes.slice(start, start + (pageSize as number));
   }, [targetScenes, timelinePage, pageSize]);
+
+  // Early return ONLY AFTER all hooks are called
+  if (!isOpen || !project) return null;
 
   // Handle jump to scene
   const handleJumpToScene = (e: React.FormEvent) => {
@@ -82,7 +88,7 @@ export default function MetaPackageModal({
   };
 
   // Helper to remove any lingering seed tags
-  const sanitizePrompt = (text: string) => {
+  const sanitizePrompt = (text?: string) => {
     return (text || '')
       .replace(/\[Google Flow Seed Lock:[^\]]*\]\s*/gi, '')
       .replace(/Seed Lock:[^\n]*\n?/gi, '')
@@ -91,8 +97,14 @@ export default function MetaPackageModal({
       .trim();
   };
 
-  // Helper to parse BGM and SFX from sfxBgm string
-  const parseAudioLayers = (sfxBgm: string) => {
+  // Helper to parse BGM and SFX from sfxBgm string safely
+  const parseAudioLayers = (sfxBgm?: string) => {
+    if (!sfxBgm) {
+      return {
+        bgm: 'ดนตรีออร์เคสตราสไตล์ภาพยนตร์ เร้าอารมณ์',
+        sfx: 'เสียงบรรยากาศและเอฟเฟกต์สมจริง',
+      };
+    }
     let bgm = '';
     let sfx = '';
 
@@ -108,8 +120,8 @@ export default function MetaPackageModal({
 
     // If neither matched brackets, treat entire text
     if (!bgm && !sfx) {
-      bgm = sfxBgm || 'ดนตรีออร์เคสตราสไตล์อนิเมะจีน 3D เร้าอารมณ์';
-      sfx = 'เสียงบรรยากาศและเอฟเฟกต์ฟันกระบี่';
+      bgm = sfxBgm || 'ดนตรีออร์เคสตราสไตล์ภาพยนตร์ เร้าอารมณ์';
+      sfx = 'เสียงบรรยากาศและเอฟเฟกต์สมจริง';
     }
 
     return { bgm, sfx };
@@ -132,7 +144,7 @@ export default function MetaPackageModal({
       const endSec = (idx + 1) * 10;
       const startMinStr = formatTimeCode(startSec);
       const endMinStr = formatTimeCode(endSec);
-      output += `⏱️ [ฉากที่ ${s.sceneNumber} (${startMinStr} - ${endMinStr})]:\n${s.narration.trim()}\n\n`;
+      output += `⏱️ [ฉากที่ ${s.sceneNumber} (${startMinStr} - ${endMinStr})]:\n${(s.narration || '').trim()}\n\n`;
     });
 
     output += `🎬 [2. ไทม์ไลน์แจกแจงทีละฉาก (มุมกล้อง Seedream 5.0 Pro + บทพูด + BGM/SFX + พร้อมต์วิดีโอ)]:\n`;
@@ -144,12 +156,12 @@ export default function MetaPackageModal({
       const endMinStr = formatTimeCode(endSec);
       const { bgm, sfx } = parseAudioLayers(s.sfxBgm);
 
-      output += `[ฉากที่ ${s.sceneNumber}] (${startMinStr} - ${endMinStr}) : ${cleanSceneTitle(s.title)}\n`;
-      output += `🎙️ เสียงพากย์: ${s.narration}\n`;
+      output += `[ฉากที่ ${s.sceneNumber}] (${startMinStr} - ${endMinStr}) : ${cleanSceneTitle(s.title || '')}\n`;
+      output += `🎙️ เสียงพากย์: ${s.narration || ''}\n`;
       if (s.dialogues && s.dialogues.length > 0) {
         output += `💬 บทพูดตัวละคร:\n`;
         s.dialogues.forEach((d) => {
-          output += `   • ${d.speaker} (${d.emotion}): "${d.text}"\n`;
+          output += `   • ${d.speaker || 'ตัวละคร'} (${d.emotion || 'ปกติ'}): "${d.text || ''}"\n`;
         });
       }
       output += `🎥 มุมกล้อง: ${s.cameraMovement}\n`;
@@ -688,7 +700,7 @@ export default function MetaPackageModal({
                         const endSec = (idx + 1) * 10;
                         const startMinStr = formatTimeCode(startSec);
                         const endMinStr = formatTimeCode(endSec);
-                        return `⏱️ [ฉากที่ ${s.sceneNumber} (${startMinStr} - ${endMinStr})]:\n${s.narration.trim()}`;
+                        return `⏱️ [ฉากที่ ${s.sceneNumber} (${startMinStr} - ${endMinStr})]:\n${(s.narration || '').trim()}`;
                       })
                       .join('\n\n');
                     handleCopyText(voText, 'vo-all');
@@ -715,7 +727,8 @@ export default function MetaPackageModal({
                   const endSec = (idx + 1) * 10;
                   const startMinStr = formatTimeCode(startSec);
                   const endMinStr = formatTimeCode(endSec);
-                  const wordCount = scene.narration.trim().split(/\s+/).length;
+                  const narr = (scene.narration || '').trim();
+                  const wordCount = narr ? narr.split(/\s+/).length : 0;
 
                   return (
                     <div

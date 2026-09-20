@@ -196,9 +196,8 @@ export default function SceneCard({
     }
   };
 
-  // Dialogue helpers
   const handleAddDialogue = () => {
-    const defaultSpeaker = characters[0]?.name || 'ตัวละคร';
+    const defaultSpeaker = (characters && characters[0]?.name) || 'ตัวละคร';
     const newDialogue: CharacterDialogue = {
       speaker: defaultSpeaker,
       emotion: 'เยือกเย็น',
@@ -206,18 +205,18 @@ export default function SceneCard({
     };
     onUpdate({
       ...scene,
-      dialogues: [...scene.dialogues, newDialogue],
+      dialogues: [...(scene.dialogues || []), newDialogue],
     });
   };
 
   const handleUpdateDialogue = (dIdx: number, field: keyof CharacterDialogue, val: string) => {
-    const updated = [...scene.dialogues];
+    const updated = [...(scene.dialogues || [])];
     updated[dIdx] = { ...updated[dIdx], [field]: val };
     onUpdate({ ...scene, dialogues: updated });
   };
 
   const handleDeleteDialogue = (dIdx: number) => {
-    const updated = scene.dialogues.filter((_, i) => i !== dIdx);
+    const updated = (scene.dialogues || []).filter((_, i) => i !== dIdx);
     onUpdate({ ...scene, dialogues: updated });
   };
 
@@ -315,13 +314,13 @@ export default function SceneCard({
               </button>
             </div>
 
-            {scene.dialogues.length === 0 ? (
+            {(!scene.dialogues || scene.dialogues.length === 0) ? (
               <p className="text-xs text-gray-500 italic p-2 bg-studio-950/40 rounded-lg">
                 (ฉากนี้ไม่มีบทสนทนา มีเพียงเสียงบรรยาย)
               </p>
             ) : (
               <div className="space-y-2">
-                {scene.dialogues.map((dlg, dIdx) => (
+                {(scene.dialogues || []).map((dlg, dIdx) => (
                   <div
                     key={dIdx}
                     className="p-2.5 rounded-xl bg-studio-950 border border-studio-800 flex flex-col sm:flex-row items-start sm:items-center gap-2 text-xs"
@@ -330,7 +329,7 @@ export default function SceneCard({
                       {/* Speaker */}
                       <input
                         type="text"
-                        value={dlg.speaker}
+                        value={dlg.speaker || ''}
                         onChange={(e) => handleUpdateDialogue(dIdx, 'speaker', e.target.value)}
                         placeholder="ผู้พูด"
                         className="w-28 px-2 py-1 rounded bg-studio-900 border border-studio-700 text-amber-300 font-semibold"
@@ -338,7 +337,7 @@ export default function SceneCard({
                       {/* Emotion */}
                       <input
                         type="text"
-                        value={dlg.emotion}
+                        value={dlg.emotion || ''}
                         onChange={(e) => handleUpdateDialogue(dIdx, 'emotion', e.target.value)}
                         placeholder="อารมณ์"
                         className="w-24 px-2 py-1 rounded bg-studio-900 border border-studio-700 text-gray-400"
@@ -348,7 +347,7 @@ export default function SceneCard({
                     {/* Speech Text */}
                     <input
                       type="text"
-                      value={dlg.text}
+                      value={dlg.text || ''}
                       onChange={(e) => handleUpdateDialogue(dIdx, 'text', e.target.value)}
                       placeholder="คำพูดตัวละคร..."
                       className="flex-1 w-full px-2.5 py-1 rounded bg-studio-900 border border-studio-700 text-white"
