@@ -33,7 +33,7 @@ export async function POST(request: Request) {
     // 1. If MongoDB Atlas is configured: Stream directly into Atlas GridFS
     if (isMongoConfigured()) {
       try {
-        const bucket = await getGridFSBucket('scene_images');
+        const bucket = await getGridFSBucket();
 
         // Create GridFS upload stream
         const uploadStream = bucket.openUploadStream(filename, {
@@ -80,7 +80,11 @@ export async function POST(request: Request) {
 
     // Save metadata
     const metaPath = path.join(LOCAL_MEDIA_DIR, `${fallbackId}.json`);
-    fs.writeFileSync(metaPath, JSON.stringify({ contentType, filename, size: buffer.length }), 'utf-8');
+    fs.writeFileSync(
+      metaPath,
+      JSON.stringify({ contentType, filename, size: buffer.length, projectId: projectId || '', sceneId: sceneId || '' }),
+      'utf-8'
+    );
 
     return NextResponse.json({
       success: true,

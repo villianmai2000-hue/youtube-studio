@@ -63,7 +63,11 @@ cp .env.example .env.local
 เปิดไฟล์ `.env.local` และใส่ค่า:
 ```env
 # MongoDB Atlas Cloud Connection String
-MONGODB_URI=mongodb+srv://<username>:<password>@cluster0.xxxxx.mongodb.net/youtube_ai_studio?retryWrites=true&w=majority
+MONGODB_URI=mongodb+srv://<username>:<password>@cluster0.xxxxx.mongodb.net/?retryWrites=true&w=majority
+
+# กำหนดชื่อฐานข้อมูลแยกเฉพาะสำหรับโปรเจกต์นี้ (เพื่อแยกเด็ดขาดจากโปรเจกต์อื่นบนคลัสเตอร์ Atlas 100%)
+MONGODB_DB_NAME=youtube_cinematic_donghua_studio
+MONGODB_GRIDFS_BUCKET=youtube_studio_media
 
 # (ตัวเลือกเสริม) Google Gemini API Key หากต้องการใช้ AI คิดบทแบบสด
 GEMINI_API_KEY=your_gemini_api_key_here
@@ -113,5 +117,7 @@ git push -u origin main
 3. เลือก Repository จาก GitHub ที่เพิ่ง Push ขึ้นไป
 4. ในส่วน **Environment Variables** ให้เพิ่ม:
    - `MONGODB_URI`: Connection String ของ MongoDB Atlas
+   - `MONGODB_DB_NAME`: `youtube_cinematic_donghua_studio` (ระบุชื่อฐานข้อมูลแยกเฉพาะ)
+   - `MONGODB_GRIDFS_BUCKET`: `youtube_studio_media` (ระบุบักเก็ตแยกเฉพาะ)
    - `GEMINI_API_KEY`: (ถ้ามี) API Key สำหรับ AI
-5. คลิก **Deploy** &rarr; ระบบจะ Build และพร้อมใช้งานทั่วโลกภายในไม่กี่นาที!
+5. คลิก **Deploy** &rarr; ระบบจะ Build และพร้อมใช้งานทั่วโลก รัน 24 ชั่วโมงต่อเนื่อง!

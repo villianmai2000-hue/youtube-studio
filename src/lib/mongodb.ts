@@ -45,32 +45,39 @@ export async function getMongoClient(): Promise<MongoClient> {
   }
 }
 
-export async function getDb(dbName = 'youtube_ai_studio'): Promise<Db> {
+export const DATABASE_NAME = process.env.MONGODB_DB_NAME || 'youtube_cinematic_donghua_studio';
+export const GRIDFS_BUCKET_NAME = process.env.MONGODB_GRIDFS_BUCKET || 'youtube_studio_media';
+
+export async function getDb(dbName?: string): Promise<Db> {
   const client = await getMongoClient();
-  return client.db(dbName);
+  return client.db(dbName || DATABASE_NAME);
 }
 
 /**
  * Returns a MongoDB GridFSBucket for streaming images directly
- * into and out of MongoDB Atlas Cloud.
+ * into and out of MongoDB Atlas Cloud in an isolated bucket.
  */
-export async function getGridFSBucket(bucketName = 'media_files'): Promise<GridFSBucket> {
+export async function getGridFSBucket(bucketName?: string): Promise<GridFSBucket> {
   const db = await getDb();
-  return new GridFSBucket(db, { bucketName });
+  return new GridFSBucket(db, { bucketName: bucketName || GRIDFS_BUCKET_NAME });
 }
 
 /**
- * Health check to verify MongoDB Atlas connection status and latency
+ * Health check to verify MongoDB Atlas connection status, latency, and database isolation
  */
 export async function checkAtlasConnection(): Promise<{
   connected: boolean;
   message: string;
+  database: string;
+  bucket: string;
   latencyMs?: number;
 }> {
   if (!isMongoConfigured()) {
     return {
       connected: false,
       message: 'MONGODB_URI ยังไม่ได้ตั้งค่าใน .env.local (สามารถใส่ Atlas URI เพื่อเก็บข้อมูลบน Cloud ได้ทันที)',
+      database: DATABASE_NAME,
+      bucket: GRIDFS_BUCKET_NAME,
     };
   }
 
@@ -81,7 +88,9 @@ export async function checkAtlasConnection(): Promise<{
     const latency = Date.now() - start;
     return {
       connected: true,
-      message: 'เชื่อมต่อ MongoDB Atlas Cloud สำเร็จ',
+      message: `เชื่อมต่อ MongoDB Atlas สำเร็จ (ฐานข้อมูลแยกอิสระ: ${db.databaseName})`,
+      database: db.databaseName,
+      bucket: GRIDFS_BUCKET_NAME,
       latencyMs: latency,
     };
   } catch (err: unknown) {
@@ -89,6 +98,8 @@ export async function checkAtlasConnection(): Promise<{
     return {
       connected: false,
       message: `ไม่สามารถเชื่อมต่อ MongoDB Atlas ได้: ${message}`,
+      database: DATABASE_NAME,
+      bucket: GRIDFS_BUCKET_NAME,
     };
   }
 }

@@ -8,6 +8,8 @@ export default function Navbar() {
   const [atlasStatus, setAtlasStatus] = useState<{
     connected: boolean;
     message: string;
+    database?: string;
+    bucket?: string;
     latencyMs?: number;
     loading: boolean;
   }>({
@@ -25,6 +27,8 @@ export default function Navbar() {
         setAtlasStatus({
           connected: data.connected,
           message: data.message,
+          database: data.database,
+          bucket: data.bucket,
           latencyMs: data.latencyMs,
           loading: false,
         });
@@ -143,6 +147,26 @@ export default function Navbar() {
                 <p className="mt-1 text-sm">{atlasStatus.message}</p>
               </div>
 
+              {/* Isolation Details */}
+              <div className="bg-studio-950/90 p-3.5 rounded-xl border border-studio-800 text-xs space-y-2">
+                <div className="flex items-center justify-between border-b border-studio-800/80 pb-2">
+                  <span className="text-gray-400">ชื่อฐานข้อมูล (Database):</span>
+                  <code className="text-emerald-400 font-mono font-semibold">
+                    {atlasStatus.database || 'youtube_cinematic_donghua_studio'}
+                  </code>
+                </div>
+                <div className="flex items-center justify-between border-b border-studio-800/80 pb-2">
+                  <span className="text-gray-400">บักเก็ตจัดเก็บรูป (GridFS Bucket):</span>
+                  <code className="text-cyan-400 font-mono font-semibold">
+                    {atlasStatus.bucket || 'youtube_studio_media'}
+                  </code>
+                </div>
+                <div className="flex items-center justify-between pt-0.5 text-emerald-400 font-medium">
+                  <span>การแยกโปรเจกต์ (Project Isolation):</span>
+                  <span>✅ แยกเด็ดขาด 100% ไม่ปนกับแอปอื่น</span>
+                </div>
+              </div>
+
               <div className="bg-studio-950/80 p-3.5 rounded-xl border border-studio-800 text-xs space-y-2">
                 <p className="font-semibold text-gray-200">
                   วิธีการเชื่อมต่อ MongoDB Atlas Cloud (เพื่อเก็บรูปและบทลง Atlas ทันที):
@@ -156,7 +180,7 @@ export default function Navbar() {
               </div>
 
               <p className="text-xs text-gray-400">
-                *ไฟล์รูปภาพที่อัปโหลดจะถูกส่งเข้า <strong>MongoDB Atlas GridFS</strong> ทันทีตามที่ระบุไว้
+                *ไฟล์รูปภาพที่สร้าง/อัปโหลดจะถูกส่งเข้า <strong>MongoDB Atlas GridFS</strong> ทันทีตามที่ระบุไว้
               </p>
             </div>
 

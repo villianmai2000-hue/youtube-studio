@@ -17,7 +17,7 @@ export async function GET(
   // 1. Try MongoDB Atlas GridFS if ObjectId is valid
   if (isMongoConfigured() && ObjectId.isValid(id)) {
     try {
-      const bucket = await getGridFSBucket('scene_images');
+      const bucket = await getGridFSBucket();
       const objectId = new ObjectId(id);
 
       // Find file metadata
