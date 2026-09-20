@@ -17,7 +17,10 @@ echo [1/3] Git Add...
 git add .
 
 echo [2/3] Git Commit...
-git commit -m "feat: AI Cinema and Donghua 3D YouTube Studio update" >nul 2>&1
+git commit -m "deploy: update and trigger vercel build" >nul 2>&1
+if errorlevel 1 (
+    git commit --allow-empty -m "deploy: force trigger vercel build" >nul 2>&1
+)
 
 echo [3/3] Git Push...
 git push -u origin main
