@@ -395,18 +395,25 @@ export default function ProjectStudioPage() {
             output += `   • ${d.speaker} (${d.emotion}): "${d.text}"\n`;
           });
         }
-        output += `🎵 ดนตรี & เอฟเฟกต์เสียง: ${s.sfxBgm}\n`;
         output += `🎥 มุมกล้อง & แสง: ${s.cameraMovement} | ${s.lighting}\n`;
-        output += `📹 พร้อมต์เจนวิดีโอ AI (Kling/Runway/Haiper): ${sanitizePrompt(s.videoMotionPrompt)}\n`;
+        output += `🎵 ดนตรี BGM & เอฟเฟกต์เสียง SFX: ${s.sfxBgm}\n`;
+        output += `📹 พร้อมต์เจนวิดีโอ AI (Kling/Runway/Haiper/Luma): ${sanitizePrompt(s.videoMotionPrompt)}\n`;
         output += `🌊 flow.google.com: ${sanitizePrompt(s.googleFlowPrompt || s.imagePrompt)}\n`;
         output += `\n`;
       });
 
-      output += `🏷️ [3. แฮชแท็กสำหรับโพสต์ลง Meta Reels / TikTok / CapCut]:\n`;
+      output += `💡 [3. เช็กลิสต์แนะนำสิ่งที่ต้องมีเพิ่มเติม เพื่อให้การสร้างอนิเมะ/หนังสมบูรณ์ครบเครื่อง]:\n`;
+      output += `----------------------------------------------------------\n`;
+      output += `1. 🎙️ เสียงพากย์ AI (Thai Voice Synthesis): แนะนำใช้ ElevenLabs (Multilingual v2) หรือ Fish Audio ปรับความเร็ว 1.05x-1.1x เพื่อให้จังหวะกระชับพอดี 10 วิ/ฉาก และใส่คีย์เวิร์ดอารมณ์ [anger/fierce/calm]\n`;
+      output += `2. 🎬 เทคนิคต่อช็อตไหลลื่นไม่ตัด (Continuous Stitching): ใน Kling 1.5 หรือ Runway Gen-3 ให้ใช้ฟีเจอร์ "End Frame as Start Frame" นำเฟรมสุดท้ายของฉากที่ 1 ไปเป็นเฟรมเริ่มต้นของฉากที่ 2 จะได้วิดีโอแบบ Single Take ไหลลื่น 100%\n`;
+      output += `3. 🎼 การมิกซ์เสียง BGM & SFX (CapCut / Premiere): วางดนตรีกู่เจิ้ง/ออร์เคสตราไว้ระดับ -16dB ถึง -18dB และเปิด Ducking หลบเสียงพากย์ที่ -3dB พร้อมใส่เสียง Sub-bass Drop (Braam) ในวินาทีที่ตัวเอกระเบิดพลัง\n`;
+      output += `4. 🎨 คัลเลอร์เกรดดิ้ง (Color Grading): ใส่โทนสีสไตล์ Donghua Cinematic (Teal & Orange / Cyan Gold Glow) ดึงความเปรียบต่างแสงจันทร์และพลังปราณให้มีมิติสูงสุด\n\n`;
+
+      output += `🏷️ [4. แฮชแท็กสำหรับโพสต์ลง Meta Reels / TikTok / CapCut]:\n`;
       if (project.genre === 'military_tactical') {
         output += `#Reels #ทหาร #ยุทธการทหาร #ขีปนาวุธ #กองทัพ #แสนยานุภาพ #อาวุธสงคราม #เทคโนโลยีทหาร #MilitaryReels #Shorts\n`;
       } else if (project.genre === 'xianxia_cultivation') {
-        output += `#Reels #อนิเมะจีน3D #กำลังภายใน #เซียนกระบี่ #Donghua #SAN1 #อนิเมะ #Shorts #ซีรีส์จีน\n`;
+        output += `#Reels #อนิเมะจีน3D #กำลังภายใน #เซียนกระบี่ #Donghua #SAN1 #อนิเมะ #Shorts #ซีรีส์จีน #Seedream\n`;
       } else {
         output += `#Reels #ภาพยนตร์AI #หนังไซไฟ #วิดีโอสั้น #Shorts #MetaReels #AIAnimation\n`;
       }
