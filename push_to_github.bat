@@ -10,16 +10,16 @@ echo Target: https://github.com/villianmai2000-hue/youtube-studio.git
 echo.
 
 git remote remove origin >nul 2>&1
-git remote add origin https://github.com/villianmai2000-hue/youtube-studio.git
+git remote add origin https://villianmai2000-hue@github.com/villianmai2000-hue/youtube-studio.git
 git branch -M main
 
 echo [1/3] Git Add...
 git add .
 
 echo [2/3] Git Commit...
-git commit -m "deploy: update and trigger vercel build" >nul 2>&1
+git commit -m "deploy: update and trigger vercel build"
 if errorlevel 1 (
-    git commit --allow-empty -m "deploy: force trigger vercel build" >nul 2>&1
+    git commit --allow-empty -m "deploy: force trigger vercel build"
 )
 
 echo [3/3] Git Push...
@@ -38,11 +38,11 @@ goto END
 echo.
 echo ===================================================================
 echo   FAILED: Could not push to GitHub.
-echo   If browser opened, please click Sign in with your browser.
+echo   Please check your internet or GitHub authorization.
 echo ===================================================================
 goto END
 
 :END
 echo.
-echo Press any key to exit...
-pause > nul
+echo กดปุ่มใดๆ เพื่อปิดหน้าต่างนี้...
+pause
