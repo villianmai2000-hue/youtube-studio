@@ -158,18 +158,17 @@ export function buildVisualPrompts(params: PromptGenerationParams): {
   // พร้อมต์ภาษาอังกฤษสำรอง
   const imagePromptEn = `${styleKeywordsEn}, ${characterDescEn}, ${cleanSummary}, set in ${genreFlavorEn}. Camera: ${cameraMovement}. Lighting: ${lighting}. 8k resolution, cinematic composition, ${arParam} --v 6.1 --style raw`;
 
-  // 6. พร้อมต์สำหรับ Google Flow (flow.google.com) - ล็อคตัวละครและใบหน้าไม่ให้เพี้ยน!
+  // 6. พร้อมต์สำหรับ Google Flow (flow.google.com) - ล็อคตัวละครและฉากให้คมชัด ไม่เพี้ยน
   const googleFlowPrompt = `[Google Flow / VideoFX Prompt - flow.google.com]
 Prompt: ${cleanSummary}, ${characterDescEn}, ${genreFlavorEn}. Cinematography: ${cameraMovement}, ${lighting}. High fidelity consistent character rendering, sharp photorealistic details, cinematic grade.
-Aspect Ratio: ${aspectRatio}
-Seed Lock: ${flowSeed} (ใส่เลข Seed นี้ใน flow.google.com เพื่อล็อคหน้าตาและเสื้อผ้าให้ตรงกันทุกฉาก ไม่เพี้ยน)`;
+Aspect Ratio: ${aspectRatio}`;
 
-  // 7. ประกอบคำสั่งสร้างวิดีโอภาษาไทย (Thai Video Motion Prompt - ตัวหลัก!)
-  const videoMotionPrompt = `[ฉากที่ ${sceneNumber} ความต่อเนื่อง] [มุมกล้อง: ${cameraMovement}, เคลื่อนไหวลื่นไหลแบบภาพยนตร์] [การกระทำ: ตัวละครทำการ ${cleanSummary}, แอ็กชันต่อเนื่องไม่ตัดข้าม] [แสงเงา: ${lighting}] [สัดส่วน: ${aspectRatio}] [สไตล์: ${
+  // 7. ประกอบคำสั่งสร้างวิดีโอภาษาไทย (Thai Video Motion Prompt - สะอาด ไม่เพี้ยน)
+  const videoMotionPrompt = `[ฉากที่ ${sceneNumber}] [มุมกล้อง: ${cameraMovement}, เคลื่อนไหวลื่นไหลแบบภาพยนตร์] [การกระทำ: ตัวละครทำการ ${cleanSummary}, แอ็กชันต่อเนื่องไม่ตัดข้าม] [แสงเงา: ${lighting}] [สัดส่วน: ${aspectRatio}] [สไตล์: ${
     visualMedium === 'live_action' ? 'ภาพยนตร์คนจริง เลนส์ 35 มม.' : 'อนิเมะจีน 3D สไตล์เพื่อนที่ดีที่สุด SAN1 เรนเดอร์ Unreal Engine 5'
-  }] [Google Flow Seed Lock: ${flowSeed}] รักษาความต่อเนื่องของใบหน้า ทรงผม เสื้อผ้า และฉากจากเฟรมก่อนหน้าอย่างแม่นยำ คมชัดระดับ 4K 60fps ต่อเนื่องเนียนตา`;
+  }] รักษาความต่อเนื่องของใบหน้า ทรงผม เสื้อผ้า และฉากอย่างแม่นยำ คมชัดระดับ 4K 60fps ต่อเนื่องเนียนตา`;
 
-  const videoMotionPromptEn = `[Shot ${sceneNumber} Continuity] [Camera: ${cameraMovement}, smooth motion] [Action: Character performs ${cleanSummary}, continuous shot] [Lighting: ${lighting}] [Aspect: ${aspectRatio}] [Seed: ${flowSeed}] [Style: ${
+  const videoMotionPromptEn = `[Shot ${sceneNumber}] [Camera: ${cameraMovement}, smooth motion] [Action: Character performs ${cleanSummary}, continuous shot] [Lighting: ${lighting}] [Aspect: ${aspectRatio}] [Style: ${
     visualMedium === 'live_action' ? 'Live-action realistic 35mm film' : '3D Chinese Donghua animation UE5'
   }] Maintain exact character face, clothing, and environment. Zero drift. 4K, 60fps.`;
 
