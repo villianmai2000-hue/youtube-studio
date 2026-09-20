@@ -39,19 +39,23 @@ export default function Navbar() {
   const [showDbModal, setShowDbModal] = useState(false);
 
   useEffect(() => {
-    // Check saved user session
-    const saved = localStorage.getItem('studio_current_user');
-    if (saved) {
-      try {
-        setCurrentUser(JSON.parse(saved));
-      } catch {
-        setCurrentUser(DEFAULT_OWNER_USER);
+    // Check saved user session (Do not auto-login without credentials)
+    const checkUser = () => {
+      const saved = localStorage.getItem('studio_current_user');
+      if (saved) {
+        try {
+          setCurrentUser(JSON.parse(saved));
+        } catch {
+          setCurrentUser(null);
+        }
+      } else {
+        setCurrentUser(null);
       }
-    } else {
-      // Default to owner user session
-      setCurrentUser(DEFAULT_OWNER_USER);
-      localStorage.setItem('studio_current_user', JSON.stringify(DEFAULT_OWNER_USER));
-    }
+    };
+
+    checkUser();
+    window.addEventListener('auth_change', checkUser);
+    window.addEventListener('storage', checkUser);
 
     // Health check
     fetch('/api/health')
@@ -73,11 +77,17 @@ export default function Navbar() {
           loading: false,
         });
       });
+
+    return () => {
+      window.removeEventListener('auth_change', checkUser);
+      window.removeEventListener('storage', checkUser);
+    };
   }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('studio_current_user');
     setCurrentUser(null);
+    window.dispatchEvent(new Event('auth_change'));
     setShowLoginModal(true);
   };
 

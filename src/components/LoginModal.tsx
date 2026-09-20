@@ -42,6 +42,7 @@ export default function LoginModal({ isOpen, onClose, onSuccess }: LoginModalPro
       const data = await res.json();
       if (data.success && data.user) {
         localStorage.setItem('studio_current_user', JSON.stringify(data.user));
+        window.dispatchEvent(new Event('auth_change'));
         onSuccess(data.user);
         onClose();
       } else {

@@ -3,10 +3,11 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Project, ScriptScene, VisualMedium, StylePreset, CharacterBible } from '@/lib/types';
+import { Project, ScriptScene, VisualMedium, StylePreset, CharacterBible, User as UserType } from '@/lib/types';
 import SceneCard from '@/components/SceneCard';
 import CharacterBibleModal from '@/components/CharacterBibleModal';
 import VideoTimelinePlayer from '@/components/VideoTimelinePlayer';
+import LoginModal from '@/components/LoginModal';
 import {
   Film,
   Sparkles,
@@ -26,6 +27,8 @@ import {
   Play,
   Copy,
   Check,
+  Lock,
+  LogIn,
 } from 'lucide-react';
 
 export default function ProjectStudioPage() {
@@ -55,6 +58,37 @@ export default function ProjectStudioPage() {
   const [generatingAct, setGeneratingAct] = useState(false);
   const [customAiPrompt, setCustomAiPrompt] = useState('');
   const [apiKeyInput, setApiKeyInput] = useState('');
+
+  // Auth Gate
+  const [currentUser, setCurrentUser] = useState<UserType | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+
+  useEffect(() => {
+    const checkUser = () => {
+      const saved = localStorage.getItem('studio_current_user');
+      if (saved) {
+        try {
+          const u = JSON.parse(saved);
+          setCurrentUser(u);
+        } catch {
+          setCurrentUser(null);
+        }
+      } else {
+        setCurrentUser(null);
+      }
+      setAuthChecked(true);
+    };
+
+    checkUser();
+    window.addEventListener('auth_change', checkUser);
+    window.addEventListener('storage', checkUser);
+
+    return () => {
+      window.removeEventListener('auth_change', checkUser);
+      window.removeEventListener('storage', checkUser);
+    };
+  }, []);
 
   // Fetch Project
   useEffect(() => {
@@ -428,6 +462,56 @@ export default function ProjectStudioPage() {
     if (selectedAct === 'all') return project.scenes;
     return project.scenes.filter((s) => s.actNumber === selectedAct);
   }, [project, selectedAct]);
+
+  // Auth Gatekeeper: Locked Screen if not logged in
+  if (authChecked && !currentUser) {
+    return (
+      <div className="min-h-[85vh] flex items-center justify-center p-4">
+        <div className="bg-studio-900 border border-studio-700 rounded-3xl max-w-md w-full p-8 shadow-2xl text-center space-y-6">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500 via-amber-600 to-cyan-500 p-0.5 mx-auto shadow-glow">
+            <div className="w-full h-full bg-studio-950 rounded-[14px] flex items-center justify-center">
+              <Lock className="w-7 h-7 text-amber-400" />
+            </div>
+          </div>
+          <div>
+            <span className="inline-block px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 text-xs font-semibold uppercase tracking-wider">
+              🔒 สตูดิโอระบบปิด (Private Studio)
+            </span>
+            <h2 className="text-2xl font-black text-white mt-2">กรุณาเข้าสู่ระบบก่อนเปิดสตูดิโอ</h2>
+            <p className="text-xs text-gray-400 mt-1">
+              โปรเจกต์นี้ถูกล็อคไว้เพื่อความปลอดภัย ต้องเข้าสู่ระบบด้วยบัญชีเจ้าของหรือผู้ใช้ที่ได้รับอนุญาตก่อน
+            </p>
+          </div>
+
+          <button
+            onClick={() => setShowLoginModal(true)}
+            className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-extrabold text-sm shadow-glow flex items-center justify-center gap-2 transition-all"
+          >
+            <LogIn className="w-4 h-4" />
+            <span>เข้าสู่ระบบตอนนี้</span>
+          </button>
+
+          <div className="pt-1">
+            <Link
+              href="/"
+              className="text-xs text-gray-400 hover:text-white transition-colors"
+            >
+              &larr; กลับไปหน้าหลัก
+            </Link>
+          </div>
+
+          <LoginModal
+            isOpen={showLoginModal}
+            onClose={() => setShowLoginModal(false)}
+            onSuccess={(user) => {
+              setCurrentUser(user);
+              setShowLoginModal(false);
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
 
   if (loading || !project) {
     return (
