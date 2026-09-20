@@ -26,9 +26,11 @@ yarn-error.log*
 .env*.local
 .env
 
-# Vercel
-.vercel
+# Local Storage & Fallback
+.studio_media/
+.studio_local_data.json
 
-# TypeScript
+# Vercel & TS
+.vercel
 *.tsbuildinfo
 next-env.d.ts
