@@ -271,32 +271,90 @@ export default function ProjectStudioPage() {
     alert('สร้างภาพสำหรับทุกฉากที่เลือกเรียบร้อยแล้ว และส่งเข้าคลาวด์ Atlas ทันที!');
   };
 
-  // Copy merged script of selected scenes
-  const handleCopySelectedMerged = () => {
+  // Multi-type batch copy handler
+  const [copyState, setCopyState] = useState<string | null>(null);
+
+  const handleCopyType = (type: 'narration' | 'dialogues' | 'images' | 'videos' | 'flow' | 'full') => {
     if (!project) return;
-    const targets = project.scenes.filter((s) => selectedSceneIds.includes(s.id));
-    if (targets.length === 0) return;
+    const targets = project.scenes
+      .filter((s) => (selectedSceneIds.length > 0 ? selectedSceneIds.includes(s.id) : true))
+      .sort((a, b) => a.sceneNumber - b.sceneNumber);
 
-    let merged = `🎬 รวมฉากและวิดีโอต่อเนื่อง (${targets.length} ฉาก, ฉากละ 10 วินาที รวม ${targets.length * 10} วินาที)\n`;
-    merged += `เรื่อง: ${project.title}\n\n`;
+    if (targets.length === 0) {
+      alert('ไม่มีฉากที่เลือก');
+      return;
+    }
 
-    targets.forEach((s) => {
-      merged += `=== [ฉากที่ ${s.sceneNumber}] (10 วินาที) : ${s.title} ===\n`;
-      merged += `มุมกล้อง: ${s.cameraMovement}\n`;
-      merged += `แสงเงา: ${s.lighting}\n`;
-      merged += `บทบรรยาย: ${s.narration}\n`;
-      if (s.dialogues.length > 0) {
-        merged += `บทสนทนา:\n`;
-        s.dialogues.forEach((d) => {
-          merged += `  - ${d.speaker} (${d.emotion}): "${d.text}"\n`;
-        });
-      }
-      merged += `คำสั่งวิดีโอต่อเนื่อง: ${s.videoMotionPrompt}\n\n`;
-    });
+    let output = '';
 
-    navigator.clipboard.writeText(merged);
-    setBatchCopied(true);
-    setTimeout(() => setBatchCopied(false), 2000);
+    if (type === 'narration') {
+      // Merged Voiceover narration only
+      output = targets
+        .map((s) => s.narration.trim())
+        .filter(Boolean)
+        .join('\n\n');
+    } else if (type === 'dialogues') {
+      // Merged Character dialogues
+      output = targets
+        .map((s) => {
+          if (s.dialogues.length === 0) return null;
+          const dlgs = s.dialogues
+            .map((d) => `${d.speaker} (${d.emotion}): "${d.text}"`)
+            .join('\n');
+          return `[ฉากที่ ${s.sceneNumber}: ${s.title}]\n${dlgs}`;
+        })
+        .filter(Boolean)
+        .join('\n\n');
+    } else if (type === 'images') {
+      // Merged Image prompts
+      output = targets
+        .map((s) => `[ฉากที่ ${s.sceneNumber}: ${s.title}]\n${s.imagePrompt}`)
+        .join('\n\n');
+    } else if (type === 'videos') {
+      // Merged Video motion prompts
+      output = targets
+        .map((s) => `[ฉากที่ ${s.sceneNumber}: ${s.title}]\n${s.videoMotionPrompt}`)
+        .join('\n\n');
+    } else if (type === 'flow') {
+      // Merged Google Flow prompts (flow.google.com with seed lock)
+      output = targets
+        .map((s) => {
+          const flowSeed = s.googleFlowSeed || '12345';
+          const flowPrompt = s.googleFlowPrompt || `${s.imagePrompt} --seed ${flowSeed}`;
+          return `[ฉากที่ ${s.sceneNumber}: ${s.title} - flow.google.com] (Seed: ${flowSeed})\n${flowPrompt}`;
+        })
+        .join('\n\n');
+    } else if (type === 'full') {
+      // Full Production Script
+      output = `🎬 บทภาพยนตร์ / คลิปฉบับสมบูรณ์: ${project.title}\n`;
+      output += `หมวดหมู่: ${project.genre} | สัดส่วน: ${project.aspectRatio || '16:9'} | AI Engine: ${project.scriptEngine || 'Google Gemini'}\n`;
+      output += `รวม ${targets.length} ฉาก (ความยาวรวม ~${targets.length * 10} วินาที @ 10 วิ/ฉาก)\n\n`;
+      output += `=== รายชื่อตัวละคร (Character Bible) ===\n`;
+      project.characters.forEach((c) => {
+        output += `- ${c.name} (${c.role}): ${c.appearanceAnchor} (Seed: ${c.googleFlowSeed || 'N/A'})\n`;
+      });
+      output += `\n============================================\n\n`;
+      targets.forEach((s) => {
+        output += `=== [ฉากที่ ${s.sceneNumber}] (องค์ที่ ${s.actNumber}) : ${s.title} (10 วินาที) ===\n`;
+        output += `🎥 ทิศทางกล้อง: ${s.cameraMovement}\n`;
+        output += `💡 แสงเงา: ${s.lighting}\n`;
+        output += `🎙️ บทบรรยายเสียงพากย์:\n${s.narration}\n`;
+        if (s.dialogues.length > 0) {
+          output += `💬 บทสนทนาตัวละคร:\n`;
+          s.dialogues.forEach((d) => {
+            output += `  ${d.speaker} (${d.emotion}): "${d.text}"\n`;
+          });
+        }
+        output += `🎵 เสียง/ดนตรี: ${s.sfxBgm}\n`;
+        output += `🎨 Prompt ภาพ (Midjourney/Flux): ${s.imagePrompt}\n`;
+        output += `📹 Prompt วิดีโอ (Kling/Runway): ${s.videoMotionPrompt}\n`;
+        output += `🌊 flow.google.com (Seed: ${s.googleFlowSeed || '12345'}): ${s.googleFlowPrompt || `${s.imagePrompt} --seed ${s.googleFlowSeed || '12345'}`}\n\n`;
+      });
+    }
+
+    navigator.clipboard.writeText(output);
+    setCopyState(type);
+    setTimeout(() => setCopyState(null), 2200);
   };
 
   // Word Count & Duration Metrics (ปรับเป็น 10 วินาทีต่อฉากตามที่ผู้ใช้กำหนด!)
@@ -542,86 +600,219 @@ export default function ProjectStudioPage() {
         </div>
       )}
 
-      {/* Multi-Scene Selection & Action Bar (ติ๊กเลือกฉากรวมวิดีโอ & สร้างภาพ AI) */}
-      <div className="p-4 rounded-2xl bg-studio-900/90 border border-amber-500/30 backdrop-blur-md flex flex-wrap items-center justify-between gap-4 shadow-xl">
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={handleSelectAll}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-studio-950 border border-studio-700 text-xs font-semibold text-gray-200 hover:border-amber-400 transition-colors"
-          >
-            {selectedSceneIds.length === filteredScenes.length && filteredScenes.length > 0 ? (
-              <>
-                <CheckSquare className="w-4 h-4 text-amber-400" />
-                <span>ยกเลิกเลือกทั้งหมด</span>
-              </>
-            ) : (
-              <>
-                <Square className="w-4 h-4 text-gray-400" />
-                <span>เลือกทุกฉาก ({filteredScenes.length} ฉาก)</span>
-              </>
-            )}
-          </button>
-
-          <div className="text-xs text-gray-300">
-            เลือกแล้ว: <strong className="text-amber-400">{selectedSceneIds.length}</strong> ฉาก{' '}
-            <span className="text-gray-500">
-              (รวมเวลา {selectedSceneIds.length * 10} วินาที @ 10 วิ/ฉาก)
-            </span>
-          </div>
-        </div>
-
-        {/* Action Buttons for Selected Scenes */}
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Button: Play Video Sequence (10s per scene) */}
-          <button
-            type="button"
-            onClick={() => setIsTimelinePlayerOpen(true)}
-            className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-bold text-xs shadow-glow flex items-center gap-1.5 transition-all"
-          >
-            <Play className="w-4 h-4 fill-black" />
-            <span>
-              {selectedSceneIds.length > 0
-                ? `เล่นรวมฉากที่เลือก (${selectedSceneIds.length * 10} วิ)`
-                : `เล่นรวมทุกฉาก (${project.scenes.length * 10} วิ)`}
-            </span>
-          </button>
-
-          {/* Button: Batch AI Image Generation */}
-          <button
-            type="button"
-            onClick={handleBatchGenerateImages}
-            disabled={batchGenerating || selectedSceneIds.length === 0}
-            className="px-3.5 py-2 rounded-xl bg-studio-800 hover:bg-studio-700 border border-studio-700 text-amber-300 text-xs font-semibold flex items-center gap-1.5 transition-colors disabled:opacity-40"
-          >
-            <Sparkles className={`w-3.5 h-3.5 ${batchGenerating ? 'animate-spin' : ''}`} />
-            <span>
-              {batchGenerating
-                ? `กำลังสร้างภาพ (${batchProgress.current}/${batchProgress.total})...`
-                : 'สร้างภาพ AI ทุกฉากที่เลือก'}
-            </span>
-          </button>
-
-          {/* Button: Copy Merged Prompts */}
-          {selectedSceneIds.length > 0 && (
+      {/* Multi-Scene Sequential Aggregator & Action Panel (แผงรวมฉากที่เลือก & รวมสคริปต์ 1 คลิก) */}
+      <div className="p-5 rounded-3xl bg-studio-900/95 border border-amber-500/40 backdrop-blur-md space-y-4 shadow-2xl">
+        {/* Header Row */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-studio-800">
+          <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={handleCopySelectedMerged}
-              className="px-3 py-2 rounded-xl bg-studio-800 hover:bg-studio-700 border border-studio-700 text-gray-300 text-xs font-medium flex items-center gap-1.5 transition-colors"
+              onClick={handleSelectAll}
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-studio-950 border border-studio-700 text-xs font-bold text-gray-200 hover:border-amber-400 transition-colors"
             >
-              {batchCopied ? (
+              {selectedSceneIds.length === filteredScenes.length && filteredScenes.length > 0 ? (
                 <>
-                  <Check className="w-3.5 h-3.5 text-emerald-400" />
-                  <span className="text-emerald-400">คัดลอกแล้ว</span>
+                  <CheckSquare className="w-4 h-4 text-amber-400" />
+                  <span>ยกเลิกเลือกทั้งหมด</span>
                 </>
               ) : (
                 <>
-                  <Copy className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>รวมคำสั่งฉากที่เลือก</span>
+                  <Square className="w-4 h-4 text-gray-400" />
+                  <span>เลือกทุกฉาก ({filteredScenes.length} ฉาก)</span>
                 </>
               )}
             </button>
-          )}
+
+            <div className="text-xs text-gray-300">
+              <span className="font-semibold">รวมฉากที่เลือก:</span>{' '}
+              <strong className="text-amber-400 text-sm">
+                {selectedSceneIds.length > 0 ? selectedSceneIds.length : filteredScenes.length}
+              </strong>{' '}
+              ฉาก{' '}
+              <span className="text-gray-400">
+                (ความยาวรวม ~{(selectedSceneIds.length > 0 ? selectedSceneIds.length : filteredScenes.length) * 10} วินาที @ 10 วิ/ฉาก)
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* Play Button */}
+            <button
+              type="button"
+              onClick={() => setIsTimelinePlayerOpen(true)}
+              className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-bold text-xs shadow-glow flex items-center gap-1.5 transition-all"
+            >
+              <Play className="w-4 h-4 fill-black" />
+              <span>
+                {selectedSceneIds.length > 0
+                  ? `เล่นภาพต่อเนื่องที่เลือก (${selectedSceneIds.length * 10} วิ)`
+                  : `เล่นภาพต่อเนื่องทุกฉาก (${project.scenes.length * 10} วิ)`}
+              </span>
+            </button>
+
+            {/* Batch AI Image Generator */}
+            <button
+              type="button"
+              onClick={handleBatchGenerateImages}
+              disabled={batchGenerating || (selectedSceneIds.length === 0 && filteredScenes.length === 0)}
+              className="px-4 py-2 rounded-xl bg-studio-800 hover:bg-studio-700 border border-studio-700 text-amber-300 text-xs font-bold flex items-center gap-1.5 transition-colors disabled:opacity-40"
+            >
+              <Sparkles className={`w-3.5 h-3.5 ${batchGenerating ? 'animate-spin' : ''}`} />
+              <span>
+                {batchGenerating
+                  ? `กำลังวาดภาพ (${batchProgress.current}/${batchProgress.total})...`
+                  : '✨ วาดภาพ AI ทุกฉากที่เลือก'}
+              </span>
+            </button>
+          </div>
+        </div>
+
+        {/* Sequential Scenes Badges Strip (แสดงฉากที่เลือกเรียงต่อกัน 1, 2, 3...) */}
+        {selectedSceneIds.length > 0 && (
+          <div className="space-y-1.5">
+            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">
+              ลำดับฉากที่ถูกเลือก (Sequential Flow):
+            </span>
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 pr-2">
+              {project.scenes
+                .filter((s) => selectedSceneIds.includes(s.id))
+                .sort((a, b) => a.sceneNumber - b.sceneNumber)
+                .map((s, idx) => (
+                  <div
+                    key={s.id}
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-studio-950 border border-studio-800 text-[11px] font-semibold text-gray-200 whitespace-nowrap"
+                  >
+                    <span className="text-amber-400 font-bold">#{s.sceneNumber}</span>
+                    <span className="truncate max-w-[120px]">{s.title}</span>
+                    {idx < selectedSceneIds.length - 1 && (
+                      <span className="text-gray-600 ml-1">&rarr;</span>
+                    )}
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
+
+        {/* 6 1-Click Batch Copier Buttons Grid */}
+        <div className="space-y-2 pt-1">
+          <span className="text-[11px] font-bold text-amber-300 uppercase tracking-wider block">
+            📋 คัดลอกรวมฉากในคลิกเดียว (1-Click Batch Copier):
+          </span>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+            {/* 1. Voiceover Narration */}
+            <button
+              type="button"
+              onClick={() => handleCopyType('narration')}
+              className="p-2.5 rounded-xl bg-studio-950 hover:bg-amber-950/30 border border-studio-800 hover:border-amber-500/50 text-left transition-all group"
+            >
+              <div className="flex items-center justify-between text-xs font-bold text-amber-400 mb-0.5">
+                <span>🎙️ บทบรรยายรวม</span>
+                {copyState === 'narration' ? (
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                ) : (
+                  <Copy className="w-3.5 h-3.5 text-gray-500 group-hover:text-amber-400" />
+                )}
+              </div>
+              <p className="text-[10px] text-gray-400">
+                {copyState === 'narration' ? '✅ คัดลอกสำเร็จ!' : 'รวมเสียงพากย์สำหรับบอทอ่าน'}
+              </p>
+            </button>
+
+            {/* 2. Character Dialogues */}
+            <button
+              type="button"
+              onClick={() => handleCopyType('dialogues')}
+              className="p-2.5 rounded-xl bg-studio-950 hover:bg-cyan-950/30 border border-studio-800 hover:border-cyan-500/50 text-left transition-all group"
+            >
+              <div className="flex items-center justify-between text-xs font-bold text-cyan-400 mb-0.5">
+                <span>💬 บทสนทนารวม</span>
+                {copyState === 'dialogues' ? (
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                ) : (
+                  <Copy className="w-3.5 h-3.5 text-gray-500 group-hover:text-cyan-400" />
+                )}
+              </div>
+              <p className="text-[10px] text-gray-400">
+                {copyState === 'dialogues' ? '✅ คัดลอกสำเร็จ!' : 'รวมคำพูดทุกตัวละคร'}
+              </p>
+            </button>
+
+            {/* 3. Image Prompts */}
+            <button
+              type="button"
+              onClick={() => handleCopyType('images')}
+              className="p-2.5 rounded-xl bg-studio-950 hover:bg-amber-950/30 border border-studio-800 hover:border-amber-500/50 text-left transition-all group"
+            >
+              <div className="flex items-center justify-between text-xs font-bold text-amber-300 mb-0.5">
+                <span>🎨 พร้อมต์ภาพรวม</span>
+                {copyState === 'images' ? (
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                ) : (
+                  <Copy className="w-3.5 h-3.5 text-gray-500 group-hover:text-amber-300" />
+                )}
+              </div>
+              <p className="text-[10px] text-gray-400">
+                {copyState === 'images' ? '✅ คัดลอกสำเร็จ!' : 'สำหรับ Midjourney / Flux'}
+              </p>
+            </button>
+
+            {/* 4. Video Motion Prompts */}
+            <button
+              type="button"
+              onClick={() => handleCopyType('videos')}
+              className="p-2.5 rounded-xl bg-studio-950 hover:bg-cyan-950/30 border border-studio-800 hover:border-cyan-500/50 text-left transition-all group"
+            >
+              <div className="flex items-center justify-between text-xs font-bold text-cyan-300 mb-0.5">
+                <span>🎥 พร้อมต์วิดีโอรวม</span>
+                {copyState === 'videos' ? (
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                ) : (
+                  <Copy className="w-3.5 h-3.5 text-gray-500 group-hover:text-cyan-300" />
+                )}
+              </div>
+              <p className="text-[10px] text-gray-400">
+                {copyState === 'videos' ? '✅ คัดลอกสำเร็จ!' : 'สำหรับ Kling / Runway Gen-3'}
+              </p>
+            </button>
+
+            {/* 5. Google Flow Prompts with Seed */}
+            <button
+              type="button"
+              onClick={() => handleCopyType('flow')}
+              className="p-2.5 rounded-xl bg-studio-950 hover:bg-emerald-950/30 border border-studio-800 hover:border-emerald-500/50 text-left transition-all group"
+            >
+              <div className="flex items-center justify-between text-xs font-bold text-emerald-400 mb-0.5">
+                <span>🌊 flow.google.com</span>
+                {copyState === 'flow' ? (
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                ) : (
+                  <Copy className="w-3.5 h-3.5 text-gray-500 group-hover:text-emerald-400" />
+                )}
+              </div>
+              <p className="text-[10px] text-gray-400">
+                {copyState === 'flow' ? '✅ คัดลอกสำเร็จ!' : 'ล็อคหน้าตาตัวละครด้วย Seed'}
+              </p>
+            </button>
+
+            {/* 6. Full Production Script */}
+            <button
+              type="button"
+              onClick={() => handleCopyType('full')}
+              className="p-2.5 rounded-xl bg-studio-950 hover:bg-purple-950/30 border border-studio-800 hover:border-purple-500/50 text-left transition-all group"
+            >
+              <div className="flex items-center justify-between text-xs font-bold text-purple-400 mb-0.5">
+                <span>📄 สคริปต์ฉบับเต็ม</span>
+                {copyState === 'full' ? (
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                ) : (
+                  <Copy className="w-3.5 h-3.5 text-gray-500 group-hover:text-purple-400" />
+                )}
+              </div>
+              <p className="text-[10px] text-gray-400">
+                {copyState === 'full' ? '✅ คัดลอกสำเร็จ!' : 'ครบทุกมุมกล้อง, แสง, คิวเสียง'}
+              </p>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -665,11 +856,64 @@ export default function ProjectStudioPage() {
         )}
       </div>
 
+      {/* Sticky Floating Bottom Bar for Quick Batch Actions when scenes are selected */}
+      {selectedSceneIds.length > 0 && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 bg-studio-950/95 border border-amber-500/50 rounded-2xl px-4 py-3 shadow-[0_10px_40px_rgba(0,0,0,0.8)] backdrop-blur-lg flex items-center gap-3 max-w-[95vw] overflow-x-auto animate-in slide-in-from-bottom-3 duration-200">
+          <div className="flex items-center gap-2 border-r border-studio-800 pr-3 text-xs whitespace-nowrap">
+            <span className="w-6 h-6 rounded-lg bg-amber-500 text-black font-bold flex items-center justify-center text-xs">
+              {selectedSceneIds.length}
+            </span>
+            <span className="text-gray-200 font-medium">ฉากที่เลือก</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => handleCopyType('narration')}
+              className="px-3 py-1.5 rounded-xl bg-studio-900 hover:bg-amber-950 border border-studio-700 hover:border-amber-500 text-amber-300 text-xs font-semibold flex items-center gap-1.5 whitespace-nowrap transition-colors"
+            >
+              {copyState === 'narration' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>{copyState === 'narration' ? 'คัดลอกแล้ว!' : 'คัดลอกบทบรรยาย'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleCopyType('flow')}
+              className="px-3 py-1.5 rounded-xl bg-studio-900 hover:bg-emerald-950 border border-studio-700 hover:border-emerald-500 text-emerald-300 text-xs font-semibold flex items-center gap-1.5 whitespace-nowrap transition-colors"
+            >
+              {copyState === 'flow' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>{copyState === 'flow' ? 'คัดลอกแล้ว!' : 'คัดลอก flow.google'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsTimelinePlayerOpen(true)}
+              className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs flex items-center gap-1 whitespace-nowrap transition-colors shadow-glow"
+            >
+              <Play className="w-3.5 h-3.5 fill-black" />
+              <span>เล่นภาพ ({selectedSceneIds.length * 10} วิ)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSelectedSceneIds([])}
+              className="p-1.5 text-gray-400 hover:text-white rounded-lg hover:bg-studio-800 transition-colors"
+              title="ยกเลิกการเลือก"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Character Bible Modal */}
       <CharacterBibleModal
         isOpen={isCharModalOpen}
         onClose={() => setIsCharModalOpen(false)}
         characters={project.characters}
+        projectId={project.id}
+        visualMedium={project.visualMedium}
+        stylePreset={project.stylePreset}
         onSaveCharacters={(chars) => {
           const updated = { ...project, characters: chars };
           setProject(updated);

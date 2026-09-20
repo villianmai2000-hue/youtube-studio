@@ -2,9 +2,25 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Film, Database, Sparkles, Github, ExternalLink, HelpCircle } from 'lucide-react';
+import { Film, Database, Sparkles, Github, ExternalLink, ShieldCheck, Users, LogIn, LogOut, User as UserIcon } from 'lucide-react';
+import { User } from '@/lib/types';
+import LoginModal from './LoginModal';
+import UserManagementModal from './UserManagementModal';
+
+export const DEFAULT_OWNER_USER: User = {
+  id: 'user-owner-yutthakan',
+  username: 'yutthakan',
+  displayName: 'ยุทธการ คำกลอน',
+  role: 'owner',
+  isActive: true,
+  createdAt: '2026-01-01T00:00:00.000Z',
+};
 
 export default function Navbar() {
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showUserModal, setShowUserModal] = useState(false);
+
   const [atlasStatus, setAtlasStatus] = useState<{
     connected: boolean;
     message: string;
@@ -21,6 +37,21 @@ export default function Navbar() {
   const [showDbModal, setShowDbModal] = useState(false);
 
   useEffect(() => {
+    // Check saved user session
+    const saved = localStorage.getItem('studio_current_user');
+    if (saved) {
+      try {
+        setCurrentUser(JSON.parse(saved));
+      } catch {
+        setCurrentUser(DEFAULT_OWNER_USER);
+      }
+    } else {
+      // Default to owner user session
+      setCurrentUser(DEFAULT_OWNER_USER);
+      localStorage.setItem('studio_current_user', JSON.stringify(DEFAULT_OWNER_USER));
+    }
+
+    // Health check
     fetch('/api/health')
       .then((res) => res.json())
       .then((data) => {
@@ -42,9 +73,20 @@ export default function Navbar() {
       });
   }, []);
 
+  const handleLogout = () => {
+    localStorage.removeItem('studio_current_user');
+    setCurrentUser(null);
+    setShowLoginModal(true);
+  };
+
+  const isOwnerUser =
+    currentUser?.role === 'owner' ||
+    currentUser?.displayName === 'ยุทธการ คำกลอน' ||
+    currentUser?.username === 'yutthakan';
+
   return (
     <>
-      <header className="sticky top-0 z-50 border-b border-studio-700/60 bg-studio-950/90 backdrop-blur-md">
+      <header className="sticky top-0 z-40 border-b border-studio-700/60 bg-studio-950/90 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 group">
@@ -63,17 +105,68 @@ export default function Navbar() {
                 </span>
               </div>
               <p className="text-[11px] text-gray-400">
-                เขียนบท & เจนฉากภาพยนตร์และอนิเมะ 3D (SAN1 Style)
+                เขียนบท & เจนฉากภาพยนตร์และอนิเมะ 3D (SAN1 Style & Reels)
               </p>
             </div>
           </Link>
 
           {/* Right Status Badges & Nav */}
-          <div className="flex items-center gap-3 sm:gap-4">
+          <div className="flex items-center gap-2.5 sm:gap-3.5">
+            {/* User Session Badge & Actions */}
+            {currentUser ? (
+              <div className="flex items-center gap-2">
+                {/* Badge */}
+                <div
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-semibold ${
+                    isOwnerUser
+                      ? 'bg-amber-950/40 border-amber-500/40 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.15)]'
+                      : 'bg-studio-900 border-studio-700 text-gray-200'
+                  }`}
+                >
+                  <span className="text-sm">{isOwnerUser ? '👑' : '👤'}</span>
+                  <div className="flex flex-col text-left">
+                    <span className="text-[11px] leading-tight">
+                      {isOwnerUser ? 'เจ้าของระบบ' : currentUser.role === 'admin' ? 'ผู้ดูแล' : 'ผู้ใช้งาน'}
+                    </span>
+                    <span className="text-xs font-bold text-white">{currentUser.displayName}</span>
+                  </div>
+                </div>
+
+                {/* Owner Only: Manage Users Button */}
+                {isOwnerUser && (
+                  <button
+                    onClick={() => setShowUserModal(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-950/50 border border-cyan-500/40 text-cyan-300 hover:bg-cyan-900/50 text-xs font-semibold transition-all shadow-[0_0_12px_rgba(6,182,212,0.15)]"
+                    title="จัดการผู้ใช้งานในระบบ (เฉพาะเจ้าของ)"
+                  >
+                    <Users className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">จัดการผู้ใช้งาน</span>
+                  </button>
+                )}
+
+                {/* Logout / Switch Button */}
+                <button
+                  onClick={handleLogout}
+                  className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-950/30 rounded-xl transition-colors"
+                  title="ออกจากระบบ / สลับบัญชี"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowLoginModal(true)}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-black font-bold text-xs shadow-glow transition-all"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span>เข้าสู่ระบบ</span>
+              </button>
+            )}
+
             {/* MongoDB Atlas Status */}
             <button
               onClick={() => setShowDbModal(true)}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs border transition-all ${
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs border transition-all ${
                 atlasStatus.connected
                   ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-400 hover:bg-emerald-900/40'
                   : 'bg-amber-950/30 border-amber-500/40 text-amber-300 hover:bg-amber-900/30'
@@ -81,40 +174,34 @@ export default function Navbar() {
               title={atlasStatus.message}
             >
               <Database className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline font-medium">
-                {atlasStatus.connected ? 'MongoDB Atlas' : 'MongoDB Local'}
+              <span className="hidden md:inline font-medium">
+                {atlasStatus.connected ? 'MongoDB Atlas' : 'In-Memory Ready'}
               </span>
               <span
                 className={`w-2 h-2 rounded-full ${
                   atlasStatus.connected ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'
                 }`}
               />
-              {atlasStatus.latencyMs !== undefined && (
-                <span className="text-[10px] text-gray-400 hidden md:inline">
-                  {atlasStatus.latencyMs}ms
-                </span>
-              )}
             </button>
-
-            {/* Vercel & GitHub Badges */}
-            <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs bg-studio-850 border border-studio-700 text-gray-300">
-              <span className="text-[10px] uppercase tracking-wider text-cyan-400 font-semibold">
-                Vercel Ready
-              </span>
-            </div>
-
-            <a
-              href="https://github.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-2 text-gray-400 hover:text-white hover:bg-studio-800 rounded-lg transition-colors"
-              title="GitHub Repository"
-            >
-              <Github className="w-4 h-4" />
-            </a>
           </div>
         </div>
       </header>
+
+      {/* Login Modal */}
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onSuccess={(user) => {
+          setCurrentUser(user);
+        }}
+      />
+
+      {/* User Management Modal (Owner Only) */}
+      <UserManagementModal
+        isOpen={showUserModal}
+        onClose={() => setShowUserModal(false)}
+        currentUser={currentUser}
+      />
 
       {/* Database Info Modal */}
       {showDbModal && (
@@ -162,26 +249,22 @@ export default function Navbar() {
                   </code>
                 </div>
                 <div className="flex items-center justify-between pt-0.5 text-emerald-400 font-medium">
-                  <span>การแยกโปรเจกต์ (Project Isolation):</span>
-                  <span>✅ แยกเด็ดขาด 100% ไม่ปนกับแอปอื่น</span>
+                  <span>ระบบสำรองความปลอดภัย (Fail-Safe):</span>
+                  <span>✅ In-Memory &amp; Local พร้อมทำงาน 100% เสมอ</span>
                 </div>
               </div>
 
               <div className="bg-studio-950/80 p-3.5 rounded-xl border border-studio-800 text-xs space-y-2">
                 <p className="font-semibold text-gray-200">
-                  วิธีการเชื่อมต่อ MongoDB Atlas Cloud (เพื่อเก็บรูปและบทลง Atlas ทันที):
+                  วิธีแก้ปัญหา &quot;bad auth&quot; สีส้ม ให้เป็นสีเขียว:
                 </p>
                 <ol className="list-decimal list-inside space-y-1 text-gray-400">
-                  <li>ไปที่ MongoDB Atlas (mongodb.com) และสร้าง Free Cluster (M0)</li>
-                  <li>คลิก &quot;Connect&quot; &rarr; &quot;Drivers&quot; &rarr; Copy Connection String</li>
-                  <li>เปิดไฟล์ <code className="text-amber-300">.env.local</code> ในโปรเจกต์</li>
-                  <li>ใส่ URI ในตัวแปร <code className="text-amber-300">MONGODB_URI=...</code></li>
+                  <li>เปิดเว็บไซต์ MongoDB Atlas &rarr; เมนู Database Access ทางซ้าย</li>
+                  <li>แก้ไขรหัสผ่านของ Database User ให้ตรงกับใน Connection String</li>
+                  <li>ไปที่ Vercel Dashboard &rarr; Settings &rarr; Environment Variables</li>
+                  <li>อัปเดตค่า <code className="text-amber-300">MONGODB_URI</code> ให้มีรหัสผ่านที่ถูกต้อง แล้วกด Redeploy</li>
                 </ol>
               </div>
-
-              <p className="text-xs text-gray-400">
-                *ไฟล์รูปภาพที่สร้าง/อัปโหลดจะถูกส่งเข้า <strong>MongoDB Atlas GridFS</strong> ทันทีตามที่ระบุไว้
-              </p>
             </div>
 
             <div className="mt-5 flex justify-end">

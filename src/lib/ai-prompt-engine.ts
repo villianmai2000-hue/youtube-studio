@@ -1,4 +1,4 @@
-import { VisualMedium, StylePreset, MovieGenre, CharacterBible } from './types';
+import { VisualMedium, StylePreset, MovieGenre, CharacterBible, AspectRatio } from './types';
 
 interface PromptGenerationParams {
   sceneTitle: string;
@@ -11,6 +11,7 @@ interface PromptGenerationParams {
   lighting: string;
   charactersInScene: CharacterBible[];
   sceneNumber: number;
+  aspectRatio?: AspectRatio;
 }
 
 export function buildVisualPrompts(params: PromptGenerationParams): {
@@ -19,6 +20,8 @@ export function buildVisualPrompts(params: PromptGenerationParams): {
   negativePrompt: string;
   imagePromptEn?: string;
   videoMotionPromptEn?: string;
+  googleFlowPrompt: string;
+  googleFlowSeed: string;
 } {
   const {
     sceneTitle,
@@ -31,6 +34,7 @@ export function buildVisualPrompts(params: PromptGenerationParams): {
     lighting,
     charactersInScene,
     sceneNumber,
+    aspectRatio = '16:9',
   } = params;
 
   // 1. สไตล์งานภาพภาษาไทย (Thai Style Keywords)
@@ -41,7 +45,10 @@ export function buildVisualPrompts(params: PromptGenerationParams): {
 
   if (visualMedium === 'live_action') {
     // โหมดคนจริง (Live-Action Cinema)
-    if (stylePreset === 'hollywood_cinematic') {
+    if (stylePreset === 'military_combat') {
+      styleKeywordsTh = 'ภาพยนตร์แนวสงครามยุทธวิธีสมจริงระดับสูง, ถ่ายทำด้วยกล้อง Tactical Go-Pro 4K และกล้องโดรนตรวจการณ์ทางทหาร, หน่วยรบพิเศษสวมชุดพราง Multicam อุปกรณ์ยุทธวิธีครบเซ็ต แว่นมองกลางคืน NVG หมวกเคฟล่าร์ ปืนไรเฟิลจู่โจมติดกล้อง Holographic, ยานเกราะและรถถังพ่นควันพรางตัว, ละอองฝุ่นและประกายไฟระเบิดในสมรภูมิ คมชัดระดับ 8K';
+      styleKeywordsEn = 'tactical military combat cinematography, photorealistic special forces operators, multicam tactical camo, NVG night vision gear, tactical assault rifles, thermal vision drone angle, battlefield dust and shockwaves, 8k ultra-realistic war film';
+    } else if (stylePreset === 'hollywood_cinematic') {
       styleKeywordsTh = 'ภาพถ่ายภาพยนตร์เสมือนคนจริงระดับฮอลลีวูด, ถ่ายด้วยเลนส์ภาพยนตร์ 35 มม., ผิวมนุษย์สมจริงเห็นรูขุมขนชัดเจน, แสงเงาแบบ Chiaroscuro ลุ่มลึก, บรรยากาศหมอกควันสมจริง, หน้าชัดหลังเบลอ, คมชัดระดับ 8K, เกรนฟิล์มระดับรางวัลภาพยนตร์';
       styleKeywordsEn = 'cinematic film still, 35mm anamorphic lens, photorealistic human actor, realistic skin texture, chiaroscuro lighting, 8k resolution, award-winning cinematography';
     } else if (stylePreset === 'imax_70mm') {
@@ -105,6 +112,10 @@ export function buildVisualPrompts(params: PromptGenerationParams): {
       genreFlavorTh = 'ตรอกซอกซอยในเมืองท่ามกลางสายฝนพรำ, แสงไฟสลัวสะท้อนแอ่งน้ำ, เงาร่างปริศนา, บรรยากาศภาพยนตร์สืบสวนคดีฆาตกรรม';
       genreFlavorEn = 'rain-drenched city alley, flickering streetlights, silhouette figures, crime thriller atmosphere';
       break;
+    case 'military_tactical':
+      genreFlavorTh = 'สมรภูมิรบยุทธการร่วมสมัย ควันปืนและฝุ่นระเบิดฟุ้งกระจาย, ฐานทัพทหารยุทธวิธีลับ, จอเรดาร์และระบบตรวจจับดาวเทียมทางทหาร, รถหุ้มเกราะและอากาศยานไร้คนขับบินลาดตระเวนเหนือฟากฟ้า';
+      genreFlavorEn = 'modern military warzone, battlefield smoke and dust, tactical military forward operating base, thermal radar monitors, armored vehicles and combat UAV drones in sky';
+      break;
     case 'historical_war':
       genreFlavorTh = 'สมรภูมิรบโบราณอันยิ่งใหญ่, ธงศึกโบราณโบกสะบัดกลางสายลม, ฝุ่นควันจากกองทัพ, ขบวนทัพทหารโบราณสุดอลังการ';
       genreFlavorEn = 'ancient battlefield, banners fluttering in the wind, war dust, armors, cavalry in formation';
@@ -117,7 +128,9 @@ export function buildVisualPrompts(params: PromptGenerationParams): {
   // 3. ตัวละครที่ปรากฏในฉาก (Character Descriptions)
   let characterDescTh = '';
   let characterDescEn = '';
+  let flowSeed = '482910';
   if (charactersInScene.length > 0) {
+    flowSeed = charactersInScene[0].googleFlowSeed || `${Math.floor(100000 + Math.random() * 900000)}`;
     characterDescTh = charactersInScene
       .map(
         (c) =>
@@ -136,21 +149,29 @@ export function buildVisualPrompts(params: PromptGenerationParams): {
 
   // 4. สรุปการกระทำในฉาก
   const cleanSummary = sceneTitle.replace(/ฉากที่ \d+[:\s]*/, '');
+  const arLabelTh = aspectRatio === '9:16' ? 'สัดส่วนแนวตั้ง 9:16 (Reels/Shorts/TikTok)' : 'สัดส่วนจอกว้าง 16:9 (ภาพยนตร์/YouTube แนวนอน)';
+  const arParam = aspectRatio === '9:16' ? '--ar 9:16' : '--ar 16:9';
 
   // 5. ประกอบคำสั่งสร้างภาพภาษาไทย (Thai Image Prompt - ตัวหลัก!)
-  const imagePrompt = `${styleKeywordsTh}, ${characterDescTh}, กำลังทำ [${cleanSummary}], ฉากหลัง: ${genreFlavorTh}, มุมกล้อง: ${cameraMovement}, แสงเงา: ${lighting}, ภาพสัดส่วนจอกว้าง 16:9 คมชัดระดับ 8K ละเอียดประณีต`;
+  const imagePrompt = `${styleKeywordsTh}, ${characterDescTh}, กำลังทำ [${cleanSummary}], ฉากหลัง: ${genreFlavorTh}, มุมกล้อง: ${cameraMovement}, แสงเงา: ${lighting}, ภาพ${arLabelTh} คมชัดระดับ 8K ละเอียดประณีต`;
 
   // พร้อมต์ภาษาอังกฤษสำรอง
-  const imagePromptEn = `${styleKeywordsEn}, ${characterDescEn}, ${cleanSummary}, set in ${genreFlavorEn}. Camera: ${cameraMovement}. Lighting: ${lighting}. 8k resolution, cinematic composition, widescreen 16:9 --ar 16:9 --v 6.1 --style raw`;
+  const imagePromptEn = `${styleKeywordsEn}, ${characterDescEn}, ${cleanSummary}, set in ${genreFlavorEn}. Camera: ${cameraMovement}. Lighting: ${lighting}. 8k resolution, cinematic composition, ${arParam} --v 6.1 --style raw`;
 
-  // 6. ประกอบคำสั่งสร้างวิดีโอภาษาไทย (Thai Video Motion Prompt - ตัวหลัก!)
-  const videoMotionPrompt = `[ฉากที่ ${sceneNumber} ความต่อเนื่อง] [มุมกล้อง: ${cameraMovement}, เคลื่อนไหวลื่นไหลแบบภาพยนตร์] [การกระทำ: ตัวละครทำการ ${cleanSummary}, แอ็กชันต่อเนื่องไม่ตัดข้าม] [แสงเงา: ${lighting}, มีละอองแสงลอยในบรรยากาศ] [สไตล์: ${
+  // 6. พร้อมต์สำหรับ Google Flow (flow.google.com) - ล็อคตัวละครและใบหน้าไม่ให้เพี้ยน!
+  const googleFlowPrompt = `[Google Flow / VideoFX Prompt - flow.google.com]
+Prompt: ${cleanSummary}, ${characterDescEn}, ${genreFlavorEn}. Cinematography: ${cameraMovement}, ${lighting}. High fidelity consistent character rendering, sharp photorealistic details, cinematic grade.
+Aspect Ratio: ${aspectRatio}
+Seed Lock: ${flowSeed} (ใส่เลข Seed นี้ใน flow.google.com เพื่อล็อคหน้าตาและเสื้อผ้าให้ตรงกันทุกฉาก ไม่เพี้ยน)`;
+
+  // 7. ประกอบคำสั่งสร้างวิดีโอภาษาไทย (Thai Video Motion Prompt - ตัวหลัก!)
+  const videoMotionPrompt = `[ฉากที่ ${sceneNumber} ความต่อเนื่อง] [มุมกล้อง: ${cameraMovement}, เคลื่อนไหวลื่นไหลแบบภาพยนตร์] [การกระทำ: ตัวละครทำการ ${cleanSummary}, แอ็กชันต่อเนื่องไม่ตัดข้าม] [แสงเงา: ${lighting}] [สัดส่วน: ${aspectRatio}] [สไตล์: ${
     visualMedium === 'live_action' ? 'ภาพยนตร์คนจริง เลนส์ 35 มม.' : 'อนิเมะจีน 3D สไตล์เพื่อนที่ดีที่สุด SAN1 เรนเดอร์ Unreal Engine 5'
-  }] รักษาความต่อเนื่องของใบหน้า ทรงผม เสื้อผ้า และฉากจากเฟรมก่อนหน้าอย่างแม่นยำ คมชัดระดับ 4K 60fps ต่อเนื่องเนียนตา`;
+  }] [Google Flow Seed Lock: ${flowSeed}] รักษาความต่อเนื่องของใบหน้า ทรงผม เสื้อผ้า และฉากจากเฟรมก่อนหน้าอย่างแม่นยำ คมชัดระดับ 4K 60fps ต่อเนื่องเนียนตา`;
 
-  const videoMotionPromptEn = `[Shot ${sceneNumber} Continuity] [Camera: ${cameraMovement}, smooth motion] [Action: Character performs ${cleanSummary}, continuous shot] [Lighting: ${lighting}] [Style: ${
+  const videoMotionPromptEn = `[Shot ${sceneNumber} Continuity] [Camera: ${cameraMovement}, smooth motion] [Action: Character performs ${cleanSummary}, continuous shot] [Lighting: ${lighting}] [Aspect: ${aspectRatio}] [Seed: ${flowSeed}] [Style: ${
     visualMedium === 'live_action' ? 'Live-action realistic 35mm film' : '3D Chinese Donghua animation UE5'
-  }] Maintain exact character face, clothing, and environment. 4K, 60fps.`;
+  }] Maintain exact character face, clothing, and environment. Zero drift. 4K, 60fps.`;
 
   return {
     imagePrompt,
@@ -158,5 +179,7 @@ export function buildVisualPrompts(params: PromptGenerationParams): {
     negativePrompt: negativeKeywordsTh,
     imagePromptEn,
     videoMotionPromptEn,
+    googleFlowPrompt,
+    googleFlowSeed: flowSeed,
   };
 }

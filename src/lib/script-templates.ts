@@ -1,4 +1,4 @@
-import { MovieGenre, VisualMedium, StylePreset, ScriptScene, CharacterBible } from './types';
+import { MovieGenre, VisualMedium, StylePreset, ScriptScene, CharacterBible, AspectRatio } from './types';
 import { buildVisualPrompts } from './ai-prompt-engine';
 
 export interface GenerateScriptOptions {
@@ -10,6 +10,7 @@ export interface GenerateScriptOptions {
   targetDurationMinutes: number;
   actNumber?: 1 | 2 | 3 | 4;
   characters: CharacterBible[];
+  aspectRatio?: AspectRatio;
 }
 
 export function generateActTemplateScenes(options: GenerateScriptOptions): ScriptScene[] {
@@ -21,6 +22,7 @@ export function generateActTemplateScenes(options: GenerateScriptOptions): Scrip
     stylePreset,
     actNumber = 1,
     characters,
+    aspectRatio = '16:9',
   } = options;
 
   const leadChar = characters.find((c) => c.role === 'protagonist') || {
@@ -58,6 +60,7 @@ export function generateActTemplateScenes(options: GenerateScriptOptions): Scrip
       lighting: blueprint.lighting,
       charactersInScene: characters.length > 0 ? characters.slice(0, 2) : [leadChar],
       sceneNumber: sceneNum,
+      aspectRatio,
     });
 
     // แต่ละฉากกำหนดระยะเวลา 10 วินาทีตามที่ผู้ใช้กำหนด (มาตรฐานช็อตวิดีโอ AI)
@@ -78,7 +81,10 @@ export function generateActTemplateScenes(options: GenerateScriptOptions): Scrip
       lighting: blueprint.lighting,
       imagePrompt: prompts.imagePrompt,
       videoMotionPrompt: prompts.videoMotionPrompt,
+      googleFlowPrompt: prompts.googleFlowPrompt,
+      googleFlowSeed: prompts.googleFlowSeed,
       negativePrompt: prompts.negativePrompt,
+      aspectRatio,
       estimatedDurationSec: durationSec,
       createdAt: new Date().toISOString(),
     };
@@ -94,6 +100,53 @@ function getGenreSceneBlueprints(
   villainName: string,
   title: string
 ) {
+  if (genre === 'military_tactical') {
+    // สไตล์คลิปทหาร & ยุทธการสงคราม (Facebook Reels / YouTube Shorts 2-5 นาที)
+    return [
+      {
+        title: `ฉากที่ 1: ตรวจจับภัยคุกคาม & ยุทธการระดมพลสายฟ้าแลบ`,
+        narration: `พิกัดเป้าหมายถูกล็อก! สัญญาณเตือนภัยระดับสูงสุดดังสนั่นทั่วศูนย์บัญชาการยุทธวิธี เมื่อระบบดาวเทียมตรวจจับการรุกคืบของขีปนาวุธและกำลังพลติดอาวุธหนัก ผู้การ ${heroName} นำหน่วยรบพิเศษเข้าสู่สถานะพร้อมรบระดับสูงสุดทันที!`,
+        dialogues: [
+          { speaker: heroName, emotion: 'เด็ดขาด สั่งการผ่านวิทยุสื่อสาร', text: 'ทุกหน่วยประจำสถานีรบ ปลดล็อกระบบอาวุธ... เป้าหมายอยู่ข้างหน้า ยิงได้ทันทีที่สบโอกาส!' },
+        ],
+        sfxBgm: `[ดนตรี: ซาวด์แทร็กทหารตื่นเต้นเร้าใจ เบสหนักกระแทกกระทั้น] [เอฟเฟกต์เสียง: เสียงไซเรนเตือนภัย เสียงบรรจุกระสุนปืนกลและระบบไฮดรอลิกส์]`,
+        cameraMovement: 'มุมมองกล้อง Tactical Go-Pro และกล้องโดรนทางทหารเคลื่อนที่เร็วเข้าสู่ห้องบัญชาการและลานปล่อยยุทโธปกรณ์',
+        lighting: 'แสงไฟฉุกเฉินสีแดงในห้องยุทธวิธี ตัดกับแสงนีออนหน้าจอเรดาร์แสดงพิกัดดาวเทียม',
+      },
+      {
+        title: `ฉากที่ 2: แสนยานุภาพยุทโธปกรณ์ & ขีปนาวุธไฮเปอร์โซนิก`,
+        narration: `ไซโลแท่นยิงเปิดออก ขีปนาวุธความเร็วเหนือเสียงพุ่งทะยานฉีกผ่านชั้นบรรยากาศ ทิ้งไอพ่นเพลิงสีส้มขนาดยักษ์ไว้เบื้องหลัง พร้อมฝูงบินรบสเตลท์และโดรนสังหารไร้คนขับที่บินทลายแนวป้องกันข้าศึกอย่างแม่นยำ!`,
+        dialogues: [
+          { speaker: 'เจ้าหน้าที่เรดาร์', emotion: 'รายงานอย่างตื่นเต้น', text: 'ขีปนาวุธล็อกเป้าหมายสำเร็จ ความเร็ว 8 มัค... อีก 10 วินาทีถึงเป้าหมาย!' },
+        ],
+        sfxBgm: `[ดนตรี: ท่วงทำนองเครื่องเป่าและกลองศึกทรงพลังสไตล์ภาพยนตร์สงครามระดับโลก] [เอฟเฟกต์เสียง: เสียงเครื่องยนต์เจ็ทคำรามลั่น เสียงขีปนาวุธพุ่งแหวกอากาศ]`,
+        cameraMovement: 'มุมมองทางอากาศจากโดรน 4K ลอยตัวนิ่งมองตามวิถีขีปนาวุธพุ่งเข้าสู่สมรภูมิ',
+        lighting: 'เปลวเพลิงจากท้ายขีปนาวุธส่องสว่างเจิดจ้าตัดกับท้องฟ้าพลบค่ำที่เต็มไปด้วยควันสงคราม',
+      },
+      {
+        title: `ฉากที่ 3: หน่วยรบพิเศษแทรกซึม & ปะทะเดือดประชิด`,
+        narration: `กลางสมรภูมิที่เต็มไปด้วยม่านควันและเศษซากปรักหักพัง รถถังหุ้มเกราะหนักเปิดฉากยิงปืนใหญ่ทำลายแนวบังเกอร์ ${heroName} นำทีมแทรกซึมเข้าสู่หัวใจของฐานบัญชาการข้าศึก การปะทะระยะประชิดเกิดขึ้นอย่างดุเดือดและไม่ปรานี!`,
+        dialogues: [
+          { speaker: villainName, emotion: 'ตื่นตระหนก ตะโกนสั่งการ', text: 'พวกมันบุกเข้ามาแล้ว! ตั้งแนวป้องกัน สกัดไว้ให้ได้!' },
+          { speaker: heroName, emotion: 'สุขุม แฝงแววตานักล่า', text: 'ช้าเกินไปแล้ว... ภารกิจนี้ไม่มีทางหนีรอด!' },
+        ],
+        sfxBgm: `[ดนตรี: จังหวะกระแทกกระทั้นระทึกขวัญขั้นสูงสุด] [เอฟเฟกต์เสียง: เสียงปืนกลหนักยิงรัว ปลอกกระสุนตกกระทบพื้นคอนกรีต เสียงสะเก็ดระเบิด]`,
+        cameraMovement: 'มุมกล้องมือถือสั่นไหวแบบสมจริง วิ่งตามหลังหน่วยรบพิเศษบุกทะลวงประตูเหล็ก',
+        lighting: 'แสงเลเซอร์ชี้เป้าสีเขียวและสีแดงตัดผ่านม่านควันปืนหนาทึบ บรรยากาศดิบเท่สมจริง',
+      },
+      {
+        title: `ฉากที่ 4: ชัยชนะเด็ดขาด & บทวิเคราะห์แสนยานุภาพสงคราม`,
+        narration: `การระเบิดครั้งสุดท้ายปิดฉากสมรภูมิ ควันไฟที่ลอยขึ้นสู่ท้องฟ้าคือหลักฐานของชัยชนะเชิงยุทธวิธีที่เด็ดขาด ยุทธศาสตร์ที่เหนือชั้นและอาวุธที่แม่นยำได้เขียนกฎเกณฑ์ใหม่แห่งสงครามยุคไร้คนขับ!`,
+        dialogues: [
+          { speaker: heroName, emotion: 'รายงานผลภารกิจเสร็จสิ้น', text: 'ศูนย์บัญชาการ... ภารกิจสำเร็จลุล่วง ฐานศัตรูถูกกวาดล้างทั้งหมด พร้อมถอนกำลัง!' },
+        ],
+        sfxBgm: `[ดนตรี: ดนตรีสรุปบทเรียนสงคราม ซาบซึ้งและยิ่งใหญ่สะกดอารมณ์ผู้ฟัง] [เอฟเฟกต์เสียง: เสียงลมพัดผ่านซากปรักหักพัง เสียงฮัมของใบพัดเฮลิคอปเตอร์กู้ภัย]`,
+        cameraMovement: 'มุมกล้องค่อยๆ ลอยสูงขึ้นสู่อากาศ มองเห็นสมรภูมิโดยรอบและธงหน่วยรบโบกสะบัด',
+        lighting: 'แสงอาทิตย์ยามเช้าสาดส่องผ่านม่านควันที่ค่อยๆ จางหาย สะท้อนประกายชุดเกราะและยุทโธปกรณ์',
+      },
+    ];
+  }
+
   if (genre === 'xianxia_cultivation') {
     // สไตล์ เพื่อนที่ดีที่สุด SAN1 / อนิเมะจีน 3D กำลังภายใน
     if (act === 1) {

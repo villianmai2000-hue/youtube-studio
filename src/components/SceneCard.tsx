@@ -576,6 +576,47 @@ export default function SceneCard({
                 {scene.videoMotionPrompt}
               </p>
             </div>
+
+            {/* Google Flow Prompt (flow.google.com ล็อคตัวละคร) */}
+            <div className="p-2.5 rounded-xl bg-studio-950 border border-studio-800 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] font-semibold text-emerald-400 flex items-center gap-1">
+                    🌊 flow.google.com Prompt
+                  </span>
+                  {scene.googleFlowSeed && (
+                    <span className="text-[10px] px-1.5 py-0.2 rounded bg-cyan-950/60 text-cyan-300 border border-cyan-500/30 font-mono">
+                      Seed: {scene.googleFlowSeed}
+                    </span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleCopy(
+                      scene.googleFlowPrompt || `${scene.imagePrompt} --seed ${scene.googleFlowSeed || '12345'}`,
+                      'flow'
+                    )
+                  }
+                  className="px-2.5 py-1 rounded-lg bg-studio-900 hover:bg-studio-800 border border-studio-700 text-gray-200 hover:text-white text-[10px] font-medium flex items-center gap-1 transition-colors"
+                >
+                  {copiedPrompt === 'flow' ? (
+                    <>
+                      <Check className="w-3 h-3 text-emerald-400" />
+                      <span className="text-emerald-400 font-bold">คัดลอกสำเร็จ!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3 h-3 text-emerald-400" />
+                      <span>คัดลอก Google Flow</span>
+                    </>
+                  )}
+                </button>
+              </div>
+              <p className="text-[11px] text-gray-400 leading-relaxed line-clamp-2 select-all font-mono">
+                {scene.googleFlowPrompt || `${scene.imagePrompt} --seed ${scene.googleFlowSeed || '12345'}`}
+              </p>
+            </div>
           </div>
         </div>
       </div>

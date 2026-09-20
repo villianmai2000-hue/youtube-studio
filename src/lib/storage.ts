@@ -1,30 +1,88 @@
 import { getDb, getGridFSBucket, isMongoConfigured } from './mongodb';
-import { Project, ScriptScene, CharacterBible } from './types';
+import { Project, ScriptScene, CharacterBible, User } from './types';
 import fs from 'fs';
 import path from 'path';
 
 const LOCAL_FALLBACK_FILE = path.join(process.cwd(), '.studio_local_data.json');
+const LOCAL_USERS_FILE = path.join(process.cwd(), '.studio_users.json');
 const LOCAL_MEDIA_DIR = path.join(process.cwd(), '.studio_media');
 
-// Helper to read local fallback
+// In-Memory Global Fallbacks (Crucial for Vercel Serverless Read-Only Filesystem)
+declare global {
+  // eslint-disable-next-line no-var
+  var _inMemoryProjects: Project[] | undefined;
+  // eslint-disable-next-line no-var
+  var _inMemoryUsers: User[] | undefined;
+}
+
+export const DEFAULT_OWNER: User = {
+  id: 'user-owner-yutthakan',
+  username: 'yutthakan',
+  displayName: 'ยุทธการ คำกลอน',
+  password: '0962033005Maiiam2000',
+  role: 'owner',
+  isActive: true,
+  createdAt: '2026-01-01T00:00:00.000Z',
+};
+
+// Helper to read local fallback safely without crashing on Vercel EROFS
 function getLocalData(): { projects: Project[] } {
+  if (global._inMemoryProjects && global._inMemoryProjects.length > 0) {
+    return { projects: global._inMemoryProjects };
+  }
   try {
     if (fs.existsSync(LOCAL_FALLBACK_FILE)) {
       const content = fs.readFileSync(LOCAL_FALLBACK_FILE, 'utf-8');
-      return JSON.parse(content);
+      const parsed = JSON.parse(content);
+      global._inMemoryProjects = parsed.projects || [];
+      return parsed;
     }
   } catch (err) {
-    console.error('Error reading local fallback file:', err);
+    // Read-only or file access error (expected on Vercel)
   }
-  return { projects: [] };
+  global._inMemoryProjects = global._inMemoryProjects || [];
+  return { projects: global._inMemoryProjects };
 }
 
-// Helper to write local fallback
+// Helper to write local fallback safely without crashing on Vercel EROFS
 function saveLocalData(data: { projects: Project[] }) {
+  global._inMemoryProjects = data.projects;
   try {
     fs.writeFileSync(LOCAL_FALLBACK_FILE, JSON.stringify(data, null, 2), 'utf-8');
   } catch (err) {
-    console.error('Error writing local fallback file:', err);
+    // Silently continue with in-memory store if disk is read-only (e.g. on Vercel)
+  }
+}
+
+// Helper for users storage
+function getLocalUsers(): User[] {
+  if (global._inMemoryUsers && global._inMemoryUsers.length > 0) {
+    return global._inMemoryUsers;
+  }
+  try {
+    if (fs.existsSync(LOCAL_USERS_FILE)) {
+      const content = fs.readFileSync(LOCAL_USERS_FILE, 'utf-8');
+      const users: User[] = JSON.parse(content);
+      // Ensure owner always exists
+      if (!users.some((u) => u.username === DEFAULT_OWNER.username || u.displayName === DEFAULT_OWNER.displayName)) {
+        users.unshift(DEFAULT_OWNER);
+      }
+      global._inMemoryUsers = users;
+      return users;
+    }
+  } catch {
+    // ignore
+  }
+  global._inMemoryUsers = [DEFAULT_OWNER];
+  return global._inMemoryUsers;
+}
+
+function saveLocalUsers(users: User[]) {
+  global._inMemoryUsers = users;
+  try {
+    fs.writeFileSync(LOCAL_USERS_FILE, JSON.stringify(users, null, 2), 'utf-8');
+  } catch {
+    // ignore on Vercel
   }
 }
 
@@ -154,3 +212,91 @@ export async function deleteProject(id: string): Promise<boolean> {
 
   return true;
 }
+
+export async function getAllUsers(): Promise<User[]> {
+  if (isMongoConfigured()) {
+    try {
+      const db = await getDb();
+      const rawUsers = await db.collection<User>('users').find({}).toArray();
+      const users: User[] = rawUsers.map((u) => ({
+        ...u,
+        id: u.id || (u as any)._id?.toString() || '',
+      }));
+
+      if (users.length > 0) {
+        // Ensure owner is always in the list
+        if (!users.some((u) => u.username === DEFAULT_OWNER.username || u.displayName === DEFAULT_OWNER.displayName)) {
+          users.unshift(DEFAULT_OWNER);
+        }
+        return users;
+      }
+    } catch (err) {
+      console.warn('Failed to fetch users from Atlas, falling back to local users:', err);
+    }
+  }
+
+  return getLocalUsers();
+}
+
+export async function saveUser(user: User): Promise<User> {
+  if (isMongoConfigured()) {
+    try {
+      const db = await getDb();
+      await db.collection<User>('users').updateOne(
+        { id: user.id },
+        { $set: user },
+        { upsert: true }
+      );
+    } catch (err) {
+      console.warn('Failed to save user to Atlas, falling back to local users:', err);
+    }
+  }
+
+  const users = getLocalUsers();
+  const index = users.findIndex((u) => u.id === user.id);
+  if (index >= 0) {
+    users[index] = user;
+  } else {
+    users.push(user);
+  }
+  saveLocalUsers(users);
+  return user;
+}
+
+export async function deleteUser(id: string): Promise<boolean> {
+  // Never delete owner
+  if (id === DEFAULT_OWNER.id) {
+    return false;
+  }
+
+  if (isMongoConfigured()) {
+    try {
+      const db = await getDb();
+      await db.collection('users').deleteOne({ id });
+    } catch (err) {
+      console.warn('Failed to delete user from Atlas:', err);
+    }
+  }
+
+  let users = getLocalUsers();
+  users = users.filter((u) => u.id !== id && u.id !== DEFAULT_OWNER.id);
+  saveLocalUsers(users);
+  return true;
+}
+
+export async function findUser(identifier: string): Promise<User | null> {
+  const cleanId = identifier.trim();
+  // Check default owner match first
+  if (
+    cleanId === DEFAULT_OWNER.username ||
+    cleanId === DEFAULT_OWNER.displayName ||
+    cleanId === '0962033005Maiiam2000' ||
+    cleanId === 'admin'
+  ) {
+    return DEFAULT_OWNER;
+  }
+
+  const users = await getAllUsers();
+  return users.find((u) => u.username === cleanId || u.displayName === cleanId) || null;
+}
+
