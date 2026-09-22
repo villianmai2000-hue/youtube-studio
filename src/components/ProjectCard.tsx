@@ -108,9 +108,14 @@ export default function ProjectCard({ project, onDelete, onSequelClick }: Projec
         {/* Action Button */}
         <div className="pt-2 flex items-center justify-between gap-2">
           <button
-            onClick={() => onDelete(project.id)}
-            className="p-2 text-gray-500 hover:text-red-400 hover:bg-studio-800/80 rounded-lg transition-colors"
-            title="ลบโปรเจกต์"
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              onDelete(project.id);
+            }}
+            className="p-2 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors border border-transparent hover:border-red-500/30"
+            title="ลบโปรเจกต์นี้อย่างถาวร"
           >
             <Trash2 className="w-4 h-4" />
           </button>

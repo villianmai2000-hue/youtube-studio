@@ -246,9 +246,19 @@ export default function NewProjectModal({ isOpen, onClose, onCreated }: NewProje
       if (data.success && data.project) {
         // Dual-layer backup to browser localStorage
         try {
+          const delStr = localStorage.getItem('studio_deleted_project_ids');
+          if (delStr) {
+            const delList = JSON.parse(delStr);
+            if (Array.isArray(delList)) {
+              localStorage.setItem(
+                'studio_deleted_project_ids',
+                JSON.stringify(delList.filter((x: string) => x !== data.project.id))
+              );
+            }
+          }
           localStorage.setItem(`studio_project_${data.project.id}`, JSON.stringify(data.project));
           const cachedList = JSON.parse(localStorage.getItem('studio_cached_projects') || '[]');
-          const updatedList = [data.project, ...cachedList.filter((p: any) => p.id !== data.project.id)];
+          const updatedList = [data.project, ...cachedList.filter((p: any) => p && p.id !== data.project.id)];
           localStorage.setItem('studio_cached_projects', JSON.stringify(updatedList));
         } catch (storageErr) {
           console.warn('LocalStorage backup warning:', storageErr);

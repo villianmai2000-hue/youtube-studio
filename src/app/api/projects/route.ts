@@ -5,11 +5,21 @@ import { generateContinuousMovieScenes } from '@/lib/script-templates';
 import { generateIntelligentCharacters, detectStoryCharacterScale } from '@/lib/character-generator';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export async function GET() {
   try {
     const projects = await getAllProjects();
-    return NextResponse.json({ success: true, projects });
+    return NextResponse.json(
+      { success: true, projects },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          Pragma: 'no-cache',
+          Expires: '0',
+        },
+      }
+    );
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Failed to fetch projects';
     return NextResponse.json({ success: false, error: message }, { status: 500 });

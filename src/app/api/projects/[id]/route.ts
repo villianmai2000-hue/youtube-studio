@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getProjectById, saveProject, deleteProject } from '@/lib/storage';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export async function GET(
   request: Request,
@@ -10,9 +11,24 @@ export async function GET(
   try {
     const project = await getProjectById(params.id);
     if (!project) {
-      return NextResponse.json({ success: false, error: 'Project not found' }, { status: 404 });
+      return NextResponse.json(
+        { success: false, error: 'Project not found' },
+        {
+          status: 404,
+          headers: {
+            'Cache-Control': 'no-store, no-cache, must-revalidate',
+          },
+        }
+      );
     }
-    return NextResponse.json({ success: true, project });
+    return NextResponse.json(
+      { success: true, project },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate',
+        },
+      }
+    );
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Error fetching project';
     return NextResponse.json({ success: false, error: message }, { status: 500 });

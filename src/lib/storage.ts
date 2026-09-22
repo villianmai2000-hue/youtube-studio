@@ -1,10 +1,12 @@
 import { getDb, getGridFSBucket, isMongoConfigured } from './mongodb';
+import { ObjectId } from 'mongodb';
 import { Project, ScriptScene, CharacterBible, User } from './types';
 import fs from 'fs';
 import path from 'path';
 
 const LOCAL_FALLBACK_FILE = path.join(process.cwd(), '.studio_local_data.json');
 const LOCAL_PROJECTS_DIR = path.join(process.cwd(), '.studio_projects');
+const LOCAL_DELETED_FILE = path.join(process.cwd(), '.studio_deleted_projects.json');
 const LOCAL_USERS_FILE = path.join(process.cwd(), '.studio_users.json');
 const LOCAL_SECURITY_FILE = path.join(process.cwd(), '.studio_security.json');
 const LOCAL_MEDIA_DIR = path.join(process.cwd(), '.studio_media');
@@ -25,6 +27,8 @@ declare global {
   // eslint-disable-next-line no-var
   var _inMemoryUsers: User[] | undefined;
   // eslint-disable-next-line no-var
+  var _deletedProjectIds: Set<string> | undefined;
+  // eslint-disable-next-line no-var
   var _activeOtp:
     | {
         code: string;
@@ -39,6 +43,42 @@ declare global {
         email: string;
       }
     | undefined;
+}
+
+if (!global._deletedProjectIds) {
+  global._deletedProjectIds = new Set<string>();
+}
+
+// Helper to load deleted IDs from local file on startup
+function getLocalDeletedIds(): Set<string> {
+  if (!global._deletedProjectIds) {
+    global._deletedProjectIds = new Set<string>();
+  }
+  try {
+    if (fs.existsSync(LOCAL_DELETED_FILE)) {
+      const content = fs.readFileSync(LOCAL_DELETED_FILE, 'utf-8');
+      const list = JSON.parse(content);
+      if (Array.isArray(list)) {
+        list.forEach((id) => {
+          if (id && typeof id === 'string') global._deletedProjectIds?.add(id);
+        });
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return global._deletedProjectIds;
+}
+
+// Helper to save deleted IDs to local file
+function saveLocalDeletedIds() {
+  if (!global._deletedProjectIds) return;
+  try {
+    const list = Array.from(global._deletedProjectIds);
+    fs.writeFileSync(LOCAL_DELETED_FILE, JSON.stringify(list, null, 2), 'utf-8');
+  } catch {
+    // ignore on Vercel EROFS
+  }
 }
 
 export const DEFAULT_OWNER: User = {
@@ -56,6 +96,7 @@ export const DEFAULT_OWNER: User = {
 // Helper to read local fallback safely from both individual files and master file
 function getLocalData(): { projects: Project[] } {
   const projectMap = new Map<string, Project>();
+  const deletedSet = getLocalDeletedIds();
 
   // 1. Read individual project files from .studio_projects/
   try {
@@ -63,10 +104,19 @@ function getLocalData(): { projects: Project[] } {
       const files = fs.readdirSync(LOCAL_PROJECTS_DIR);
       for (const file of files) {
         if (file.endsWith('.json')) {
+          const rawId = file.replace('.json', '');
+          if (deletedSet.has(rawId)) {
+            try {
+              fs.unlinkSync(path.join(LOCAL_PROJECTS_DIR, file));
+            } catch {
+              // ignore
+            }
+            continue;
+          }
           try {
             const raw = fs.readFileSync(path.join(LOCAL_PROJECTS_DIR, file), 'utf-8');
             const p: Project = JSON.parse(raw);
-            if (p && p.id) {
+            if (p && p.id && !deletedSet.has(p.id)) {
               projectMap.set(p.id, p);
             }
           } catch {
@@ -86,7 +136,7 @@ function getLocalData(): { projects: Project[] } {
       const parsed = JSON.parse(content);
       if (Array.isArray(parsed.projects)) {
         for (const p of parsed.projects) {
-          if (p && p.id && !projectMap.has(p.id)) {
+          if (p && p.id && !deletedSet.has(p.id) && !projectMap.has(p.id)) {
             projectMap.set(p.id, p);
             try {
               if (!fs.existsSync(LOCAL_PROJECTS_DIR)) {
@@ -110,22 +160,24 @@ function getLocalData(): { projects: Project[] } {
   // 3. Merge in-memory cache if any missing
   if (global._inMemoryProjects && Array.isArray(global._inMemoryProjects)) {
     for (const p of global._inMemoryProjects) {
-      if (p && p.id && !projectMap.has(p.id)) {
+      if (p && p.id && !deletedSet.has(p.id) && !projectMap.has(p.id)) {
         projectMap.set(p.id, p);
       }
     }
   }
 
-  const merged = Array.from(projectMap.values());
+  const merged = Array.from(projectMap.values()).filter((p) => p && p.id && !deletedSet.has(p.id));
   global._inMemoryProjects = merged;
   return { projects: merged };
 }
 
 // Helper to write local fallback safely without crashing on Vercel EROFS
 function saveLocalData(data: { projects: Project[] }) {
-  global._inMemoryProjects = data.projects;
+  const deletedSet = getLocalDeletedIds();
+  const cleanProjects = data.projects.filter((p) => p && p.id && !deletedSet.has(p.id));
+  global._inMemoryProjects = cleanProjects;
   try {
-    fs.writeFileSync(LOCAL_FALLBACK_FILE, JSON.stringify(data, null, 2), 'utf-8');
+    fs.writeFileSync(LOCAL_FALLBACK_FILE, JSON.stringify({ projects: cleanProjects }, null, 2), 'utf-8');
   } catch (err) {
     console.warn('Notice: Local fallback write to file failed (e.g. read-only environment):', err);
   }
@@ -139,13 +191,11 @@ function getLocalUsers(): User[] {
   try {
     if (fs.existsSync(LOCAL_USERS_FILE)) {
       const content = fs.readFileSync(LOCAL_USERS_FILE, 'utf-8');
-      const users: User[] = JSON.parse(content);
-      // Ensure owner always exists
-      if (!users.some((u) => u.username === DEFAULT_OWNER.username || u.displayName === DEFAULT_OWNER.displayName)) {
-        users.unshift(DEFAULT_OWNER);
+      const parsed = JSON.parse(content);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        global._inMemoryUsers = parsed;
+        return parsed;
       }
-      global._inMemoryUsers = users;
-      return users;
     }
   } catch {
     // ignore
@@ -165,11 +215,29 @@ function saveLocalUsers(users: User[]) {
 
 export async function getAllProjects(): Promise<Project[]> {
   const projectMap = new Map<string, Project>();
+  const deletedSet = getLocalDeletedIds();
+
+  // Query MongoDB Atlas deleted_projects tombstone collection if configured
+  if (isMongoConfigured()) {
+    try {
+      const db = await getDb();
+      const delDocs = await db.collection<{ id: string }>('deleted_projects').find({}).toArray();
+      for (const d of delDocs) {
+        if (d.id) {
+          deletedSet.add(d.id);
+          global._deletedProjectIds?.add(d.id);
+        }
+      }
+      saveLocalDeletedIds();
+    } catch {
+      // ignore
+    }
+  }
 
   // 1. Load from local store first (immediate fail-safe)
   const local = getLocalData();
   for (const p of local.projects) {
-    if (p && p.id) {
+    if (p && p.id && !deletedSet.has(p.id)) {
       projectMap.set(p.id, p);
     }
   }
@@ -184,6 +252,7 @@ export async function getAllProjects(): Promise<Project[]> {
           ...doc,
           id: doc.id || doc._id?.toString() || '',
         };
+        if (!p.id || deletedSet.has(p.id)) continue;
         const existing = projectMap.get(p.id);
         if (!existing) {
           projectMap.set(p.id, p);
@@ -200,13 +269,20 @@ export async function getAllProjects(): Promise<Project[]> {
     }
   }
 
-  const merged = Array.from(projectMap.values()).sort(
-    (a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime()
-  );
+  const merged = Array.from(projectMap.values())
+    .filter((p) => p && p.id && !deletedSet.has(p.id))
+    .sort(
+      (a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime()
+    );
   return merged;
 }
 
 export async function getProjectById(id: string): Promise<Project | null> {
+  const deletedSet = getLocalDeletedIds();
+  if (deletedSet.has(id)) {
+    return null;
+  }
+
   let localProj: Project | null = null;
 
   // 1. Check individual project file first from .studio_projects/
@@ -215,7 +291,7 @@ export async function getProjectById(id: string): Promise<Project | null> {
     if (fs.existsSync(singlePath)) {
       const raw = fs.readFileSync(singlePath, 'utf-8');
       const p: Project = JSON.parse(raw);
-      if (p && p.id === id) {
+      if (p && p.id === id && !deletedSet.has(p.id)) {
         localProj = p;
       }
     }
@@ -225,7 +301,7 @@ export async function getProjectById(id: string): Promise<Project | null> {
 
   if (!localProj) {
     const local = getLocalData();
-    localProj = local.projects.find((p) => p.id === id) || null;
+    localProj = local.projects.find((p) => p.id === id && !deletedSet.has(p.id)) || null;
   }
 
   // 2. Query MongoDB Atlas if configured, compare timestamps: newest wins
@@ -238,6 +314,7 @@ export async function getProjectById(id: string): Promise<Project | null> {
           ...doc,
           id: doc.id || doc._id?.toString() || '',
         };
+        if (!mongoProj.id || deletedSet.has(mongoProj.id)) return null;
         if (!localProj) return mongoProj;
 
         const mongoTime = mongoProj.updatedAt ? new Date(mongoProj.updatedAt).getTime() : 0;
@@ -254,6 +331,20 @@ export async function getProjectById(id: string): Promise<Project | null> {
 
 export async function saveProject(project: Project): Promise<Project> {
   project.updatedAt = new Date().toISOString();
+
+  // If this project was previously in deletedProjectIds, unmark it because user explicitly created or saved it
+  if (global._deletedProjectIds && global._deletedProjectIds.has(project.id)) {
+    global._deletedProjectIds.delete(project.id);
+    saveLocalDeletedIds();
+    if (isMongoConfigured()) {
+      try {
+        const db = await getDb();
+        await db.collection('deleted_projects').deleteOne({ id: project.id });
+      } catch {
+        // ignore
+      }
+    }
+  }
 
   // 1. Save to MongoDB Atlas if configured (Fail-safe, will not block local save if Atlas is down or bad auth)
   if (isMongoConfigured()) {
@@ -294,13 +385,46 @@ export async function saveProject(project: Project): Promise<Project> {
 }
 
 export async function deleteProject(id: string): Promise<boolean> {
+  // 1. Mark as deleted in global and local tombstone file
+  if (!global._deletedProjectIds) {
+    global._deletedProjectIds = new Set<string>();
+  }
+  global._deletedProjectIds.add(id);
+  saveLocalDeletedIds();
+
+  // 2. Delete from MongoDB Atlas if configured
   if (isMongoConfigured()) {
     try {
       const db = await getDb();
-      // 1. Delete project document
-      await db.collection('projects').deleteOne({ id });
 
-      // 2. Cascade delete all media assets belonging to this project in GridFS
+      // Record tombstone in deleted_projects collection
+      try {
+        await db.collection('deleted_projects').updateOne(
+          { id },
+          { $set: { id, deletedAt: new Date().toISOString() } },
+          { upsert: true }
+        );
+      } catch (err) {
+        console.warn('Failed to record deleted_project tombstone in MongoDB:', err);
+      }
+
+      // Delete project document from projects collection (support id string and ObjectId)
+      let objectId: ObjectId | null = null;
+      try {
+        if (ObjectId.isValid(id) && id.length === 24) {
+          objectId = new ObjectId(id);
+        }
+      } catch {
+        objectId = null;
+      }
+
+      const deleteQuery = objectId
+        ? { $or: [{ id }, { _id: id as any }, { _id: objectId as any }] }
+        : { $or: [{ id }, { _id: id as any }] };
+
+      await db.collection('projects').deleteMany(deleteQuery);
+
+      // Cascade delete all media assets belonging to this project in GridFS
       try {
         const bucket = await getGridFSBucket();
         const files = await bucket.find({ 'metadata.projectId': id }).toArray();
@@ -310,14 +434,12 @@ export async function deleteProject(id: string): Promise<boolean> {
       } catch (gridFsErr) {
         console.warn('GridFS cascade delete error:', gridFsErr);
       }
-
-      return true;
     } catch (error) {
-      console.warn('MongoDB Atlas delete failed, deleting from local store:', error);
+      console.warn('MongoDB Atlas delete failed, proceeding to delete from local store:', error);
     }
   }
 
-  // Fallback: Delete individual file from .studio_projects/
+  // 3. Delete individual file from .studio_projects/
   try {
     const singleFile = path.join(LOCAL_PROJECTS_DIR, `${id}.json`);
     if (fs.existsSync(singleFile)) {
@@ -327,12 +449,21 @@ export async function deleteProject(id: string): Promise<boolean> {
     // ignore
   }
 
-  // Fallback: Delete from local master store
-  const local = getLocalData();
-  local.projects = local.projects.filter((p) => p.id !== id);
-  saveLocalData(local);
+  // 4. Delete from local master store (.studio_local_data.json)
+  try {
+    const local = getLocalData();
+    local.projects = local.projects.filter((p) => p.id !== id);
+    saveLocalData(local);
+  } catch (err) {
+    console.warn('Delete from local master store failed:', err);
+  }
 
-  // Cascade delete local fallback media files
+  // 5. Purge from in-memory cache
+  if (global._inMemoryProjects) {
+    global._inMemoryProjects = global._inMemoryProjects.filter((p) => p.id !== id);
+  }
+
+  // 6. Cascade delete local fallback media files
   try {
     if (fs.existsSync(LOCAL_MEDIA_DIR)) {
       const files = fs.readdirSync(LOCAL_MEDIA_DIR);

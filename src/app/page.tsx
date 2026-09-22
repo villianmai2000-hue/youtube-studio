@@ -47,11 +47,30 @@ export default function HomePage() {
   const fetchProjects = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/projects');
+      // 0. Load deleted project IDs from browser localStorage tombstone
+      let deletedIds: string[] = [];
+      if (typeof window !== 'undefined') {
+        try {
+          const delStr = localStorage.getItem('studio_deleted_project_ids');
+          if (delStr) deletedIds = JSON.parse(delStr);
+        } catch {
+          deletedIds = [];
+        }
+      }
+      const deletedSet = new Set(deletedIds);
+
+      const res = await fetch('/api/projects', { cache: 'no-store' });
       const data = await res.json();
       let serverProjects: Project[] = [];
       if (data.success && Array.isArray(data.projects)) {
-        serverProjects = data.projects;
+        serverProjects = data.projects.filter((p: Project) => p && p.id && !deletedSet.has(p.id));
+
+        // If server still returned any project that was deleted locally, trigger server purge
+        for (const sp of data.projects) {
+          if (sp && sp.id && deletedSet.has(sp.id)) {
+            fetch(`/api/projects/${sp.id}`, { method: 'DELETE' }).catch(() => {});
+          }
+        }
       }
 
       // Check localStorage cached projects
@@ -59,7 +78,10 @@ export default function HomePage() {
       let cachedProjects: Project[] = [];
       if (cachedStr) {
         try {
-          cachedProjects = JSON.parse(cachedStr);
+          const parsed = JSON.parse(cachedStr);
+          if (Array.isArray(parsed)) {
+            cachedProjects = parsed.filter((p: Project) => p && p.id && !deletedSet.has(p.id));
+          }
         } catch {
           // ignore
         }
@@ -69,14 +91,14 @@ export default function HomePage() {
       const projectMap = new Map<string, Project>();
       const projectsToResyncToServer: Project[] = [];
 
-      // 1. Put all cached local projects first
+      // 1. Put all cached local projects first (excluding deleted ones)
       cachedProjects.forEach((p) => {
-        if (p && p.id) projectMap.set(p.id, p);
+        if (p && p.id && !deletedSet.has(p.id)) projectMap.set(p.id, p);
       });
 
-      // 2. Merge server projects
+      // 2. Merge server projects (excluding deleted ones)
       serverProjects.forEach((sp) => {
-        if (!sp || !sp.id) return;
+        if (!sp || !sp.id || deletedSet.has(sp.id)) return;
         const local = projectMap.get(sp.id);
         if (!local) {
           projectMap.set(sp.id, sp);
@@ -98,9 +120,14 @@ export default function HomePage() {
         for (let i = 0; i < localStorage.length; i++) {
           const key = localStorage.key(i);
           if (key && key.startsWith('studio_project_')) {
+            const rawId = key.replace('studio_project_', '');
+            if (deletedSet.has(rawId)) {
+              localStorage.removeItem(key);
+              continue;
+            }
             try {
               const single = JSON.parse(localStorage.getItem(key) || '');
-              if (single && single.id) {
+              if (single && single.id && !deletedSet.has(single.id)) {
                 const current = projectMap.get(single.id);
                 if (!current) {
                   projectMap.set(single.id, single);
@@ -121,20 +148,22 @@ export default function HomePage() {
         }
       }
 
-      const merged = Array.from(projectMap.values()).sort(
-        (a, b) => new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime()
-      );
+      const merged = Array.from(projectMap.values())
+        .filter((p) => p && p.id && !deletedSet.has(p.id))
+        .sort(
+          (a, b) => new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime()
+        );
 
       setProjects(merged);
 
       // Keep localStorage in sync with merged
-      if (typeof window !== 'undefined' && merged.length > 0) {
+      if (typeof window !== 'undefined') {
         localStorage.setItem('studio_cached_projects', JSON.stringify(merged));
       }
 
-      // Background resync: any projects missing on server OR newer locally get pushed via PUT
-      const missingOnServer = cachedProjects.filter((cp) => !serverProjects.some((sp) => sp.id === cp.id));
-      const allToSync = [...missingOnServer, ...projectsToResyncToServer];
+      // Background resync: any projects missing on server OR newer locally get pushed via PUT (ONLY non-deleted)
+      const missingOnServer = cachedProjects.filter((cp) => !serverProjects.some((sp) => sp.id === cp.id) && !deletedSet.has(cp.id));
+      const allToSync = [...missingOnServer, ...projectsToResyncToServer].filter((p) => p && p.id && !deletedSet.has(p.id));
       const uniqueToSync = Array.from(new Map(allToSync.map((p) => [p.id, p])).values());
 
       if (uniqueToSync.length > 0) {
@@ -152,7 +181,12 @@ export default function HomePage() {
       const cachedStr = typeof window !== 'undefined' ? localStorage.getItem('studio_cached_projects') : null;
       if (cachedStr) {
         try {
-          setProjects(JSON.parse(cachedStr));
+          const list = JSON.parse(cachedStr);
+          if (Array.isArray(list)) {
+            const delStr = localStorage.getItem('studio_deleted_project_ids');
+            const delSet = new Set(delStr ? JSON.parse(delStr) : []);
+            setProjects(list.filter((p: Project) => p && p.id && !delSet.has(p.id)));
+          }
         } catch {
           // ignore
         }
@@ -226,12 +260,46 @@ export default function HomePage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการลบโปรเจกต์นี้?')) return;
+    if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการลบโปรเจกต์นี้ถาวร?')) return;
+
+    // 1. Remove from React state immediately
+    setProjects((prev) => prev.filter((p) => p.id !== id));
+
+    // 2. Save to deleted tombstone list in browser localStorage
+    if (typeof window !== 'undefined') {
+      try {
+        const delStr = localStorage.getItem('studio_deleted_project_ids');
+        const deletedIds: string[] = delStr ? JSON.parse(delStr) : [];
+        if (!deletedIds.includes(id)) {
+          deletedIds.push(id);
+          localStorage.setItem('studio_deleted_project_ids', JSON.stringify(deletedIds));
+        }
+
+        // 3. Purge from cached projects list
+        const cachedStr = localStorage.getItem('studio_cached_projects');
+        if (cachedStr) {
+          const list = JSON.parse(cachedStr);
+          if (Array.isArray(list)) {
+            const filtered = list.filter((p: any) => p && p.id !== id);
+            localStorage.setItem('studio_cached_projects', JSON.stringify(filtered));
+          }
+        }
+
+        // 4. Remove single project key from localStorage
+        localStorage.removeItem(`studio_project_${id}`);
+      } catch (e) {
+        console.warn('LocalStorage deletion cleanup error:', e);
+      }
+    }
+
+    // 5. Delete on server (API + MongoDB + Local Files + In-Memory)
     try {
-      await fetch(`/api/projects/${id}`, { method: 'DELETE' });
-      setProjects((prev) => prev.filter((p) => p.id !== id));
+      const res = await fetch(`/api/projects/${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        console.warn('Server delete response status:', res.status);
+      }
     } catch (err) {
-      console.error('Error deleting project:', err);
+      console.error('Error deleting project on server:', err);
     }
   };
 
