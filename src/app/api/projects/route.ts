@@ -32,24 +32,24 @@ export async function POST(request: Request) {
     const {
       title,
       synopsis,
-      genre = 'xianxia_cultivation',
+      genre = 'epic_fantasy',
       genreNameCustom,
-      worldCulture = 'chinese',
+      worldCulture = 'thai',
       subGenre = '',
       worldBuilding,
       storyArchitecture,
       militaryCategory,
-      visualMedium = 'animation',
-      stylePreset = 'donghua_3d',
+      visualMedium = 'live_action',
+      stylePreset = 'hollywood_cinematic',
       aspectRatio = '16:9',
       scriptEngine = 'gemini_3_1_pro',
       characterCount,
       targetDurationMinutes = 60,
       characters: customCharacters,
-      leadHeroName = 'เซียวหลิน',
-      leadHeroAnchor = 'handsome young cultivation prodigy, sharp intense dark eyes, long flowing black hair with jade hairpin, flowing black and gold embroidered daoist martial robe',
-      antagonistName = 'จ้าวอสูรโลหิต',
-      antagonistAnchor = 'formidable demon overlord, glowing crimson eyes, sharp demonic armor, aura of dark mist',
+      leadHeroName = 'พระเอก',
+      leadHeroAnchor = 'handsome young Thai man, sharp eyes, modern casual outfit, photorealistic',
+      antagonistName = 'ผู้ร้าย',
+      antagonistAnchor = 'formidable antagonist, intense eyes, imposing presence',
       // Sequel fields
       seriesId,
       seriesTitle,
@@ -59,6 +59,7 @@ export async function POST(request: Request) {
       previousPartTitle,
       previousEndingRecap,
     } = body;
+
 
     const projectId = `proj-${Date.now()}`;
 
@@ -108,19 +109,22 @@ export async function POST(request: Request) {
       });
     }
 
-    // Generate continuous scenes for full target duration (e.g. 150m = 900 scenes @ 10s/scene)
+    // ✅ สร้างแค่ 4 ฉากแรก (Act 1 Preview) ตอนสร้างโปรเจก
+    // เพื่อป้องกัน Vercel timeout — ฉากองค์อื่นๆ user จะกด AI generate ทีหลัง
+    // (60 นาที = 360 ฉาก ถ้าสร้างทั้งหมดตอนสร้างโปรเจก จะ timeout แน่นอน)
     const initialScenes = generateContinuousMovieScenes({
       title: title || (genre === 'military_tactical' ? 'ยุทธการสายฟ้าแลบ ทะลวงฐานทัพศัตรู' : 'มหากาพย์การต่อสู้ทวงแค้น'),
       synopsis: synopsis || (genre === 'military_tactical' ? 'ปฏิบัติการทางทหารและขีปนาวุธความเร็วเหนือเสียง สยบภัยคุกคามใน 5 นาที' : 'มหากาพย์การต่อสู้ทวงแค้นและก้าวสู่ความเป็นหนึ่ง'),
       genre: genre as MovieGenre,
       visualMedium: visualMedium as VisualMedium,
       stylePreset: stylePreset as StylePreset,
-      targetDurationMinutes: Number(targetDurationMinutes) || (genre === 'military_tactical' ? 3 : 60),
+      targetDurationMinutes: 1,   // ✅ แค่ 1 นาที = 6 ฉาก (Act 1 preview) สร้างเร็ว ไม่ timeout
       characters: projectCharacters,
       aspectRatio: (aspectRatio as AspectRatio) || '16:9',
       worldCulture,
       subGenre,
     });
+
 
     const newProject: Project = {
       id: projectId,
