@@ -294,6 +294,7 @@ ${charactersStr}
           lighting: item.lighting || 'Dramatic cinematic lighting',
           charactersInScene: characters,
           sceneNumber: sceneNum,
+          worldCulture: theme.effectiveCulture,
         });
 
         return {

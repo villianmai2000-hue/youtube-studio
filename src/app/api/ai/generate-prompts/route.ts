@@ -18,6 +18,8 @@ export async function POST(request: Request) {
       lighting = 'Dramatic lighting',
       charactersInScene = [],
       sceneNumber = 1,
+      aspectRatio = '16:9',
+      worldCulture = '',
     } = body;
 
     const dialogueText = dialogues.map((d: any) => `${d.speaker}: ${d.text}`).join(' ');
@@ -33,6 +35,8 @@ export async function POST(request: Request) {
       lighting,
       charactersInScene: charactersInScene as CharacterBible[],
       sceneNumber: Number(sceneNumber),
+      aspectRatio,
+      worldCulture,
     });
 
     return NextResponse.json({

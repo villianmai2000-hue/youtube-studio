@@ -309,6 +309,7 @@ export function generateContinuousMovieScenes(options: GenerateScriptOptions): S
       charactersInScene: activeSquad,
       sceneNumber,
       aspectRatio,
+      worldCulture,
     });
 
     scenes.push({
