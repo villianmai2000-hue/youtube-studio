@@ -2,11 +2,12 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Film, Database, Sparkles, Github, ExternalLink, ShieldCheck, Users, LogIn, LogOut, User as UserIcon, Shield } from 'lucide-react';
+import { Film, Database, Sparkles, Github, ExternalLink, ShieldCheck, Users, LogIn, LogOut, User as UserIcon, Shield, Key } from 'lucide-react';
 import { User } from '@/lib/types';
 import LoginModal from './LoginModal';
 import UserManagementModal from './UserManagementModal';
 import OwnerSecurityModal from './OwnerSecurityModal';
+import GeminiKeyModal from './GeminiKeyModal';
 
 export const DEFAULT_OWNER_USER: User = {
   id: 'user-owner-yutthakan',
@@ -22,6 +23,8 @@ export default function Navbar() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showUserModal, setShowUserModal] = useState(false);
   const [showSecurityModal, setShowSecurityModal] = useState(false);
+  const [showGeminiModal, setShowGeminiModal] = useState(false);
+  const [hasGeminiKey, setHasGeminiKey] = useState(false);
 
   const [atlasStatus, setAtlasStatus] = useState<{
     connected: boolean;
@@ -39,6 +42,12 @@ export default function Navbar() {
   const [showDbModal, setShowDbModal] = useState(false);
 
   useEffect(() => {
+    // Check Gemini API key
+    const checkGeminiKey = () => {
+      setHasGeminiKey(!!localStorage.getItem('studio_gemini_api_key'));
+    };
+    checkGeminiKey();
+    window.addEventListener('gemini_key_change', checkGeminiKey);
     // Check saved user session (Do not auto-login without credentials)
     const checkUser = () => {
       const saved = localStorage.getItem('studio_current_user');
@@ -79,6 +88,7 @@ export default function Navbar() {
       });
 
     return () => {
+      window.removeEventListener('gemini_key_change', checkGeminiKey);
       window.removeEventListener('auth_change', checkUser);
       window.removeEventListener('storage', checkUser);
     };
@@ -186,6 +196,31 @@ export default function Navbar() {
               </button>
             )}
 
+            {/* Gemini AI Key Status / Config */}
+            <button
+              onClick={() => setShowGeminiModal(true)}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs border transition-all ${
+                hasGeminiKey
+                  ? 'bg-cyan-950/40 border-cyan-500/40 text-cyan-300 hover:bg-cyan-900/40 shadow-[0_0_12px_rgba(6,182,212,0.15)]'
+                  : 'bg-amber-950/30 border-amber-500/40 text-amber-300 hover:bg-amber-900/30'
+              }`}
+              title={
+                hasGeminiKey
+                  ? 'Google Gemini AI เชื่อมต่อแล้ว (คลิกเพื่อดูหรือเปลี่ยนคีย์)'
+                  : 'คลิกเพื่อใส่ Google Gemini API Key ฟรี'
+              }
+            >
+              <Sparkles className={`w-3.5 h-3.5 ${hasGeminiKey ? 'text-cyan-400' : 'text-amber-400'}`} />
+              <span className="hidden sm:inline font-medium">
+                {hasGeminiKey ? 'Gemini AI (พร้อม)' : 'ตั้งค่า Gemini AI'}
+              </span>
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  hasGeminiKey ? 'bg-cyan-400 animate-pulse' : 'bg-amber-400'
+                }`}
+              />
+            </button>
+
             {/* MongoDB Atlas Status */}
             <button
               onClick={() => setShowDbModal(true)}
@@ -209,6 +244,15 @@ export default function Navbar() {
           </div>
         </div>
       </header>
+
+      {/* Gemini API Key Modal */}
+      <GeminiKeyModal
+        isOpen={showGeminiModal}
+        onClose={() => setShowGeminiModal(false)}
+        onKeySaved={(key) => {
+          setHasGeminiKey(!!key);
+        }}
+      />
 
       {/* Login Modal */}
       <LoginModal

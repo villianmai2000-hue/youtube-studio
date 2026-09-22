@@ -56,10 +56,96 @@ export default function CharacterBibleModal({
   const [generatingAiCharacters, setGeneratingAiCharacters] = useState(false);
   const [generatingCharId, setGeneratingCharId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [copiedPromptId, setCopiedPromptId] = useState<string | null>(null);
+  const [copiedAll, setCopiedAll] = useState(false);
+
+  const handleCopyAllCharacters = () => {
+    if (!characters || characters.length === 0) {
+      alert('ไม่มีตัวละครให้คัดลอก');
+      return;
+    }
+    let output = `👥 ข้อมูลตัวละครทั้งหมด (${characters.length} ตัวละคร)\n`;
+    output += `📌 ชื่อเรื่อง: ${project?.title || 'สตูดิโอภาพยนตร์'}\n`;
+    output += `==========================================================\n\n`;
+    characters.forEach((c, idx) => {
+      const roleLabel =
+        c.role === 'protagonist'
+          ? '👑 กัปตัน / ตัวเอก (Protagonist)'
+          : c.role === 'antagonist'
+          ? '⚔️ ศัตรู / บอสใหญ่ (Antagonist)'
+          : c.role === 'mentor'
+          ? '📜 อาจารย์ / ผู้ชี้แนะ (Mentor)'
+          : c.role === 'beast_companion'
+          ? '🐉 สัตว์เทวะ / ผู้พิทักษ์ (Companion)'
+          : '🛡️ สหาย / ลูกเรือ (Supporting)';
+
+      output += `【ลำดับที่ ${idx + 1}: ${c.name}】\n`;
+      output += `• บทบาท: ${roleLabel}\n`;
+      output += `• อายุ: ${c.age || '-'}\n`;
+      output += `• รูปลักษณ์เด่น (Appearance Anchor): ${c.appearanceAnchor || '-'}\n`;
+      output += `• สไตล์เสื้อผ้า: ${c.clothingStyle || '-'}\n`;
+      output += `• อาวุธ/ไอเทมประจำกาย: ${c.weaponsOrProps || '-'}\n`;
+      output += `• พลัง/ทักษะพิเศษ: ${c.abilities || '-'}\n`;
+      output += `• นิสัย/บุคลิก: ${c.personality || '-'}\n`;
+      output += `• น้ำเสียง/สไตล์พากย์: ${c.voiceStyle || '-'}\n`;
+      output += `• Seed ล็อคหน้าตา: ${c.googleFlowSeed || '12345'}\n`;
+      output += `🎨 คำสั่งสร้างภาพ AI Prompt (Midjourney / Kling / SD / Flow):\n`;
+      output += `${c.googleFlowPrompt || `${c.appearanceAnchor}, ${c.clothingStyle}, character portrait, 8k resolution, cinematic lighting`}\n\n`;
+    });
+    navigator.clipboard.writeText(output);
+    setCopiedAll(true);
+    setTimeout(() => setCopiedAll(false), 2500);
+  };
   const [expandedCharIds, setExpandedCharIds] = useState<Record<string, boolean>>({});
   const [activeTabPerChar, setActiveTabPerChar] = useState<Record<string, 'dimensions' | 'prompts'>>({});
   const [selectedCount, setSelectedCount] = useState<number>(10);
   const [factionFilter, setFactionFilter] = useState<'all' | 'protagonist' | 'supporting' | 'antagonist' | 'mentor'>('all');
+
+  const handleCopyCharacter = (c: CharacterBible) => {
+    const roleLabel =
+      c.role === 'protagonist'
+        ? 'กัปตัน / ตัวเอก (Protagonist)'
+        : c.role === 'antagonist'
+        ? 'ศัตรู / บอสใหญ่ (Antagonist)'
+        : c.role === 'mentor'
+        ? 'อาจารย์ / ผู้ชี้แนะ (Mentor)'
+        : c.role === 'beast_companion'
+        ? 'สัตว์เทวะ / ผู้พิทักษ์ (Companion)'
+        : 'สหาย / ลูกเรือ / สมทบ (Supporting)';
+
+    const text = [
+      `【ข้อมูลตัวละคร: ${c.name}】`,
+      `• บทบาท: ${roleLabel}`,
+      `• อายุ: ${c.age || '-'}`,
+      `• รูปลักษณ์เด่น (Appearance Anchor): ${c.appearanceAnchor || '-'}`,
+      `• รูปร่าง: ${c.bodyBuild || '-'}`,
+      `• ใบหน้า: ${c.facialFeatures || '-'}`,
+      `• ทรงผม: ${c.hairStyle || '-'}`,
+      `• สไตล์เสื้อผ้า: ${c.clothingStyle || '-'}`,
+      `• โทนสีประจำตัว: ${c.colorTheme || '-'}`,
+      `• อาวุธ/ไอเทมประจำกาย: ${c.weaponsOrProps || '-'}`,
+      `• พลัง/ทักษะพิเศษ: ${c.abilities || '-'}`,
+      `• จุดอ่อน/ข้อจำกัด: ${c.weaknesses || '-'}`,
+      `• บุคลิกภาพ: ${c.personality || '-'}`,
+      `• น้ำเสียง/สไตล์พากย์: ${c.voiceStyle || '-'}`,
+      `• ความสัมพันธ์: ${c.relationships || '-'}`,
+      `• Seed ล็อคหน้าตา (Google Flow / AI): ${c.googleFlowSeed || '12345'}`,
+      ``,
+      `[คำสั่งสร้างภาพ AI Prompt (Midjourney / Kling / SD / Flow)]`,
+      c.googleFlowPrompt || `${c.appearanceAnchor}, ${c.clothingStyle}, character portrait, 8k resolution, cinematic lighting`,
+    ].join('\n');
+
+    navigator.clipboard.writeText(text);
+    setCopiedId(c.id);
+    setTimeout(() => setCopiedId(null), 2500);
+  };
+
+  const handleCopyPrompt = (c: CharacterBible) => {
+    const promptText = c.googleFlowPrompt || `${c.appearanceAnchor}, ${c.clothingStyle}, character portrait, 8k resolution, cinematic lighting`;
+    navigator.clipboard.writeText(promptText);
+    setCopiedPromptId(c.id);
+    setTimeout(() => setCopiedPromptId(null), 2500);
+  };
 
   // Sync when initialCharacters changes
   useEffect(() => {
@@ -189,6 +275,7 @@ export default function CharacterBibleModal({
 
     setGeneratingAiCharacters(true);
     try {
+      const localApiKey = typeof window !== 'undefined' ? localStorage.getItem('studio_gemini_api_key') || '' : '';
       const res = await fetch('/api/ai/generate-characters', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -201,6 +288,7 @@ export default function CharacterBibleModal({
           visualMedium: project?.visualMedium || visualMedium,
           stylePreset: project?.stylePreset || stylePreset,
           characterCount: targetCount,
+          apiKey: localApiKey,
         }),
       });
 
@@ -461,6 +549,29 @@ export default function CharacterBibleModal({
 
               <button
                 type="button"
+                onClick={handleCopyAllCharacters}
+                className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm ${
+                  copiedAll
+                    ? 'bg-emerald-500 text-black shadow-emerald-500/30'
+                    : 'bg-studio-800 hover:bg-studio-700 text-amber-300 border border-amber-500/40 hover:border-amber-400'
+                }`}
+                title="คัดลอกข้อมูลตัวละครทั้งหมดพร้อม Prompt สำหรับสร้างภาพ AI ใน 1 คลิก"
+              >
+                {copiedAll ? (
+                  <>
+                    <Check className="w-3.5 h-3.5" />
+                    <span>คัดลอกแล้ว!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3.5 h-3.5" />
+                    <span>คัดลอกตัวละครทั้งหมด</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                type="button"
                 onClick={() => handleAddMultipleCharacters(3)}
                 className="px-3 py-2 rounded-xl bg-studio-800 hover:bg-studio-700 text-cyan-300 text-xs font-semibold flex items-center gap-1 transition-all border border-cyan-500/30"
                 title="เพิ่ม 3 ตัวละครด่วน (สหาย / ศัตรู / อาจารย์)"
@@ -647,8 +758,8 @@ export default function CharacterBibleModal({
                     />
                   </div>
 
-                  {/* Seed Lock & Actions */}
-                  <div className="flex items-center gap-2">
+                  {/* Seed Lock, Copy & Actions */}
+                  <div className="flex items-center gap-2 flex-wrap">
                     <div className="flex items-center gap-1 px-2.5 py-1 bg-studio-900 border border-studio-700 rounded-xl text-xs text-cyan-300 font-mono">
                       <Lock className="w-3.5 h-3.5 text-cyan-400" />
                       <span className="hidden sm:inline">Seed:</span>
@@ -667,6 +778,54 @@ export default function CharacterBibleModal({
                         <RefreshCw className="w-3 h-3" />
                       </button>
                     </div>
+
+                    {/* Copy Full Character Card */}
+                    <button
+                      type="button"
+                      onClick={() => handleCopyCharacter(char)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-sm ${
+                        copiedId === char.id
+                          ? 'bg-emerald-500 text-black shadow-emerald-500/30'
+                          : 'bg-amber-500/15 hover:bg-amber-500 text-amber-300 hover:text-black border border-amber-500/40'
+                      }`}
+                      title="คัดลอกข้อมูลตัวละคร 11 มิติ พร้อม Seed และ Prompt ทั้งหมด เพื่อนำไปใช้งาน"
+                    >
+                      {copiedId === char.id ? (
+                        <>
+                          <Check className="w-3.5 h-3.5" />
+                          <span>คัดลอกแล้ว!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5" />
+                          <span>คัดลอกตัวละคร</span>
+                        </>
+                      )}
+                    </button>
+
+                    {/* Copy AI Prompt */}
+                    <button
+                      type="button"
+                      onClick={() => handleCopyPrompt(char)}
+                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium transition-all ${
+                        copiedPromptId === char.id
+                          ? 'bg-cyan-500 text-black'
+                          : 'bg-studio-900 hover:bg-studio-800 text-cyan-300 border border-studio-700'
+                      }`}
+                      title="คัดลอกเฉพาะคำสั่ง Prompt สำหรับใส่ใน Midjourney / Kling / Google Flow"
+                    >
+                      {copiedPromptId === char.id ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-black" />
+                          <span>คัดลอก Prompt แล้ว!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                          <span className="hidden sm:inline">คัดลอก Prompt</span>
+                        </>
+                      )}
+                    </button>
 
                     <button
                       type="button"

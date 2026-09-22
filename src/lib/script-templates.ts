@@ -1,6 +1,8 @@
 import { MovieGenre, VisualMedium, StylePreset, ScriptScene, CharacterBible, AspectRatio } from './types';
 import { buildVisualPrompts } from './ai-prompt-engine';
 import { generateProceduralSceneContent, SceneBeatParams } from './procedural-story-beats';
+import { analyzeStoryTheme, isCastMismatched } from './theme-detector';
+import { detectStoryCharacterScale, generateIntelligentCharacters } from './character-generator';
 
 export interface GenerateScriptOptions {
   title: string;
@@ -98,42 +100,40 @@ export function generateContinuousMovieScenes(options: GenerateScriptOptions): S
   const calc = calculateMovieScenesCount(targetDurationMinutes);
   const totalScenes = calc.totalScenes;
 
-  // 2. จัดกลุ่มตัวละครทั้งหมดในโปรเจกต์ (Ensemble Cast Engine สไตล์วันพีช / ชาแนลดัง)
-  const leadChar = characters.find((c) => c.role === 'protagonist') || characters[0] || {
-    id: 'char-1',
-    name: 'กัปตัน/ผู้นำ',
-    role: 'protagonist' as const,
-    appearanceAnchor: 'charismatic heroic captain, sharp determined eyes, iconic signature coat, 8k resolution',
-    clothingStyle: 'captain adventurer attire',
-    weaponsOrProps: 'หมัดอัคคี / ดาบประจำตระกูล',
-    personality: 'มุ่งมั่น รักพวกพ้อง ไม่ยอมแพ้ต่อโชคชะตา',
-    abilities: 'ทักษะต่อสู้ขั้นสูง ฮาคิราชันย์/ลมปราณเทพ',
-    voiceStyle: 'กระตือรือร้น ทรงพลัง มุ่งมั่นเด็ดเดี่ยว',
-  };
+  // 2. ตรวจจับแก่นเรื่องจากชื่อเรื่อง เรื่องย่อ และหมวดหมู่ด้วย Theme Detector อัจฉริยะ
+  const theme = analyzeStoryTheme({
+    title,
+    synopsis,
+    genre,
+    subGenre,
+    worldCulture,
+  });
 
-  const antagonist = characters.find((c) => c.role === 'antagonist') || {
-    id: 'char-boss',
-    name: 'จอมมารศัตรู',
-    role: 'antagonist' as const,
-    appearanceAnchor: 'sinister powerful overlord, dark aura, imposing posture, 8k resolution',
-    clothingStyle: 'dark commander attire',
-    weaponsOrProps: 'ดาบยักษ์ทมิฬ / เคียววิญญาณ',
-    personality: 'ทะนงตน โหดเหี้ยม ทรงอำนาจ',
-    abilities: 'พลังมืดทำลายล้าง หลุมดำมิติ',
-    voiceStyle: 'เยือกเย็น ทรงอำนาจ ดุดัน',
-  };
+  // ตรวจสอบว่า Character roster ที่ส่งเข้ามา ขัดแย้งกับธีมชื่อเรื่องหรือไม่
+  // หากขัดแย้ง (เช่น ชื่อเรื่องผีกระสือ แต่ cast เป็นกัปตันมังกี้ หรือไซเฟอร์) ให้ Auto-heal ด้วย Roster ที่ตรงกับธีมทันที!
+  let resolvedCharacters = characters;
+  if (!resolvedCharacters || resolvedCharacters.length === 0 || isCastMismatched(resolvedCharacters, theme)) {
+    const scale = detectStoryCharacterScale(title, synopsis, worldCulture, subGenre);
+    resolvedCharacters = generateIntelligentCharacters({
+      title,
+      synopsis,
+      worldCulture: theme.effectiveCulture,
+      genre: theme.effectiveGenre,
+      subGenre: theme.effectiveSubGenre,
+      visualMedium,
+      count: scale.count,
+    });
+  }
+
+  // 3. จัดกลุ่มตัวละครทั้งหมดในโปรเจกต์ (Ensemble Cast Engine)
+  const leadChar = resolvedCharacters.find((c) => c.role === 'protagonist') || resolvedCharacters[0];
+  const antagonist =
+    resolvedCharacters.find((c) => c.role === 'antagonist') ||
+    resolvedCharacters[resolvedCharacters.length - 1] ||
+    leadChar;
 
   // รวมตัวละครสหาย/ลูกเรือ/อาจารย์/หน่วยรบทั้งหมดที่มีในโปรเจกต์
-  const comrades = characters.filter((c) => c.id !== leadChar.id && c.id !== antagonist.id);
-
-  // 3. ตรวจจับแก่นเรื่องจากชื่อเรื่อง เรื่องย่อ และหมวดหมู่
-  const contextText = `${title} ${synopsis} ${genre} ${subGenre} ${worldCulture}`.toLowerCase();
-  
-  const isPirateOrAdventure = /วันพีช|วันพีซ|โจรสลัด|ทะเล|เกาะ|เรือ|ลูฟี|ล่าสมบัติ|pirate|one piece|sailing|treasure|ocean/i.test(contextText);
-  const isTowerOrDungeon = /หอคอย|ดันเจี้ยน|ชั้นที่|tower|dungeon|hunter|floor|gate|level|solo|คุปเวล่า/i.test(contextText);
-  const isCultivation = /เซียน|กำลังภายใน|ลมปราณ|ตบะ|กระบี่|เสวียนหยวน|สำนัก|เต๋า|มหายาน|xianxia|cultivation/i.test(contextText);
-  const isMilitary = /ทหาร|ยุทธการ|ขีปนาวุธ|หน่วยรบ|รบพิเศษ|ดาวเทียม|กองทัพ|สงคราม|military|tactical/i.test(contextText);
-  const isSciFi = /ไซไฟ|หุ่นยนต์|ไซเบอร์|ยานอวกาศ|จักรวาล|ai|cyber|scifi/i.test(contextText);
+  const comrades = resolvedCharacters.filter((c) => c.id !== leadChar.id && c.id !== antagonist.id);
 
   // 4. มุมกล้อง Seedream 5.0 Pro (10s Continuous Vectors)
   const cameraMotions = [
@@ -279,23 +279,31 @@ export function generateContinuousMovieScenes(options: GenerateScriptOptions): S
       antagonist,
       activeSquad,
       comrades,
-      isPirateOrAdventure,
-      isTowerOrDungeon,
-      isCultivation,
-      isMilitary,
-      isSciFi,
+      isSpecificKrasue: theme.isSpecificKrasue,
+      isSpecificTakhian: theme.isSpecificTakhian,
+      isHorrorOrGhost: theme.isHorrorOrGhost,
+      isThaiMyth: theme.isThaiMyth,
+      isWesternCinema: theme.isWesternCinema,
+      isAnimeOrJapan: theme.isAnimeOrJapan,
+      isPirateOrAdventure: theme.isPirateOrAdventure,
+      isTowerOrDungeon: theme.isTowerOrDungeon,
+      isCultivation: theme.isCultivation,
+      isMilitary: theme.isMilitary,
+      isSciFi: theme.isSciFi,
       transition,
       timeRangeStr,
     });
 
     // สร้าง Visual Prompts คมชัดสำหรับโมเดลภาพและวิดีโอ (Kling, Runway, Google Flow)
+    const effectiveGenre = theme.effectiveGenre;
+
     const prompts = buildVisualPrompts({
       sceneTitle: sceneData.pureTitle,
       narration: sceneData.narration,
       dialogueText: sceneData.dialogues.map((d) => `${d.speaker}: ${d.text}`).join(' '),
       visualMedium,
       stylePreset,
-      genre,
+      genre: effectiveGenre,
       cameraMovement,
       lighting: sceneData.lighting,
       charactersInScene: activeSquad,

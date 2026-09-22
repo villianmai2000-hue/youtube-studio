@@ -62,8 +62,8 @@ export function buildVisualPrompts(params: PromptGenerationParams): {
       styleKeywordsEn = 'cinematic live-action photography, 35mm film stock, photorealistic people, natural textures';
     }
 
-    negativeKeywordsTh = 'การ์ตูน, อนิเมะ, ภาพวาด 3 มิติ, โมเดลพลาสติก, ลายเส้นวาด, หน้าเบี้ยว, สัดส่วนผิดเพี้ยน';
-    negativeKeywordsEn = 'cartoon, anime, 3d render, cgi, illustration, drawing, painting, doll, plastic skin, deformed';
+    negativeKeywordsTh = 'การ์ตูน, อนิเมะ, ภาพวาด 3 มิติ, โมเดลพลาสติก, ลายเส้นวาด, หน้าเบี้ยว, สัดส่วนผิดเพี้ยน, แบ่งครึ่งจอ, แยกช่องภาพ, ภาพปะติด, หลายช่องการ์ตูน, เส้นคั่นกลางจอ, ภาพแยกเฟรม, สองภาพในหนึ่งรูป';
+    negativeKeywordsEn = 'cartoon, anime, 3d render, cgi, illustration, drawing, painting, doll, plastic skin, deformed, split screen, divided screen, split frame, diptych, triptych, multiple panels, separate frames, collage, split view, border line between characters, dual screen, picture in picture, comic panels';
   } else {
     // โหมดการ์ตูนและแอนิเมชัน (Animation)
     if (stylePreset === 'donghua_3d') {
@@ -84,8 +84,8 @@ export function buildVisualPrompts(params: PromptGenerationParams): {
       styleKeywordsEn = '3D animated movie still, high quality CGI render, stylized fantasy aesthetic';
     }
 
-    negativeKeywordsTh = 'คนจริง, ภาพถ่ายจากกล้องจริง, ผิวมนุษย์จริง, ภาพเบลอ, คุณภาพต่ำ, ลายน้ำ';
-    negativeKeywordsEn = 'live action, real human photo, realistic photograph, camera grain, raw photo, deformed limbs';
+    negativeKeywordsTh = 'คนจริง, ภาพถ่ายจากกล้องจริง, ผิวมนุษย์จริง, ภาพเบลอ, คุณภาพต่ำ, ลายน้ำ, แบ่งครึ่งจอ, แยกช่องภาพ, ภาพปะติด, หลายช่องการ์ตูน, เส้นคั่นกลางจอ, ภาพแยกเฟรม, สองภาพในหนึ่งรูป';
+    negativeKeywordsEn = 'live action, real human photo, realistic photograph, camera grain, raw photo, deformed limbs, split screen, divided screen, split frame, diptych, triptych, multiple panels, separate frames, collage, split view, border line between characters, dual screen, picture in picture, comic panels';
   }
 
   // 2. บรรยากาศแนวเรื่องภาษาไทย (Genre Atmospheric Elements)
@@ -105,8 +105,8 @@ export function buildVisualPrompts(params: PromptGenerationParams): {
       genreFlavorEn = 'ancient gothic castle ruins, mythical beasts in distance, glowing magical crystals, stormy sky';
       break;
     case 'horror_thriller':
-      genreFlavorTh = 'บรรยากาศชวนขนลุกและน่าสะพรึงกลัว, เงามืดคืบคลาน, แสงจันทร์สลัวเยือกเย็น, หมอกหนาทึบลึกลับชวนลุ้นระทึก';
-      genreFlavorEn = 'eerie haunted atmosphere, creeping shadows, cold dim moonlight, dense ominous fog';
+      genreFlavorTh = 'บรรยากาศชวนขนลุกและน่าสะพรึงกลัวสไตล์ภาพยนตร์สยองขวัญไทย, ศาลเพียงตาโบราณ, ต้นไม้ศักดิ์สิทธิ์ผูกผ้าเจ็ดสี, ควันธูปและเปลวเทียนวูบวาบ, หมอกหนาทึบและเงามืดลี้ลับชวนลุ้นระทึก';
+      genreFlavorEn = 'chilling Thai horror cinema atmosphere, sacred ancient shrine, mythical banyan takhian tree wrapped in colorful sacred silks, floating incense smoke, flickering candlelight, dense ominous fog, chiaroscuro creeping shadows, eerie supernatural tension';
       break;
     case 'mystery_noir':
       genreFlavorTh = 'ตรอกซอกซอยในเมืองท่ามกลางสายฝนพรำ, แสงไฟสลัวสะท้อนแอ่งน้ำ, เงาร่างปริศนา, บรรยากาศภาพยนตร์สืบสวนคดีฆาตกรรม';
@@ -125,10 +125,13 @@ export function buildVisualPrompts(params: PromptGenerationParams): {
       genreFlavorEn = 'cinematic atmosphere, rich environmental storytelling';
   }
 
-  // 3. ตัวละครที่ปรากฏในฉาก (Character Descriptions)
+  // 3. ตัวละครที่ปรากฏในฉาก (Character Descriptions & Single Frame Composition)
   let characterDescTh = '';
   let characterDescEn = '';
+  let sameFrameInstructionTh = '';
+  let sameFrameInstructionEn = '';
   let flowSeed = '482910';
+
   if (charactersInScene.length > 0) {
     flowSeed = charactersInScene[0].googleFlowSeed || `${Math.floor(100000 + Math.random() * 900000)}`;
     characterDescTh = charactersInScene
@@ -142,6 +145,11 @@ export function buildVisualPrompts(params: PromptGenerationParams): {
     characterDescEn = charactersInScene
       .map((c) => `[Character: ${c.name}, ${c.appearanceAnchor}, wearing ${c.clothingStyle}]`)
       .join(' and ');
+
+    if (charactersInScene.length > 1) {
+      sameFrameInstructionTh = `[การจัดวางเฟรม: ตัวละครทุกคน (${charactersInScene.map((c) => c.name).join(', ')}) ต้องปรากฏร่วมกันในเฟรมภาพเดียวกันแบบ Single Unified Camera Shot ถ่ายทำในช็อตเดียวกัน ห้ามแบ่งครึ่งจอ ห้ามแยกช่องภาพ ห้าม Split-screen เด็ดขาด]`;
+      sameFrameInstructionEn = `[Composition: all characters (${charactersInScene.map((c) => c.name).join(', ')}) captured together inside the exact same single camera frame, cinematic two-shot/group shot, unified single scene without split screen, no collage, no divided frames]`;
+    }
   } else {
     characterDescTh = 'ตัวละครหลักในฉาก';
     characterDescEn = 'focal character in scene';
@@ -153,24 +161,59 @@ export function buildVisualPrompts(params: PromptGenerationParams): {
   const arParam = aspectRatio === '9:16' ? '--ar 9:16' : '--ar 16:9';
 
   // 5. ประกอบคำสั่งสร้างภาพภาษาไทย (Thai Image Prompt - ตัวหลัก!)
-  const imagePrompt = `${styleKeywordsTh}, ${characterDescTh}, กำลังทำ [${cleanSummary}], ฉากหลัง: ${genreFlavorTh}, มุมกล้อง: ${cameraMovement}, แสงเงา: ${lighting}, ภาพ${arLabelTh} คมชัดระดับ 8K ละเอียดประณีต`;
+  const sameFrameThPart = sameFrameInstructionTh ? `, ${sameFrameInstructionTh}` : '';
+  const sameFrameEnPart = sameFrameInstructionEn ? `, ${sameFrameInstructionEn}` : '';
+
+  const imagePrompt = `${styleKeywordsTh}, ${characterDescTh}${sameFrameThPart}, กำลังทำ [${cleanSummary}], ฉากหลัง: ${genreFlavorTh}, มุมกล้อง: ${cameraMovement}, แสงเงา: ${lighting}, ภาพ${arLabelTh} คมชัดระดับ 8K ละเอียดประณีต`;
 
   // พร้อมต์ภาษาอังกฤษสำรอง
-  const imagePromptEn = `${styleKeywordsEn}, ${characterDescEn}, ${cleanSummary}, set in ${genreFlavorEn}. Camera: ${cameraMovement}. Lighting: ${lighting}. 8k resolution, cinematic composition, ${arParam} --v 6.1 --style raw`;
+  const imagePromptEn = `${styleKeywordsEn}, ${characterDescEn}${sameFrameEnPart}, ${cleanSummary}, set in ${genreFlavorEn}. Camera: ${cameraMovement}. Lighting: ${lighting}. 8k resolution, cinematic composition, ${arParam} --v 6.1 --style raw`;
 
   // 6. พร้อมต์สำหรับ Google Flow (flow.google.com) - ล็อคตัวละครและฉากให้คมชัด ไม่เพี้ยน
   const googleFlowPrompt = `[Google Flow / VideoFX Prompt - flow.google.com]
-Prompt: ${cleanSummary}, ${characterDescEn}, ${genreFlavorEn}. Cinematography: ${cameraMovement}, ${lighting}. High fidelity consistent character rendering, sharp photorealistic details, cinematic grade.
+Prompt: ${cleanSummary}, ${characterDescEn}${sameFrameEnPart}, ${genreFlavorEn}. Cinematography: ${cameraMovement}, ${lighting}. High fidelity consistent character rendering, sharp photorealistic details, cinematic grade.
 Aspect Ratio: ${aspectRatio}`;
 
-  // 7. ประกอบคำสั่งสร้างวิดีโอภาษาไทย (Thai Video Motion Prompt - สะอาด ไม่เพี้ยน)
-  const videoMotionPrompt = `[ฉากที่ ${sceneNumber}] [มุมกล้อง: ${cameraMovement}, เคลื่อนไหวลื่นไหลแบบภาพยนตร์] [การกระทำ: ตัวละครทำการ ${cleanSummary}, แอ็กชันต่อเนื่องไม่ตัดข้าม] [แสงเงา: ${lighting}] [สัดส่วน: ${aspectRatio}] [สไตล์: ${
-    visualMedium === 'live_action' ? 'ภาพยนตร์คนจริง เลนส์ 35 มม.' : 'อนิเมะจีน 3D สไตล์เพื่อนที่ดีที่สุด SAN1 เรนเดอร์ Unreal Engine 5'
-  }] รักษาความต่อเนื่องของใบหน้า ทรงผม เสื้อผ้า และฉากอย่างแม่นยำ คมชัดระดับ 4K 60fps ต่อเนื่องเนียนตา`;
+  // 7. ประกอบคำสั่งสร้างวิดีโอภาษาไทยและอังกฤษ (Dynamic Video Motion Prompt)
+  let videoStyleLabelTh = 'ภาพยนตร์คนจริง เลนส์ 35 มม.';
+  let videoStyleLabelEn = 'Live-action realistic 35mm film';
 
-  const videoMotionPromptEn = `[Shot ${sceneNumber}] [Camera: ${cameraMovement}, smooth motion] [Action: Character performs ${cleanSummary}, continuous shot] [Lighting: ${lighting}] [Aspect: ${aspectRatio}] [Style: ${
-    visualMedium === 'live_action' ? 'Live-action realistic 35mm film' : '3D Chinese Donghua animation UE5'
-  }] Maintain exact character face, clothing, and environment. Zero drift. 4K, 60fps.`;
+  if (visualMedium === 'animation') {
+    if (stylePreset === 'donghua_3d') {
+      videoStyleLabelTh = 'อนิเมะจีน 3D สไตล์เพื่อนที่ดีที่สุด SAN1 เรนเดอร์ Unreal Engine 5';
+      videoStyleLabelEn = '3D Chinese Donghua animation UE5';
+    } else if (stylePreset === 'anime_2d') {
+      videoStyleLabelTh = 'อนิเมะญี่ปุ่น 2D ระดับโรงภาพยนตร์ สไตล์ Ufotable';
+      videoStyleLabelEn = 'Cinematic 2D Japanese anime Ufotable style';
+    } else if (stylePreset === 'western_3d') {
+      videoStyleLabelTh = 'แอนิเมชัน 3D สไตล์สากล สไตล์ Arcane';
+      videoStyleLabelEn = '3D stylized cinematic animation Arcane style';
+    } else if (stylePreset === 'manhwa_action') {
+      videoStyleLabelTh = 'มันฮวาแอ็กชันสไตล์ Solo Leveling';
+      videoStyleLabelEn = 'Solo Leveling manhwa action style';
+    } else {
+      videoStyleLabelTh = 'ภาพยนตร์แอนิเมชัน 3D คุณภาพสูง';
+      videoStyleLabelEn = '3D animated movie cinematic render';
+    }
+  } else {
+    if (genre === 'horror_thriller') {
+      videoStyleLabelTh = 'ภาพยนตร์สยองขวัญลี้ลับไทย แสงเงาดาร์กหลอนสมจริง';
+      videoStyleLabelEn = 'Cinematic Thai horror thriller film';
+    } else if (stylePreset === 'military_combat') {
+      videoStyleLabelTh = 'ภาพยนตร์สงครามยุทธวิธีสมจริง 8K';
+      videoStyleLabelEn = 'Tactical military combat cinematography 8k';
+    } else if (stylePreset === 'hollywood_cinematic') {
+      videoStyleLabelTh = 'ภาพยนตร์คนจริงระดับฮอลลีวูด เลนส์ 35 มม.';
+      videoStyleLabelEn = 'Hollywood cinematic 35mm film';
+    }
+  }
+
+  const sameFrameVideoTh = charactersInScene.length > 1 ? ' [จัดวางตัวละคร: ทุกคนอยู่ในเฟรมเดียวกันแบบ Two-shot ห้ามตัดแบ่งครึ่งจอ]' : '';
+  const sameFrameVideoEn = charactersInScene.length > 1 ? ' [Composition: all characters in single unified camera shot, no split screen]' : '';
+
+  const videoMotionPrompt = `[ฉากที่ ${sceneNumber}] [มุมกล้อง: ${cameraMovement}, เคลื่อนไหวลื่นไหลแบบภาพยนตร์] [การกระทำ: ตัวละครทำการ ${cleanSummary}, แอ็กชันต่อเนื่องไม่ตัดข้าม]${sameFrameVideoTh} [แสงเงา: ${lighting}] [สัดส่วน: ${aspectRatio}] [สไตล์: ${videoStyleLabelTh}] รักษาความต่อเนื่องของใบหน้า ทรงผม เสื้อผ้า และฉากอย่างแม่นยำ คมชัดระดับ 4K 60fps ต่อเนื่องเนียนตา`;
+
+  const videoMotionPromptEn = `[Shot ${sceneNumber}] [Camera: ${cameraMovement}, smooth motion] [Action: Character performs ${cleanSummary}, continuous shot]${sameFrameVideoEn} [Lighting: ${lighting}] [Aspect: ${aspectRatio}] [Style: ${videoStyleLabelEn}] Maintain exact character face, clothing, and environment. Zero drift. 4K, 60fps.`;
 
   return {
     imagePrompt,

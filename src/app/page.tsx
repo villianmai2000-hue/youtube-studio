@@ -49,11 +49,114 @@ export default function HomePage() {
     try {
       const res = await fetch('/api/projects');
       const data = await res.json();
-      if (data.success && data.projects) {
-        setProjects(data.projects);
+      let serverProjects: Project[] = [];
+      if (data.success && Array.isArray(data.projects)) {
+        serverProjects = data.projects;
+      }
+
+      // Check localStorage cached projects
+      const cachedStr = typeof window !== 'undefined' ? localStorage.getItem('studio_cached_projects') : null;
+      let cachedProjects: Project[] = [];
+      if (cachedStr) {
+        try {
+          cachedProjects = JSON.parse(cachedStr);
+        } catch {
+          // ignore
+        }
+      }
+
+      // Merge server and local projects with intelligent timestamp comparison (Newest updatedAt wins!)
+      const projectMap = new Map<string, Project>();
+      const projectsToResyncToServer: Project[] = [];
+
+      // 1. Put all cached local projects first
+      cachedProjects.forEach((p) => {
+        if (p && p.id) projectMap.set(p.id, p);
+      });
+
+      // 2. Merge server projects
+      serverProjects.forEach((sp) => {
+        if (!sp || !sp.id) return;
+        const local = projectMap.get(sp.id);
+        if (!local) {
+          projectMap.set(sp.id, sp);
+        } else {
+          const localTime = local.updatedAt ? new Date(local.updatedAt).getTime() : 0;
+          const serverTime = sp.updatedAt ? new Date(sp.updatedAt).getTime() : 0;
+          if (serverTime >= localTime) {
+            projectMap.set(sp.id, sp);
+          } else {
+            // Local version in browser is NEWER than server! Keep local and flag to resync to server
+            projectMap.set(sp.id, local);
+            projectsToResyncToServer.push(local);
+          }
+        }
+      });
+
+      // 3. Also check individual localStorage keys (e.g. studio_project_${id}) in case user edited directly
+      if (typeof window !== 'undefined') {
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith('studio_project_')) {
+            try {
+              const single = JSON.parse(localStorage.getItem(key) || '');
+              if (single && single.id) {
+                const current = projectMap.get(single.id);
+                if (!current) {
+                  projectMap.set(single.id, single);
+                  projectsToResyncToServer.push(single);
+                } else {
+                  const singleTime = single.updatedAt ? new Date(single.updatedAt).getTime() : 0;
+                  const currentTime = current.updatedAt ? new Date(current.updatedAt).getTime() : 0;
+                  if (singleTime > currentTime) {
+                    projectMap.set(single.id, single);
+                    projectsToResyncToServer.push(single);
+                  }
+                }
+              }
+            } catch {
+              // ignore
+            }
+          }
+        }
+      }
+
+      const merged = Array.from(projectMap.values()).sort(
+        (a, b) => new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime()
+      );
+
+      setProjects(merged);
+
+      // Keep localStorage in sync with merged
+      if (typeof window !== 'undefined' && merged.length > 0) {
+        localStorage.setItem('studio_cached_projects', JSON.stringify(merged));
+      }
+
+      // Background resync: any projects missing on server OR newer locally get pushed via PUT
+      const missingOnServer = cachedProjects.filter((cp) => !serverProjects.some((sp) => sp.id === cp.id));
+      const allToSync = [...missingOnServer, ...projectsToResyncToServer];
+      const uniqueToSync = Array.from(new Map(allToSync.map((p) => [p.id, p])).values());
+
+      if (uniqueToSync.length > 0) {
+        for (const proj of uniqueToSync) {
+          fetch(`/api/projects/${proj.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(proj),
+          }).catch((e) => console.warn('Resync project error:', e));
+        }
       }
     } catch (err) {
       console.error('Error loading projects:', err);
+      // Fallback to local storage on network error
+      const cachedStr = typeof window !== 'undefined' ? localStorage.getItem('studio_cached_projects') : null;
+      if (cachedStr) {
+        try {
+          setProjects(JSON.parse(cachedStr));
+        } catch {
+          // ignore
+        }
+      }
     } finally {
       setLoading(false);
     }

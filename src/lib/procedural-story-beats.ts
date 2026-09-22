@@ -1,4 +1,11 @@
 import { CharacterBible } from './types';
+import {
+  generateKrasueHorrorScene,
+  generateHorrorGhostScene,
+  generateThaiMythScene,
+  generateWesternCinemaScene,
+  generateAnimeJapanScene,
+} from './procedural-folklore-beats';
 
 export interface SceneBeatParams {
   sceneNumber: number;
@@ -11,6 +18,12 @@ export interface SceneBeatParams {
   antagonist: CharacterBible;
   activeSquad: CharacterBible[];
   comrades: CharacterBible[];
+  isSpecificKrasue?: boolean;
+  isSpecificTakhian?: boolean;
+  isHorrorOrGhost?: boolean;
+  isThaiMyth?: boolean;
+  isWesternCinema?: boolean;
+  isAnimeOrJapan?: boolean;
   isPirateOrAdventure: boolean;
   isTowerOrDungeon: boolean;
   isCultivation: boolean;
@@ -34,6 +47,21 @@ export interface SceneContentResult {
  * โดยไม่มีการซ้ำบทพูดเดิมในแต่ละฉาก แม้จะเป็นหนังยาว 900 ฉาก (2 ชั่วโมง 30 นาที)
  */
 export function generateProceduralSceneContent(params: SceneBeatParams): SceneContentResult {
+  if (params.isSpecificKrasue) {
+    return generateKrasueHorrorScene(params);
+  }
+  if (params.isHorrorOrGhost) {
+    return generateHorrorGhostScene(params);
+  }
+  if (params.isThaiMyth) {
+    return generateThaiMythScene(params);
+  }
+  if (params.isWesternCinema) {
+    return generateWesternCinemaScene(params);
+  }
+  if (params.isAnimeOrJapan) {
+    return generateAnimeJapanScene(params);
+  }
   if (params.isTowerOrDungeon) {
     return generateTowerDungeonScene(params);
   }

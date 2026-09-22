@@ -27,16 +27,18 @@ export async function PUT(
     const body = await request.json();
     const existing = await getProjectById(params.id);
 
-    if (!existing) {
-      return NextResponse.json({ success: false, error: 'Project not found' }, { status: 404 });
-    }
-
-    const updated = {
-      ...existing,
-      ...body,
-      id: existing.id, // preserve ID
-      updatedAt: new Date().toISOString(),
-    };
+    const updated = existing
+      ? {
+          ...existing,
+          ...body,
+          id: params.id,
+          updatedAt: new Date().toISOString(),
+        }
+      : {
+          ...body,
+          id: params.id,
+          updatedAt: new Date().toISOString(),
+        };
 
     await saveProject(updated);
     return NextResponse.json({ success: true, project: updated });

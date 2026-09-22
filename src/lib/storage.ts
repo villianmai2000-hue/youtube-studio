@@ -4,9 +4,19 @@ import fs from 'fs';
 import path from 'path';
 
 const LOCAL_FALLBACK_FILE = path.join(process.cwd(), '.studio_local_data.json');
+const LOCAL_PROJECTS_DIR = path.join(process.cwd(), '.studio_projects');
 const LOCAL_USERS_FILE = path.join(process.cwd(), '.studio_users.json');
 const LOCAL_SECURITY_FILE = path.join(process.cwd(), '.studio_security.json');
 const LOCAL_MEDIA_DIR = path.join(process.cwd(), '.studio_media');
+
+// Ensure directories exist
+try {
+  if (!fs.existsSync(LOCAL_PROJECTS_DIR)) {
+    fs.mkdirSync(LOCAL_PROJECTS_DIR, { recursive: true });
+  }
+} catch {
+  // Read-only filesystem
+}
 
 // In-Memory Global Fallbacks (Crucial for Vercel Serverless Read-Only Filesystem)
 declare global {
@@ -43,23 +53,72 @@ export const DEFAULT_OWNER: User = {
   createdAt: '2026-01-01T00:00:00.000Z',
 };
 
-// Helper to read local fallback safely without crashing on Vercel EROFS
+// Helper to read local fallback safely from both individual files and master file
 function getLocalData(): { projects: Project[] } {
-  if (global._inMemoryProjects && global._inMemoryProjects.length > 0) {
-    return { projects: global._inMemoryProjects };
+  const projectMap = new Map<string, Project>();
+
+  // 1. Read individual project files from .studio_projects/
+  try {
+    if (fs.existsSync(LOCAL_PROJECTS_DIR)) {
+      const files = fs.readdirSync(LOCAL_PROJECTS_DIR);
+      for (const file of files) {
+        if (file.endsWith('.json')) {
+          try {
+            const raw = fs.readFileSync(path.join(LOCAL_PROJECTS_DIR, file), 'utf-8');
+            const p: Project = JSON.parse(raw);
+            if (p && p.id) {
+              projectMap.set(p.id, p);
+            }
+          } catch {
+            // Ignore single corrupted file
+          }
+        }
+      }
+    }
+  } catch (err) {
+    // Read-only or directory access error
   }
+
+  // 2. Read from .studio_local_data.json master file
   try {
     if (fs.existsSync(LOCAL_FALLBACK_FILE)) {
       const content = fs.readFileSync(LOCAL_FALLBACK_FILE, 'utf-8');
       const parsed = JSON.parse(content);
-      global._inMemoryProjects = parsed.projects || [];
-      return parsed;
+      if (Array.isArray(parsed.projects)) {
+        for (const p of parsed.projects) {
+          if (p && p.id && !projectMap.has(p.id)) {
+            projectMap.set(p.id, p);
+            try {
+              if (!fs.existsSync(LOCAL_PROJECTS_DIR)) {
+                fs.mkdirSync(LOCAL_PROJECTS_DIR, { recursive: true });
+              }
+              const singleFile = path.join(LOCAL_PROJECTS_DIR, `${p.id}.json`);
+              if (!fs.existsSync(singleFile)) {
+                fs.writeFileSync(singleFile, JSON.stringify(p, null, 2), 'utf-8');
+              }
+            } catch {
+              // ignore
+            }
+          }
+        }
+      }
     }
   } catch (err) {
-    // Read-only or file access error (expected on Vercel)
+    // Read-only or file access error
   }
-  global._inMemoryProjects = global._inMemoryProjects || [];
-  return { projects: global._inMemoryProjects };
+
+  // 3. Merge in-memory cache if any missing
+  if (global._inMemoryProjects && Array.isArray(global._inMemoryProjects)) {
+    for (const p of global._inMemoryProjects) {
+      if (p && p.id && !projectMap.has(p.id)) {
+        projectMap.set(p.id, p);
+      }
+    }
+  }
+
+  const merged = Array.from(projectMap.values());
+  global._inMemoryProjects = merged;
+  return { projects: merged };
 }
 
 // Helper to write local fallback safely without crashing on Vercel EROFS
@@ -68,7 +127,7 @@ function saveLocalData(data: { projects: Project[] }) {
   try {
     fs.writeFileSync(LOCAL_FALLBACK_FILE, JSON.stringify(data, null, 2), 'utf-8');
   } catch (err) {
-    // Silently continue with in-memory store if disk is read-only (e.g. on Vercel)
+    console.warn('Notice: Local fallback write to file failed (e.g. read-only environment):', err);
   }
 }
 
@@ -105,47 +164,98 @@ function saveLocalUsers(users: User[]) {
 }
 
 export async function getAllProjects(): Promise<Project[]> {
+  const projectMap = new Map<string, Project>();
+
+  // 1. Load from local store first (immediate fail-safe)
+  const local = getLocalData();
+  for (const p of local.projects) {
+    if (p && p.id) {
+      projectMap.set(p.id, p);
+    }
+  }
+
+  // 2. Query MongoDB Atlas if configured, and merge with newest updatedAt winning
   if (isMongoConfigured()) {
     try {
       const db = await getDb();
       const docs = await db.collection<Project>('projects').find({}).sort({ updatedAt: -1 }).toArray();
-      return docs.map((doc) => ({
-        ...doc,
-        id: doc.id || doc._id?.toString() || '',
-      }));
-    } catch (error) {
-      console.warn('MongoDB Atlas query failed, falling back to local store:', error);
-    }
-  }
-
-  // Fallback to local storage
-  const local = getLocalData();
-  return local.projects.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-}
-
-export async function getProjectById(id: string): Promise<Project | null> {
-  if (isMongoConfigured()) {
-    try {
-      const db = await getDb();
-      const doc = await db.collection<Project>('projects').findOne({ id });
-      if (doc) {
-        return {
+      for (const doc of docs) {
+        const p: Project = {
           ...doc,
           id: doc.id || doc._id?.toString() || '',
         };
+        const existing = projectMap.get(p.id);
+        if (!existing) {
+          projectMap.set(p.id, p);
+        } else {
+          const docTime = p.updatedAt ? new Date(p.updatedAt).getTime() : 0;
+          const existingTime = existing.updatedAt ? new Date(existing.updatedAt).getTime() : 0;
+          if (docTime >= existingTime) {
+            projectMap.set(p.id, p);
+          }
+        }
       }
     } catch (error) {
       console.warn('MongoDB Atlas query failed, falling back to local store:', error);
     }
   }
 
-  const local = getLocalData();
-  return local.projects.find((p) => p.id === id) || null;
+  const merged = Array.from(projectMap.values()).sort(
+    (a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime()
+  );
+  return merged;
+}
+
+export async function getProjectById(id: string): Promise<Project | null> {
+  let localProj: Project | null = null;
+
+  // 1. Check individual project file first from .studio_projects/
+  try {
+    const singlePath = path.join(LOCAL_PROJECTS_DIR, `${id}.json`);
+    if (fs.existsSync(singlePath)) {
+      const raw = fs.readFileSync(singlePath, 'utf-8');
+      const p: Project = JSON.parse(raw);
+      if (p && p.id === id) {
+        localProj = p;
+      }
+    }
+  } catch {
+    // fallback
+  }
+
+  if (!localProj) {
+    const local = getLocalData();
+    localProj = local.projects.find((p) => p.id === id) || null;
+  }
+
+  // 2. Query MongoDB Atlas if configured, compare timestamps: newest wins
+  if (isMongoConfigured()) {
+    try {
+      const db = await getDb();
+      const doc = await db.collection<Project>('projects').findOne({ id });
+      if (doc) {
+        const mongoProj: Project = {
+          ...doc,
+          id: doc.id || doc._id?.toString() || '',
+        };
+        if (!localProj) return mongoProj;
+
+        const mongoTime = mongoProj.updatedAt ? new Date(mongoProj.updatedAt).getTime() : 0;
+        const localTime = localProj.updatedAt ? new Date(localProj.updatedAt).getTime() : 0;
+        return mongoTime >= localTime ? mongoProj : localProj;
+      }
+    } catch (error) {
+      console.warn('MongoDB Atlas query failed, falling back to local store:', error);
+    }
+  }
+
+  return localProj;
 }
 
 export async function saveProject(project: Project): Promise<Project> {
   project.updatedAt = new Date().toISOString();
 
+  // 1. Save to MongoDB Atlas if configured (Fail-safe, will not block local save if Atlas is down or bad auth)
   if (isMongoConfigured()) {
     try {
       const db = await getDb();
@@ -154,13 +264,23 @@ export async function saveProject(project: Project): Promise<Project> {
         { $set: project },
         { upsert: true }
       );
-      return project;
     } catch (error) {
       console.warn('MongoDB Atlas save failed, saving to local store:', error);
     }
   }
 
-  // Local fallback
+  // 2. ALWAYS Save individual project file into .studio_projects/ for dedicated local isolation
+  try {
+    if (!fs.existsSync(LOCAL_PROJECTS_DIR)) {
+      fs.mkdirSync(LOCAL_PROJECTS_DIR, { recursive: true });
+    }
+    const singleFile = path.join(LOCAL_PROJECTS_DIR, `${project.id}.json`);
+    fs.writeFileSync(singleFile, JSON.stringify(project, null, 2), 'utf-8');
+  } catch (err) {
+    console.warn(`Notice: Could not write individual project file for ${project.id}:`, err);
+  }
+
+  // 3. ALWAYS Update master .studio_local_data.json & in-memory cache
   const local = getLocalData();
   const index = local.projects.findIndex((p) => p.id === project.id);
   if (index >= 0) {
@@ -169,6 +289,7 @@ export async function saveProject(project: Project): Promise<Project> {
     local.projects.push(project);
   }
   saveLocalData(local);
+
   return project;
 }
 
@@ -196,7 +317,17 @@ export async function deleteProject(id: string): Promise<boolean> {
     }
   }
 
-  // Fallback: Delete from local store
+  // Fallback: Delete individual file from .studio_projects/
+  try {
+    const singleFile = path.join(LOCAL_PROJECTS_DIR, `${id}.json`);
+    if (fs.existsSync(singleFile)) {
+      fs.unlinkSync(singleFile);
+    }
+  } catch {
+    // ignore
+  }
+
+  // Fallback: Delete from local master store
   const local = getLocalData();
   local.projects = local.projects.filter((p) => p.id !== id);
   saveLocalData(local);

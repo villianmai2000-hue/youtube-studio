@@ -61,10 +61,8 @@ export function detectStoryCharacterScale(
   };
 }
 
-/**
- * สร้างคลังตัวละครอัจฉริยะ (Intelligent Ensemble Characters)
- * รองรับทุกแนวเรื่อง ทั้งหอคอย 100 ชั้น, โจรสลัดวันพีช, เซียนจีน 3D, ทหารยุทธการ, ไซไฟ
- */
+import { analyzeStoryTheme } from './theme-detector';
+
 export function generateIntelligentCharacters(params: {
   title: string;
   synopsis: string;
@@ -75,15 +73,27 @@ export function generateIntelligentCharacters(params: {
   count: number;
 }): CharacterBible[] {
   const { worldCulture, count, synopsis, title, genre, subGenre } = params;
-  const context = `${title} ${synopsis} ${genre} ${subGenre || ''}`.toLowerCase();
+  
+  // ใช้ Theme Detector อัจฉริยะแบบรวมศูนย์ ป้องกันการตีความเป็นไซไฟหรือโจรสลัดผิดพลาด
+  const theme = analyzeStoryTheme({ title, synopsis, genre, subGenre, worldCulture });
 
-  const isTowerOrDungeon = /หอคอย|ดันเจี้ยน|ชั้นที่|tower|dungeon|hunter|floor|gate|level|solo|คุปเวล่า/i.test(context);
-  const isPirateOrOnePiece = /วันพีช|โจรสลัด|วันพีซ|pirate|ทะเล|สมบัติ|กัปตัน|เรือ|ลูฟี่|ลูฟี/i.test(context);
-  const isMilitary = /ทหาร|ยุทธการ|ขีปนาวุธ|หน่วยรบ|รบพิเศษ|ดาวเทียม|กองทัพ|สงคราม|military|tactical/i.test(context);
-  const isSciFi = /ไซไฟ|หุ่นยนต์|ไซเบอร์|ยานอวกาศ|จักรวาล|ai|cyber|scifi/i.test(context);
+  // 1. ผีกระสือเฉพาะเจาะจง (Thai Krasue Folklore)
+  if (theme.isSpecificKrasue) {
+    return buildThaiKrasueRoster(title, count);
+  }
 
-  // 1. แนวหอคอย / ดันเจี้ยน 100 ชั้น (Solo Hunter / Tower of God style)
-  if (isTowerOrDungeon) {
+  // 2. ผีไทย / เจ้าแม่ตะเคียน / สยองขวัญ / อาถรรพ์ (Thai Ghost & Folklore)
+  if (theme.isHorrorOrGhost) {
+    return buildThaiHorrorRoster(title, count);
+  }
+
+  // 3. ตำนานไทย / พญานาค / ครุฑ / วรรณคดี (Thai Myth & Folklore)
+  if (theme.isThaiMyth) {
+    return buildThaiMythRoster(title, count);
+  }
+
+  // 4. หอคอย / ดันเจี้ยน 100 ชั้น (Solo Hunter / Tower of God style)
+  if (theme.isTowerOrDungeon) {
     const towerRoster: CharacterBible[] = [
       {
         id: `char-tw-${Date.now()}-1`,
@@ -280,7 +290,7 @@ export function generateIntelligentCharacters(params: {
   }
 
   // 2. แนวโจรสลัด / วันพีช / มหาสมุทร (One Piece Pirate Style)
-  if (isPirateOrOnePiece || worldCulture === 'japanese') {
+  if (theme.isPirateOrAdventure) {
     const pirateRoster: CharacterBible[] = [
       {
         id: `char-op-${Date.now()}-1`,
@@ -632,7 +642,13 @@ export function generateIntelligentCharacters(params: {
     },
   ];
 
-  if (isMilitary) {
+  // 3. แนวเซียนจีน 3D (Donghua Xianxia)
+  if (theme.isCultivation) {
+    return expandRosterToCount(cnRoster, count, 'xianxia');
+  }
+
+  // 4. แนวยุทธวิธีทางทหาร / สงครามสมัยใหม่ (Military Tactical)
+  if (theme.isMilitary) {
     const militaryRoster: CharacterBible[] = [
       {
         id: `char-mil-${Date.now()}-1`,
@@ -714,8 +730,8 @@ export function generateIntelligentCharacters(params: {
     return expandRosterToCount(militaryRoster, count, 'military');
   }
 
-  // 4. แนวไซไฟ / หุ่นยนต์ / ไซเบอร์พังก์ (Cyberpunk & Sci-Fi)
-  if (isSciFi) {
+  // 5. แนวไซไฟ / หุ่นยนต์ / ไซเบอร์พังก์ (Cyberpunk & Sci-Fi)
+  if (theme.isSciFi) {
     const scifiRoster: CharacterBible[] = [
       {
         id: `char-sci-${Date.now()}-1`,
@@ -778,8 +794,582 @@ export function generateIntelligentCharacters(params: {
     return expandRosterToCount(scifiRoster, count, 'scifi');
   }
 
-  // Fallback: Chinese Xianxia default
+  // 6. แนวสากล / ฮอลลีวูด / แอ็กชัน / สืบสวน
+  if (theme.isWesternCinema) {
+    return buildWesternCinemaRoster(title, count);
+  }
+
+  // 7. แนวญี่ปุ่น / อนิเมะ / โชเน็น
+  if (theme.isAnimeOrJapan) {
+    return buildJapaneseAnimeRoster(title, count);
+  }
+
+  // Fallback: คัดสรรตามวัฒนธรรมโลกของธีมที่ตรวจพบ ป้องกันการออกทะเลเด็ดขาด
+  if (theme.effectiveCulture === 'thai') {
+    return theme.isThaiMyth ? buildThaiMythRoster(title, count) : buildThaiHorrorRoster(title, count);
+  }
+  if (theme.effectiveCulture === 'japanese') {
+    return buildJapaneseAnimeRoster(title, count);
+  }
+  if (theme.effectiveCulture === 'western_global') {
+    return buildWesternCinemaRoster(title, count);
+  }
   return expandRosterToCount(cnRoster, count, 'xianxia');
+}
+
+// --------------------------------------------------------------------------
+// Specialized Ensemble Rosters by Culture & Genre
+// --------------------------------------------------------------------------
+
+function buildThaiKrasueRoster(title: string, count: number): CharacterBible[] {
+  const base: CharacterBible[] = [
+    {
+      id: `char-kra-${Date.now()}-1`,
+      name: 'ดาวิกา (หญิงสาวผู้ต้องสาป / ผีกระสือสาวผู้อ่อนโยน)',
+      role: 'protagonist',
+      age: '20 ปี',
+      bodyBuild: 'ดรุณีแรกรุ่น รูปร่างบอบบาง ผิวขาวผ่อง ท่าทางเรียบร้อยอ่อนหวาน แต่แฝงแววตาเศร้าสร้อย',
+      facialFeatures: 'ใบหน้ารูปไข่ ดวงตากลมโตสีน้ำตาลอ่อน แต่ยามค่ำคืนดวงตาจะเปลี่ยนเป็นสีแดงก่ำเรืองแสงลึกลับ',
+      hairStyle: 'ผมยาวตรงสีดำขลับสลวยถึงกลางหลัง มักทัดดอกมะลิหอม',
+      clothingStyle: 'กลางวัน: นุ่งผ้าถุงลายไทยสีคราม สวมเสื้อคอกระเช้าสีครีมสะอาดตา / กลางคืน: ถอดหัวพร้อมหัวใจและตับไตไส้พุงเรืองแสงสีเขียวพราย',
+      colorTheme: 'สีเขียวพรายเรืองแสง-แดงเลือด-ขาวนวล',
+      weaponsOrProps: 'พวงไส้เรืองแสงเปล่งไอวิญญาณ / รังนกและช่อดอกมะลิซ่อนกลิ่นคาวเลือด',
+      personality: 'อ่อนโยน กตัญญู เจียมเนื้อเจียมตัว พยายามต่อสู้กับสัญชาตญาณกระหายเลือดในคืนเดือนเพ็ญ',
+      abilities: 'ลอยล่องกลางเวหาด้วยความเร็วสูงยามค่ำคืน, ประสาทสัมผัสกลิ่นคาวเลือดในระยะ 5 ลี้, พลังพรางตัวในหมอกควัน',
+      weaknesses: 'แพ้แสงอาทิตย์ยามเช้าตรู่ (ต้องกลับเข้าร่างก่อนไก่ขัน), กลัวหนามพุทราและรั้วไม้ไผ่หนามเกี่ยวไส้',
+      relationships: 'ตัวเอกของเรื่อง ผู้พยายามหาทางถอนคำสาปกระสือเพื่อได้อยู่เคียงข้างคนรัก',
+      appearanceAnchor: 'hauntingly beautiful Thai village maiden with tragic sorrowful eyes, day: traditional blue sarong, night: glowing ethereal green krasue spirit floating head and internal organs with eerie luminescent glow, misty night village, 8k horror cinematic',
+      voiceStyle: 'นุ่มนวล หวานปนเศร้า แต่ยามค่ำคืนจะมีเสียงหวีดร้องแหลมสูงสะท้านป่า',
+      googleFlowSeed: '119283',
+    },
+    {
+      id: `char-kra-${Date.now()}-2`,
+      name: 'มานพ (ชายหนุ่มผู้ภักดี / คนรักผู้ปกป้องความลับ)',
+      role: 'supporting',
+      age: '23 ปี',
+      bodyBuild: 'รูปร่างสูงโปร่ง สมส่วน แข็งแรง ผิวสองสีแบบหนุ่มชาวสวน',
+      facialFeatures: 'ใบหน้าคมคาย แววตาอบอุ่นและซื่อตรง มีรอยยิ้มจริงใจพร้อมเสียสละ',
+      hairStyle: 'ผมสั้นหยักศกสีดำ มัดผ้าขาวม้าพาดบ่า',
+      clothingStyle: 'เสื้อหม้อฮ่อมแขนสั้นสีกรมท่า กางเกงขาก๊วย มัดผ้าขาวม้าลายหมากรุกที่เอว',
+      colorTheme: 'สีกรมท่า-น้ำตาลดิน-ขาว',
+      weaponsOrProps: 'มีดพร้าถางป่า / คบเพลิงน้ำมันยาง / ตะกรุดโทนคุ้มภัย',
+      personality: 'ซื่อสัตย์ กล้าหาญ ไม่เชื่อข่าวลือเรื่องผีปอบผีกระสือ พร้อมปกป้องดาวิกาแม้โลกทั้งใบจะตามล่าเธอ',
+      abilities: 'ฝีมือต่อสู้ด้วยมีดพร้าและมวยไทยคาดเชือก, คล่องแคล่วชำนาญเส้นทางในป่าและลำคลอง',
+      weaknesses: 'ความรักและเป็นห่วงดาวิกาจนอาจตกเป็นเหยื่อของคนในหมู่บ้านที่คอยจับผิด',
+      relationships: 'คนรักของดาวิกา ผู้เป็นเพียงคนเดียวที่รู้ความจริงและคอยเอาเนื้อสดมาให้เธอกินเพื่อไม่ให้ทำร้ายคน',
+      appearanceAnchor: 'handsome brave Thai rural youth, dark blue traditional morhom shirt, holding lantern and machete, standing protectively in misty moonlit night, 8k cinematic lighting',
+      voiceStyle: 'อบอุ่น จริงใจ หนักแน่น เปี่ยมความรักและความมุ่งมั่น',
+      googleFlowSeed: '229384',
+    },
+    {
+      id: `char-kra-${Date.now()}-3`,
+      name: 'ยายสาย (ยายแก่ลึกลับท้ายทุ่ง / ผู้ถ่ายทอดสายเลือดกระสือ)',
+      role: 'antagonist',
+      age: '78 ปี',
+      bodyBuild: 'แก่ชรา หลังค่อม ผอมแห้ง ผิวหนังเหี่ยวย่นตกกระ มือไม้สั่นเทา',
+      facialFeatures: 'ดวงตาขุ่นมัวสีเทา มีน้ำลายยืดที่มุมปาก ฟันดำคล้ำ ใบหน้าแฝงรอยยิ้มเย็นยะเยือกชวนขนลุก',
+      hairStyle: 'ผมขาวโพลนกระเซิงพันกันยุ่งเหยิง',
+      clothingStyle: 'เสื้อคอกระเช้าเก่าขาดสีมอซอ ผ้านุ่งโจงกระเบนดำเก่าซีด กลิ่นสาบสางคลุ้ง',
+      colorTheme: 'สีเขียวเน่าเปื่อย-ดำควันไฟ-เทาหม่น',
+      weaponsOrProps: 'ชามกะลาน้ำลายมนตร์ดำ / ไม้เท้าหัวกะโหลกลิง / ไหกระดูกฝังใต้ถุนเรือน',
+      personality: 'เจ้าเล่ห์ ทนทุกข์ทรมานจากคำสาปกระสือมาหลายสิบปี มุ่งมั่นจะถ่ายทอดน้ำลายให้หญิงสาวรุ่นต่อไปเพื่อหลุดพ้นความทรมาน',
+      abilities: 'คำสาปน้ำลายสืบทอดเชื้อกระสือ, อำพรางกายในเงามืดใต้ถุนเรือน, เลียนเสียงสัตว์กลางคืน',
+      weaknesses: 'แพ้พระพุทธคุณและน้ำมนต์เดือดสายพระธรรม',
+      relationships: 'ผู้ถ่ายทอดเชื้อกระสือให้ดาวิกาโดยไม่รู้ตัว และเป็นชนวนเหตุของอาถรรพ์ทั้งปวง',
+      appearanceAnchor: 'creepy old Thai hag grandmother, hunched back, wild messy white hair, wrinkled withered face, sinister chilling smile, sitting under dark dilapidated stilt house, eerie glowing green eyes, 8k horror cinematic',
+      voiceStyle: 'แหบพร่า สั่นเครือ กระซิบเย็นยะเยือก หัวเราะแหบแห้งในลำคอ',
+      googleFlowSeed: '339485',
+    },
+    {
+      id: `char-kra-${Date.now()}-4`,
+      name: 'พรานสิงห์ (จอมพรานล่าวิญญาณ / ผู้ถือปืนแก๊ปลงอาคม)',
+      role: 'supporting',
+      age: '42 ปี',
+      bodyBuild: 'กำยำ ล่ำสัน กล้ามเนื้อแน่น ผิวคล้ำกร้านแดดและควันปืน',
+      facialFeatures: 'ใบหน้าเหลี่ยม คิ้วหนาดุดัน หนวดเคราครึ้ม มีรอยแผลเป็นจากคมเขี้ยวสัตว์ป่าที่แก้มซ้าย',
+      hairStyle: 'ผมสั้นสีดำแซมเทา ผูกผ้าประเจียดแดงลงอักขระที่ศีรษะ',
+      clothingStyle: 'เสื้อกั๊กหนังพราน กระเป๋ากระสุนปืนดินดำ คาดสายสังวาลย์ตะกรุดโทน 9 ดอก',
+      colorTheme: 'สีน้ำตาลไหม้-แดงชาด-ทองเหลือง',
+      weaponsOrProps: 'ปืนแก๊ปยาวลำกล้องเหล็กน้ำพี้บรรจุกระสุนเงิน / มีดหมอด้ามเขากวาง / ตะเกียงเจ้าพายุ',
+      personality: 'เด็ดขาด สุขุม รอบคอบ ไม่ประมาทกับสิ่งลี้ลับ ยึดมั่นในการปกป้องคนในหมู่บ้านจากผีร้าย',
+      abilities: 'กระสุนลงอาคมยิงทำลายวิญญาณ, รอยเท้าแกะรอยหยดเลือดและกลิ่นคาวกระสือ, ยันต์สะกดสี่ทิศ',
+      weaknesses: 'บางครั้งมุ่งมั่นล่าผีจนอาจทำร้ายผู้บริสุทธิ์โดยไม่ทันฟังเหตุผล',
+      relationships: 'ผู้นำทีมลาดตระเวนกลางคืนของหมู่บ้านที่ตั้งเป้าจะยิงดวงไฟกระสือให้ร่วงลงมา',
+      appearanceAnchor: 'hardened Thai spirit hunter, red sacred forehead talisman band, holding long antique muzzleloader rifle with silver runes, rugged scarred face, lantern light in dark misty jungle, 8k cinematic',
+      voiceStyle: 'ทุ้มต่ำ ดุดัน สั่งการเฉียบขาด หนักแน่นดั่งหินผา',
+      googleFlowSeed: '449586',
+    },
+    {
+      id: `char-kra-${Date.now()}-5`,
+      name: 'หมอคง (หมอผีมนตร์ดำเจ้าเล่ห์ / ผู้หมายปองหัวใจกระสือ)',
+      role: 'antagonist',
+      age: '49 ปี',
+      bodyBuild: 'ผอมสูง ตาลอย แขนขายาวเกร็ง นิ้วมือสวมแหวนพิษ',
+      facialFeatures: 'ใบหน้าตอบ โหนกแก้มสูง แววตาละโมบอำมหิต แฝงแววหิวกระหายพลังอาคม',
+      hairStyle: 'ผมยาวเกล้ามวยปักด้วยกระดูกผีพราย',
+      clothingStyle: 'เสื้อยันต์ดำเก่ากากผูกเชือกตราสังข์ นุ่งผ้าโจงสีขี้เถ้า ประดับลูกประคำกระดูกคน',
+      colorTheme: 'สีดำทมิฬ-เขียวเน่า-เลือดนก',
+      weaponsOrProps: 'ขวดแก้วลงยันต์สะกดน้ำมันพราย / มีดหมออาคมสะกดดวงวิญญาณ / หุ่นพยนต์ควายธนู',
+      personality: 'โลภมาก อำมหิต ต้องการจับผีกระสือมาควักหัวใจทำน้ำมันพรายชั้นเลิศเพื่อเพิ่มพลังมืด',
+      abilities: 'ปล่อยหุ่นพยนต์ควายธนูไล่ล่า, เป่ามนตร์ดำบังตาชาวบ้าน, ปลุกวิญญาณผีพราย',
+      weaknesses: 'แพ้ของมีคมชุบน้ำมนต์เก้าอาราม และกลัวความมืดเมื่ออาคมเสื่อม',
+      relationships: 'ศัตรูตัวฉกาจที่คอยยุยงชาวบ้านให้เผาบ้านดาวิกา เพื่อตนจะได้ชิงร่างและหัวใจของกระสือ',
+      appearanceAnchor: 'sinister Thai dark sorcerer occult shaman, dark talisman robe, bone prayer beads, holding glowing glass vial of cursed spirit oil, eerie red and green ritual fire, 8k horror cinematic',
+      voiceStyle: 'แหบ เยือกเย็น กวนประสาท หัวเราะเยาะเย้ยชวนขนหัวลุก',
+      googleFlowSeed: '559687',
+    },
+    {
+      id: `char-kra-${Date.now()}-6`,
+      name: 'กำนันผาด (ผู้นำหมู่บ้านผู้เคร่งครัด / ผู้ถือคบเพลิง)',
+      role: 'supporting',
+      age: '53 ปี',
+      bodyBuild: 'ร่างท้วมใหญ่ บึกบึน สง่าน่าเกรงขาม ผิวสองสี',
+      facialFeatures: 'ใบหน้าดุ คิ้วผูกโบว์ตลอดเวลา แววตาเคร่งเครียดแบกรับชะตากรรมของลูกบ้าน',
+      hairStyle: 'ผมสั้นสีดำเกลี้ยงเกลาแซมขาว',
+      clothingStyle: 'เสื้อหม้อฮ่อมอย่างดี สวมทับด้วยเข็มขัดเงินแท้ คาดผ้าขาวม้าไหม',
+      colorTheme: 'สีกรมท่าเข้ม-เงิน-ส้มคบเพลิง',
+      weaponsOrProps: 'ปืนลูกซอง 5 นัดสั่งจากบางกอก / คบเพลิงไม้ยางขนาดใหญ่ / กลองศึกเตือนภัย',
+      personality: 'ยึดถือกฎระเบียบ เด็ดขาด ปกป้องลูกบ้านสุดชีวิต หากใครเป็นผีต้องถูกขับไล่หรือเผาทำลาย',
+      abilities: 'อำนาจสั่งการระดมชาวบ้านทั้งตำบล, แม่นปืนลูกซอง, ยุทธวิธีปิดล้อมหมู่บ้าน',
+      weaknesses: 'เชื่อคนง่ายยามถูกหมอคงยุยงด้วยความหวาดกลัว',
+      relationships: 'ผู้สั่งตั้งเวรยามเฝ้าระวังดวงไฟกระสือรอบหมู่บ้านทุกคืน',
+      appearanceAnchor: 'commanding Thai village headman, traditional dark blue shirt, holding shotgun and blazing torch, grim determined face, angry mob background with torches, 8k cinematic',
+      voiceStyle: 'ก้องกังวาน ทรงอำนาจ สั่งการเสียงดังเด็ดขาด',
+      googleFlowSeed: '669788',
+    },
+    {
+      id: `char-kra-${Date.now()}-7`,
+      name: 'ป้าสำลี (แม่ค้าปากเอก / ผู้พบเห็นดวงไฟคนแรก)',
+      role: 'supporting',
+      age: '47 ปี',
+      bodyBuild: 'ท้วม อ้วนกลม ท่าทางกระฉับกระเฉง มือไม้อยู่ไม่สุข',
+      facialFeatures: 'ตาโต ปากกว้าง ฟันเคี้ยวหมากแดงแจ๋ ใบหน้าตื่นตระหนกตลอดเวลา',
+      hairStyle: 'ผมหยิกสั้นดัดลอน มัดผ้าเช็ดหน้าสีสด',
+      clothingStyle: 'เสื้อคอกระเช้าลายดอกชบา นุ่งผ้าถุงลายปาเต๊ะ คาดกระเป๋าคาดเอวใส่เหรียญ',
+      colorTheme: 'สีส้มแสด-แดงหมาก-เขียวใบตอง',
+      weaponsOrProps: 'สุ่มไก่ไม้ไผ่ / ตะกร้าหมากพลู / กระทะเหล็กเคาะส่งสัญญาณ',
+      personality: 'ปากไว ขี้ตกใจ ข่าวสารไปไวกว่าลมพัด ปากเปราะแต่ไม่มีพิษภัย เป็นคนปล่อยข่าวเรื่องกระสือ',
+      abilities: 'กระจายข่าวสารในพริบตา, จำหน้าคนและสิ่งของแม่นยำ, ปากกล้าด่าผีเตลิด',
+      weaknesses: 'กลัวผีจนขึ้นสมอง เจออะไรแวบๆ ก็กรี๊ดลั่นบ้าน',
+      relationships: 'แม่ค้าตลาดสดผู้ไปเจอไส้เรืองแสงกินเป็ดใต้ถุนเล้าไก่ของตนเอง',
+      appearanceAnchor: 'scared energetic Thai market woman, floral sarong shirt, chewing betel nut, screaming pointing lantern in terror at eerie green light, 8k horror cinematic',
+      voiceStyle: 'แหลมสูง โวยวาย พูดรัวเร็ว กรี๊ดลั่น',
+      googleFlowSeed: '779889',
+    },
+    {
+      id: `char-kra-${Date.now()}-8`,
+      name: 'หลวงตาบุญมี (พระเกจิผู้รู้แจ้ง / ร่มโพธิ์ร่มไทรของหมู่บ้าน)',
+      role: 'mentor',
+      age: '75 ปี',
+      bodyBuild: 'ผอมบาง นั่งขัดสมาธิตัวตรง เปี่ยมล้นด้วยความสงบเย็นแห่งร่มกาสาวพัสตร์',
+      facialFeatures: 'ใบหน้าเปี่ยมเมตตา ดวงตาสงบนิ่ง ไร้กิเลสและโทสะ ริ้วรอยแห่งศีลธรรม',
+      hairStyle: 'โกนศีรษะตามสมณเพศ',
+      clothingStyle: 'จีวรสีส้มกรักเก่าซ่อมแซมอย่างประณีต สังฆาฏิพาดบ่า',
+      colorTheme: 'สีส้มกรัก-ทองแสงธรรม-ขาวบริสุทธิ์',
+      weaponsOrProps: 'บาตรสัมฤทธิ์ / ไม้ประพรมน้ำมนต์ใบมะยม / คัมภีร์ธรรมเทศนาใบลาน',
+      personality: 'เปี่ยมด้วยพรหมวิหารสี่ ไม่เลือกปฏิบัติ ไม่ตัดสินดาวิกา มองเห็นทุกสิ่งเป็นอนิจจังและเวรกรรม',
+      abilities: 'สวดพระพุทธมนต์ชำระล้างไสยดำ, แผ่เมตตาสะกดวิญญาณคลุ้มคลั่ง, ให้สติปัญญาและทางออกแห่งกรรม',
+      weaknesses: 'ไม่สามารถแทรกแซงกฎแห่งกรรมโดยตรง ทำได้เพียงชี้แนะทางสว่าง',
+      relationships: 'ที่พึ่งสุดท้ายของดาวิกาและมานพ ผู้มอบน้ำพระพุทธมนต์เพื่อระงับความทรมาน',
+      appearanceAnchor: 'venerable elderly Thai Buddhist monk in saffron robes, sitting peacefully inside ancient wooden temple hall, glowing candlelight, compassionate serene eyes, 8k cinematic lighting',
+      voiceStyle: 'ทุ้ม นุ่ม สงบนิ่ง เยือกเย็น ชวนให้จิตใจสงบระงับความกลัว',
+      googleFlowSeed: '889990',
+    },
+  ];
+
+  return expandRosterToCount(base, count, 'thai_krasue');
+}
+
+function buildThaiHorrorRoster(title: string, count: number): CharacterBible[] {
+  const isTakhian = /ตะเคียน|นางไม้|ต้นไม้|พงไพร|เจ้าแม่/i.test(title);
+  const spiritName = isTakhian ? 'เจ้าแม่ทิพยตะเคียนทอง' : 'นางพรายเทวี';
+  const spiritAnchor = isTakhian
+    ? 'stunningly beautiful Thai tree nymph goddess, glowing ethereal golden traditional sabai silk dress, ancient gold crown, glowing amber eyes, surrounded by emerald mist, sacred ancient takhian tree with seven-colored holy fabrics, 8k cinematic Thai folklore'
+    : 'hauntingly beautiful Thai female spirit, ethereal white flowing silk dress, translucent glowing form, eerie cold mist, dark traditional wooden house background, 8k cinematic horror';
+
+  const base: CharacterBible[] = [
+    {
+      id: `char-hor-${Date.now()}-1`,
+      name: 'พรานบุญ (พรานป่าอาคม / ผู้พิทักษ์ความลับพงไพร)',
+      role: 'protagonist',
+      age: '35 ปี',
+      bodyBuild: 'กำยำ แกร่ง ผิวคล้ำกร้านแดด มีรอยสักยันต์อักขระขอมโบราณเต็มแขนและแผ่นหลัง',
+      facialFeatures: 'ใบหน้าคมเข้ม แววตาสีดำดุดันผ่านป่าลี้ลับมาอย่างโชกโชน มีแผลเป็นที่หางคิ้ว',
+      hairStyle: 'ผมสั้นหยักศกสีดำ มัดผ้าประเจียดแดงที่ต้นแขน',
+      clothingStyle: 'เสื้อกั๊กผ้าดิบสีกากี กางเกงขาก๊วย มัดผ้าขาวม้าคาดเอว สะพายย่ามพระและสายสิญจน์',
+      colorTheme: 'สีน้ำตาลดิน-แดงชาด-ดำ',
+      weaponsOrProps: 'มีดหมอด้ามงาช้างลงอาคม / ลูกประคำกระดูกช้างสาร / คันธนูลงยันต์',
+      personality: 'สุขุม กล้าหาญ เคารพในเจ้าป่าเจ้าเขา ยึดมั่นในสัจจะคำสาบาน ไม่ละโมบ',
+      abilities: 'คาถามหาอุตม์แคล้วคลาด, สายสิญจน์สะกดวิญญาณร้าย, กลิ่นสัมผัสตรวจจับอาถรรพ์ในรัศมี 100 เมตร',
+      weaknesses: 'หากผิดศีลหรือสัจจะ อาคมจะเสื่อมถอยทันที',
+      relationships: 'ผู้สืบทอดวิชาพรานโบราณที่ได้รับมอบหมายให้มาดูแลความสงบของผืนป่า',
+      appearanceAnchor: 'rugged handsome Thai jungle hunter, traditional sacred sak yant tattoos, holding glowing ancient sacred spirit blade, traditional khaki vest, dense misty rainforest background, 8k cinematic lighting',
+      voiceStyle: 'ทุ้มต่ำ หนักแน่น จริงจัง แฝงความเคารพยำเกรงต่อสิ่งศักดิ์สิทธิ์',
+      googleFlowSeed: '618290',
+    },
+    {
+      id: `char-hor-${Date.now()}-2`,
+      name: `${spiritName} (ดวงวิญญาณผู้พิทักษ์ / สิ่งศักดิ์สิทธิ์ประจำป่า)`,
+      role: 'supporting',
+      age: 'หลายร้อยปี (ร่างดรุณี 21 ปี)',
+      bodyBuild: 'รูปร่างสง่างาม ดรุณีโบราณผิวขาวผ่องอมทองอร่าม ลอยเหนือพื้นเล็กน้อย',
+      facialFeatures: 'ใบหน้ารูปไข่สวยสะกดสายตา ดวงตาสีอำพันเรืองรองในความมืด รอยยิ้มเปี่ยมเมตตาแต่ทรงอำนาจ',
+      hairStyle: 'ผมยาวดำขลับสลวยถึงสะโพก ทัดดอกจำปาทอง ประดับรัดเกล้าทองคำโบราณ',
+      clothingStyle: isTakhian ? 'สไบผ้าไหมสีทองอร่ามจีบหน้านาง ชายสไบปักดิ้นทองระยิบระยับ ประดับกรองคอทองคำ' : 'สไบสีขาวนวลลอยพริ้ว',
+      colorTheme: 'สีทองคำ-เขียวมรกต-ขาวพิสุทธิ์',
+      weaponsOrProps: 'เถาวัลย์อาถรรพ์หมื่นราก / อำนาจสะกดจิตสะท้อนเวรกรรม / ดอกจำปาทองศักดิ์สิทธิ์',
+      abilities: 'ควบคุมพืชพรรณและกิ่งไม้โบราณ, เสกม่านหมอกลวงตามิติ, สะท้อนบาปกรรมของผู้ละโมบตัดไม้',
+      weaknesses: 'แพ้น้ำมันพรายและตะปูตอกฝาโลงของหมอผีมนตร์ดำ',
+      relationships: 'เจ้าแม่ผู้พิทักษ์ผืนป่าและชาวบ้านที่เคารพศรัทธา',
+      appearanceAnchor: spiritAnchor,
+      voiceStyle: 'ก้องกังวาน ไพเราะจับใจ เยือกเย็นและน่าเกรงขามชวนขนลุก',
+      googleFlowSeed: '729381',
+    },
+    {
+      id: `char-hor-${Date.now()}-3`,
+      name: 'เสี่ยวิชัย (นายทุนตัดไม้ผู้ละโมบ / ผู้บงการโค่นป่า)',
+      role: 'antagonist',
+      age: '48 ปี',
+      bodyBuild: 'ท้วม อกหนา ผิวขาวเหลือง เดินวางท่าทรงอำนาจ',
+      facialFeatures: 'ใบหน้าเหลี่ยม คิ้วขมวด แววตาละโมบเหี้ยมเกรียม สูบซิการ์มวนโต',
+      hairStyle: 'ผมสั้นหวีเรียบปาดเจลเงาวับ',
+      clothingStyle: 'เสื้อเชิ้ตผ้าไหมลายสีกรมท่า ปลดกระดุมบน สวมนาฬิกาทองคำและแหวนหยกทุกนิ้ว',
+      colorTheme: 'สีกรมท่า-ทองคำ-ดำด้าน',
+      weaponsOrProps: 'ปืนพกลำกล้องสั้นลูกโม่รมดำ / เลื่อยยนต์โค่นไม้ / เงินตราว่าจ้างหมอผี',
+      personality: 'ละโมบ ไม่เชื่อเรื่องวิญญาณ ถือว่าเงินซื้อได้ทุกสิ่ง พร้อมทำลายทุกอย่างที่ขวางผลประโยชน์',
+      abilities: 'เงินตราและลูกสมุนติดอาวุธนับสิบ, จ้างหมอผีทำลายศาลและสะกดวิญญาณ',
+      weaknesses: 'ความขลาดกลัวตายเมื่อต้องเผชิญหน้ากับอำนาจลี้ลับตัวต่อตัว',
+      relationships: 'ผู้ว่าจ้างขบวนการตัดไม้ทำลายป่าที่สั่งคนมาโค่นต้นตะเคียนทอง',
+      appearanceAnchor: 'greedy ruthless wealthy timber tycoon antagonist, gold rings, dark blue silk shirt, sinister angry expression, holding revolver, dark jungle background, 8k cinematic',
+      voiceStyle: 'ห้าว ดุดัน สั่งการเสียงดัง โวยวายเมื่อแผนการผิดพลาด',
+      googleFlowSeed: '830492',
+    },
+    {
+      id: `char-hor-${Date.now()}-4`,
+      name: 'พ่อเฒ่ามั่น (อาจารย์หมอธรรม / ผู้รู้แจ้งอาคมขาว)',
+      role: 'mentor',
+      age: '74 ปี',
+      bodyBuild: 'ผอมสูง สันหลังตรง สงบนิ่ง เปี่ยมบารมีธรรม',
+      facialFeatures: 'ใบหน้าเปี่ยมเมตตา มีริ้วรอยแห่งกาลเวลา เคราขาวยาว แววตาสดใสรู้แจ้ง',
+      hairStyle: 'ผมขาวโพลนรวบไว้ด้านหลัง สวมสายมงคลขาวรอบศีรษะ',
+      clothingStyle: 'ชุดนุ่งขาวห่มขาวผ้าฝ้ายดิบ สวมสร้อยประคำไม้ตะเคียน 108 เม็ด',
+      colorTheme: 'สีขาวบริสุทธิ์-น้ำตาลไม้-ทองแสงธรรม',
+      weaponsOrProps: 'ไม้เท้าอาคมแกะสลักหัวพญานาค / ขันน้ำมนต์สัมฤทธิ์ / คัมภีร์ใบลาน',
+      personality: 'เปี่ยมเมตตา รักความสงบ ชี้แนะหนทางแห่งกรรม คอยห้ามปรามไม่ให้เกิดการฆ่าฟัน',
+      abilities: 'ร่ายมนต์พระปริตรแผ่เมตตาสงบวิญญาณแค้น, สลายมนต์ดำคุณไสย, ดูฤกษ์ยามพิธีขอขมา',
+      weaknesses: 'สังขารชราภาพ ไม่สามารถใช้กำลังทางกายภาพได้',
+      relationships: 'อาจารย์ผู้ถ่ายทอดวิชาอาคมให้พรานบุญ และที่พึ่งทางใจของชาวบ้าน',
+      appearanceAnchor: 'wise ancient Thai white-robed spiritual hermit, long white beard, sacred wooden prayer beads, holding carved wooden staff, compassionate eyes, 8k cinematic',
+      voiceStyle: 'ทุ้ม นุ่มลึก ก้องกังวาน เปี่ยมเมตตาบารมี สงบจิตใจผู้ฟัง',
+      googleFlowSeed: '941503',
+    },
+    {
+      id: `char-hor-${Date.now()}-5`,
+      name: 'บัวตอง (ทายาทผู้เฝ้าศาล / หญิงสาวร่างทรง)',
+      role: 'supporting',
+      age: '20 ปี',
+      bodyBuild: 'บอบบาง คล่องแคล่ว ท่วงท่าอ่อนช้อยดั่งสาวชาวบ้านโบราณ',
+      facialFeatures: 'ใบหน้าน่ารัก ดวงตากลมโตเป็นประกาย มีเซนส์สัมผัสพิเศษทางวิญญาณ',
+      hairStyle: 'ผมดำยาวประบ่า มัดรวบด้วยเชือกกล้วย',
+      clothingStyle: 'เสื้อคอกระเช้าสีชมพูหม่น นุ่งผ้าถุงลายไทยพื้นบ้าน คล้องสายสิญจน์ที่ข้อมือ',
+      colorTheme: 'สีชมพูหม่น-คราม-น้ำตาล',
+      weaponsOrProps: 'พานพุ่มบายศรีดินเผา / ธูปหอมเก้าดอก / เทียนขี้ผึ้งแท้',
+      personality: 'อ่อนโยน กตัญญู มีสัมผัสที่หก ไวต่อกลิ่นธูปและเสียงกระซิบของเจ้าแม่',
+      abilities: 'สื่อสารทางจิตกับดวงวิญญาณเจ้าแม่, รำฟ้อนขอขมาล้างอาถรรพ์, เตือนภัยล่วงหน้า',
+      weaknesses: 'จิตอ่อน อาจถูกพลังงานด้านลบแทรกซึมได้ง่ายหากไม่พกเครื่องราง',
+      relationships: 'หลานสาวของพ่อเฒ่ามั่น ผู้คอยดูแลกวาดลานศาลเจ้าแม่ตะเคียน',
+      appearanceAnchor: 'gentle young Thai village maiden, traditional cloth sarong, holding sacred offering bowl with flowers and incense, soft mystical lighting, 8k cinematic',
+      voiceStyle: 'ใส นุ่มนวล แฝงความกังวลและจริงใจ',
+      googleFlowSeed: '152614',
+    },
+    {
+      id: `char-hor-${Date.now()}-6`,
+      name: 'หมอผีบุญทา (จอมขมังเวทย์มนตร์ดำ / มือขวาเสี่ยวิชัย)',
+      role: 'antagonist',
+      age: '52 ปี',
+      bodyBuild: 'ผอมแห้ง ผิวดำคล้ำ แขนขายาวเกร็ง นิ้วมือคดงอ',
+      facialFeatures: 'ใบหน้าตอบโหนกแก้มสูง แววตาสีแดงก่ำด้วยฤทธิ์ว่านยา ฟันดำจากการเคี้ยวหมาก',
+      hairStyle: 'ผมยาวประบ่ากระเซอะกระเซิง มัดจุกกลางหัวด้วยเชือกตราสังข์',
+      clothingStyle: 'เสื้อยันต์สีดำขาดวิ่น ผ้าถุงมอมแมม คล้องกระดูกผีตายโหงและตะกรุดรอบคอ',
+      colorTheme: 'สีดำทมิฬ-แดงเลือดนก-เขียวอื้อ',
+      weaponsOrProps: 'หม้อดินเผาสะกดวิญญาณผูกผ้าแดง / กริชอาคมด้ามกระดูก / ควายธนูไม้ไผ่สาน',
+      personality: 'เหี้ยมโหด ไร้ศีลธรรม หลงใหลในศาสตร์มืด รับจ้างทำลายศาลและขังวิญญาณเพื่อเงิน',
+      abilities: 'เสกควายธนูพุ่งชนศัตรู, ปล่อยลมเพลมพัดและตะปูเสก, ตอกตะปูสะกดต้นไม้ศักดิ์สิทธิ์',
+      weaknesses: 'แพ้บทสวดพาหุงมหากาและอาคมขาวของพ่อเฒ่ามั่น มนต์จะย้อนเข้าตัว',
+      relationships: 'คู่ปรับทางอาคมของพ่อเฒ่ามั่นและพรานบุญ',
+      appearanceAnchor: 'creepy dark Thai black magic shaman, sinister grin, wearing black talisman vest, holding red-wrapped clay ghost pot and bone dagger, eerie green smoke, 8k horror cinematic',
+      voiceStyle: 'แหบพร่า สั่นระริก หัวเราะในลำคอชวนขนพองสยองเกล้า',
+      googleFlowSeed: '263725',
+    },
+    {
+      id: `char-hor-${Date.now()}-7`,
+      name: 'กำนันสิทธิ์ (ผู้ใหญ่บ้านผู้เที่ยงธรรม / รักษาผืนแผ่นดิน)',
+      role: 'supporting',
+      age: '45 ปี',
+      bodyBuild: 'กำยำ ทะมัดทะแมง เดินเหินหนักแน่นน่าเชื่อถือ',
+      facialFeatures: 'ใบหน้าคมเข้ม คิ้วดกดำ แววตาเด็ดเดี่ยวเปี่ยมความรับผิดชอบ',
+      hairStyle: 'ผมรองทรงสั้นสีดำแซมเทา',
+      clothingStyle: 'เสื้อหม้อฮ่อมสีกรมท่า คาดผ้าขาวม้า รองเท้าแตะยาง',
+      colorTheme: 'สีกรมท่าม่อฮ่อม-น้ำตาล-ขาว',
+      weaponsOrProps: 'ปืนลูกซองยาว 5 นัด / ไฟฉายส่องกบกระบอกเหล็ก / นกหวีดทองเหลือง',
+      personality: 'ซื่อสัตย์ รักลูกบ้าน กล้าชนกับนายทุน ไม่ยอมให้ใครมาทำลายป่าชุมชน',
+      abilities: 'ความเป็นผู้นำปลุกระดมชาวบ้าน, เชี่ยวชาญเส้นทางในตำบล, แม่นปืนลูกซอง',
+      weaknesses: 'ห่วงความปลอดภัยของชาวบ้านในหมู่บ้านเป็นอันดับแรก',
+      relationships: 'พ่อของบัวตอง และผู้ประสานงานร่วมกับพรานบุญในการเฝ้าเวรยาม',
+      appearanceAnchor: 'brave Thai village headman, traditional blue morhom shirt, holding shotgun, firm determined expression, night jungle watch, 8k cinematic',
+      voiceStyle: 'ทุ้ม ห้าว กึกก้อง จริงจัง มีอำนาจสั่งการ',
+      googleFlowSeed: '374836',
+    },
+    {
+      id: `char-hor-${Date.now()}-8`,
+      name: 'ไอ้เปี๊ยก (ลูกหาบยอดกตัญญู / พรานรุ่นเยาว์)',
+      role: 'supporting',
+      age: '18 ปี',
+      bodyBuild: 'ผอมเพรียว ปราดเปรียว วิ่งเร็ว ปีนต้นไม้คล่องแคล่ว',
+      facialFeatures: 'ใบหน้าทะเล้น มีรอยยิ้มสดใส แววตาวาววับตื่นรู้',
+      hairStyle: 'ผมสั้นสีดำเกรียน สวมหมวกแก๊ปเก่าๆ',
+      clothingStyle: 'เสื้อยืดแขนสั้นมอมแมม กางเกงขาสั้น สะพายเป้ย่ามใส่สมุนไพรและมีดเหน็บ',
+      colorTheme: 'สีเขียวขี้ม้า-เหลืองหม่น-ดินเผา',
+      weaponsOrProps: 'หนังสติ๊กไม้มะขาม / มีดเหน็บตีเหล็ก / ยาสมุนไพรห้ามเลือด',
+      personality: 'ร่าเริง คลายเครียดให้คนในทีม กลัวผีแต่รักพรานบุญเหมือนพี่ชาย พร้อมลุยเสมอ',
+      abilities: 'ปีนป่ายต้นไม้สอดแนมมุมสูง, ยิงหนังสติ๊กดับเทียนและโคมไฟในระยะ 30 เมตร, ดมกลิ่นดินหารอยเท้า',
+      weaknesses: 'ขี้ตกใจ ร้องเสียงหลงเมื่อเจอสิ่งลี้ลับกะทันหัน',
+      relationships: 'ศิษย์ก้นกุฏิของพรานบุญ คอยแบกสัมภาระและตามติดในทุกภารกิจ',
+      appearanceAnchor: 'energetic young Thai jungle scout boy, holding wooden slingshot, climbing ancient mossy tree, alert curious eyes, dense misty canopy, 8k cinematic',
+      voiceStyle: 'กระตือรือร้น ทะเล้น ตื่นเต้น โวยวายเสียงหลงยามตกใจ',
+      googleFlowSeed: '485947',
+    },
+  ];
+
+  return expandRosterToCount(base, count, 'thai_horror');
+}
+
+function buildThaiMythRoster(title: string, count: number): CharacterBible[] {
+  const isNaga = /นาค|บาดาล|บั้งไฟ|น้ำโขง|serpent/i.test(title);
+  const leadName = isNaga ? 'ขุนศึกสิงหนาท (แม่ทัพพญานาคราช / ผู้พิทักษ์สายน้ำ)' : 'ขุนศึกไกรสร (ยอดนักรบดาบฟ้าฟื้น / ทหารเอกอยุธยา)';
+  const base: CharacterBible[] = [
+    {
+      id: `char-myth-${Date.now()}-1`,
+      name: leadName,
+      role: 'protagonist',
+      age: '25 ปี',
+      bodyBuild: 'สง่างาม กล้ามเนื้อคมชัด ผิวสีทองแดง แววตาคมเข้มดั่งพญาอินทรี',
+      facialFeatures: 'ใบหน้าคมเข้ม คิ้วโก่ง แววตาสีเขียวมรกตเรืองแสง รอยยิ้มทรงเกียรติ',
+      hairStyle: 'ผมยาวประบ่าสีดำขลับ มัดมวยประดับรัดเกล้าทองคำศิราภรณ์',
+      clothingStyle: 'โจงกระเบนผ้าไหมสีเขียวมรกตขอบทอง กรองคอทองคำลงยา สนับแขนทองคำ',
+      colorTheme: 'สีเขียวมรกต-ทองคำ-แดงทับทิม',
+      weaponsOrProps: 'ดาบอาคมฟ้าฟื้นประกายแสง / คันศรตรีศูลนาคราช',
+      personality: 'รักความยุติธรรม กล้าหาญ มุ่งมั่นปกป้องราษฎรและอาณาจักร',
+      abilities: 'เพลงดาบสะบั้นวารี, แปลงกายเป็นพญานาค 7 เศียรบันดาลสายฝน, มหาเวทอาคมเกราะทองคำ',
+      weaknesses: 'แพ้ครุฑยุดนาค และแสงแห่งสุริยคราส',
+      relationships: 'แม่ทัพผู้กุมชะตากรรมของเมืองบาดาลและแดนมนุษย์',
+      appearanceAnchor: 'magnificent ancient Thai mythical warrior hero, emerald green and gold royal armor, holding glowing divine sword, glowing emerald eyes, 8k cinematic Thai myth',
+      voiceStyle: 'ทุ้ม นิ่ง สง่างาม กึกก้องทรงพลัง',
+      googleFlowSeed: '596058',
+    },
+    {
+      id: `char-myth-${Date.now()}-2`,
+      name: 'มณีเทวี (พระมเหสีแก้ว / นางพญานาคินี)',
+      role: 'supporting',
+      age: '22 ปี',
+      bodyBuild: 'รูปร่างระหง ท่วงท่าสง่างามดั่งนางอัปสรสวรรค์ ผิวขาวผ่องดั่งหยกขาว',
+      facialFeatures: 'ใบหน้ารูปไข่ แววตาสีฟ้าครามสดใส รอยยิ้มเปี่ยมเสน่ห์',
+      hairStyle: 'ผมยาวสีดำขลับเกล้ามวยสูง สวมชฎาทองคำฝังมรกต',
+      clothingStyle: 'สไบสองชายสีฟ้าครามปักดิ้นทองระยิบระยับ ผ้านุ่งยกทองอยุธยา',
+      colorTheme: 'สีฟ้าคราม-ทองคำ-ขาวมุก',
+      weaponsOrProps: 'ดวงแก้วมณีนาคราชส่องประกายแสง / พัดขนนกยูงทองคำ',
+      abilities: 'เปิดประตูมิติสู่เมืองบาดาล, เยียวยาบาดแผลด้วยหยาดน้ำทิพย์, สร้างบาเรียคลื่นน้ำ',
+      weaknesses: 'พลังลดลงเมื่ออยู่ห่างจากแหล่งน้ำธรรมชาติ',
+      relationships: 'คู่บารมีของขุนศึกสิงหนาท ผู้ร่วมต่อสู้เคียงบ่าเคียงไหล่',
+      appearanceAnchor: 'gorgeous ethereal Thai mythical naga princess, cyan blue and gold silk sabai, glowing magical naga pearl, golden crown, glowing eyes, underwater palace, 8k cinematic',
+      voiceStyle: 'ไพเราะ นุ่มนวล อบอุ่น ทรงอำนาจ',
+      googleFlowSeed: '607169',
+    },
+    {
+      id: `char-myth-${Date.now()}-3`,
+      name: 'พญาครุฑเวหา ท้าวสุบรรณ (จอมราชันย์เวหา / ศัตรูคู่อาฆาต)',
+      role: 'antagonist',
+      age: 'พันปี',
+      bodyBuild: 'ร่างสูงใหญ่ 2.8 เมตร แผ่ปีกสีแดงเพลิงกว้าง 10 เมตร กล้ามเนื้อทองคำ',
+      facialFeatures: 'ดวงตาสีแดงเพลิงเรืองรอง จงอยปากแหลมคมทองคำ แววตาน่าเกรงขามดั่งมัจจุราช',
+      hairStyle: 'แผงคอขนนกสีทองคำเปล่งประกายเพลิง',
+      clothingStyle: 'ชุดเกราะทองคำสลักลวดลายกนกเพลิง ทับทรวงฝังทับทิมสีเลือด',
+      colorTheme: 'สีแดงเพลิง-ทองคำ-ดำสนิท',
+      weaponsOrProps: 'กรงเล็บเพลิงสุริยคราส / ตรีศูลเพลิงสุริยัน',
+      abilities: 'กระพือปีกสร้างพายุเพลิงบรรลัยกัลป์, บินด้วยความเร็วเหนือเสียง, กรงเล็บฉีกผืนแผ่นดิน',
+      weaknesses: 'ดวงตาที่สามกลางหน้าผากยามเปิดรับพลังงานแสง',
+      relationships: 'ราชาแห่งเวหาผู้ทำสงครามหมื่นปีกับเผ่าพันธุ์นาคราช',
+      appearanceAnchor: 'mighty terrifying Thai mythical Garuda king, massive flaming wings, golden eagle claws, glowing crimson eyes, golden armor, stormy fiery sky, 8k Thai myth art',
+      voiceStyle: 'คำรามดังก้องสะท้านฟ้า สะเทือนแผ่นดิน',
+      googleFlowSeed: '718270',
+    },
+    {
+      id: `char-myth-${Date.now()}-4`,
+      name: 'พระฤๅษีกัสสปะ (มหาเถระแห่งป่าหิมพานต์ / ผู้ชี้แนะ)',
+      role: 'mentor',
+      age: 'พันปี',
+      bodyBuild: 'ผอมโปร่ง ทรงภูมิฐาน ลอยตัวเหยียบดอกบัวทองคำกลางอากาศ',
+      facialFeatures: 'เคราขาวเงินยาวจรดอก แววตาเปี่ยมพระเมตตาและปัญญาญาณ',
+      hairStyle: 'มวยผมชฎาฤๅษีประดับลูกปัดไม้จันทน์',
+      clothingStyle: 'นุ่งห่มหนังเสือโคร่งพาดสังฆาฏิ สวมประคำแก้วสุริยกานต์',
+      colorTheme: 'สีส้มลายเสือ-ทอง-ขาว',
+      weaponsOrProps: 'ไม้เท้าอาคมหัวพญานาค / มะนาวเสกห้ามเพลิง / ตำราพิชัยสงครามโบราณ',
+      abilities: 'เปิดทางเชื่อมสามพิภพ สวรรค์ มนุษย์ บาดาล, สยบความขัดแย้งด้วยธรรมโอสถ',
+      weaknesses: 'ถือสัจจะสันโดษ ไม่ลงมือเข่นฆ่าผู้ใด',
+      relationships: 'พระอาจารย์ผู้ประสิทธิ์ประสาทวิชาให้ทั้งสองฝ่าย',
+      appearanceAnchor: 'wise ancient Thai hermit rishi, tiger skin robe, long flowing white beard, holding mystical wooden staff, floating lotus, Himmapan mystical forest, 8k cinematic',
+      voiceStyle: 'นุ่ม นิ่ง เยือกเย็น ทรงพลังสะกดจิตใจ',
+      googleFlowSeed: '829381',
+    },
+  ];
+
+  return expandRosterToCount(base, count, 'thai_myth');
+}
+
+function buildWesternCinemaRoster(title: string, count: number): CharacterBible[] {
+  const base: CharacterBible[] = [
+    {
+      id: `char-west-${Date.now()}-1`,
+      name: 'สารวัตรเดวิด มิลเลอร์ (นักสืบเอกชนยอดอัจฉริยะ / อดีตหัวหน้าหน่วยสืบสวน)',
+      role: 'protagonist',
+      age: '38 ปี',
+      bodyBuild: 'สูง 185 ซม. สมส่วน กล้ามเนื้อคมชัด กร้านโลกแต่ดูดี',
+      facialFeatures: 'ใบหน้าคมเข้ม คางบุ๋ม แววตาสีฟ้าเทาเฉียบคมอ่านทะลุคน เคราสั้นครึ้ม',
+      hairStyle: 'ผมสั้นสีน้ำตาลแซมเทาหวีปัดข้าง',
+      clothingStyle: 'เสื้อโค้ตเทรนช์โค้ตสีเทาเข้ม เสื้อเชิ้ตขาวปลดกระดุม เนกไทหลวมๆ ซองปืนหนังใต้แขน',
+      colorTheme: 'สีเทาชาร์โคล-ดำด้าน-ขาวควันบุหรี่',
+      weaponsOrProps: 'ปืนพกลูกโม่ .357 แม็กนั่มรมดำ / ไฟแช็ก Zippo สลักลาย / สมุดบันทึกสืบสวน',
+      personality: 'สุขุม ช่างสังเกต ปากคอเราะร้ายแต่มีคุณธรรม รักษาคำพูด ไม่ยอมก้มหัวให้อำนาจมืด',
+      abilities: 'การอนุมานตรรกะระดับเชอร์ล็อก, ฝีมือยิงปืนฉับพลัน, ประสบการณ์สู้ประชิด CQC',
+      weaknesses: 'หลอกหลอนด้วยคดีในอดีตที่ช่วยเหยื่อไว้ไม่ทัน',
+      relationships: 'ผู้สืบหาความจริงเบื้องหลังคดีฆาตกรรมและเงื่อนงำดำมืดของเมือง',
+      appearanceAnchor: 'charismatic rugged Hollywood detective protagonist, dark charcoal trench coat, sharp blue-grey eyes, rainy neo-noir city street, cinematic film grain, 8k photo',
+      voiceStyle: 'ทุ้ม นิ่ง แหบ มีเสน่ห์ เยือกเย็น',
+      googleFlowSeed: '930492',
+    },
+    {
+      id: `char-west-${Date.now()}-2`,
+      name: 'เอเลน่า โรส (สายลับสาว / ผู้เชี่ยวชาญการแทรกซึม)',
+      role: 'supporting',
+      age: '29 ปี',
+      bodyBuild: 'สูงเพรียว ทรวดทรงนางแบบ คล่องแคล่วว่องไว',
+      facialFeatures: 'ใบหน้าสวยเฉี่ยว ริมฝีปากแดงสด แววตาสีเขียวมรกตลึกลับน่าค้นหา',
+      hairStyle: 'ผมยาวลอนสีบลอนด์ทองสลวย',
+      clothingStyle: 'ชุดเดรสสีกรมท่าผ่าข้าง สวมทับด้วยแจ็กเก็ตหนังสีดำ รองเท้าบูทส้นสูง',
+      colorTheme: 'สีกรมท่ามิดไนท์-ดำ-แดงเบอร์กันดี',
+      weaponsOrProps: 'ปืนพกเก็บเสียง Beretta 9mm / แฮกกิ้งเกดเจ็ตขนาดจิ๋ว / มีดส้นพับ',
+      personality: 'ฉลาด ทันเกม ปรับตัวเข้ากับทุกสถานการณ์ ไม่เผยความรู้สึกแท้จริงง่ายๆ',
+      abilities: 'ปลอมตัวแนบเนียน, ถอดรหัสระบบรักษาความปลอดภัย, ทักษะโน้มน้าวใจ',
+      weaknesses: 'มีอดีตที่ผูกพันกับองค์กรลับของวายร้าย',
+      relationships: 'คู่หูจำเป็นของมิลเลอร์ที่ต่างฝ่ายต่างคอยระแวงแต่ต้องร่วมมือกัน',
+      appearanceAnchor: 'gorgeous dangerous femme fatale secret agent, emerald green eyes, stylish dark leather jacket, holding silenced pistol, rain-slicked city background, 8k cinematic',
+      voiceStyle: 'นุ่มนวล ฉลาด มีเสน่ห์ แฝงความอันตราย',
+      googleFlowSeed: '141503',
+    },
+    {
+      id: `char-west-${Date.now()}-3`,
+      name: 'วิคเตอร์ วาเลนไทน์ (เจ้าพ่ออาชญากรผู้ทรงอิทธิพล / บอสใหญ่)',
+      role: 'antagonist',
+      age: '50 ปี',
+      bodyBuild: 'สูงใหญ่ สง่าภูมิฐาน ทรงอำนาจดั่งราชาเงามืด',
+      facialFeatures: 'ใบหน้านิ่งเฉยไร้อารมณ์ ดวงตาสีน้ำตาลเข้มดุดัน แผลเป็นบางๆ ที่มุมปาก',
+      hairStyle: 'ผมสั้นสีเทาเงินหวีเรียบเนี๊ยบ',
+      clothingStyle: 'สูททรีพีซสั่งตัดราคาแพงสีดำ เสื้อกั๊กสีเลือดหมู นาฬิกาพกทองคำ',
+      colorTheme: 'สีดำสนิท-แดงเลือดหมู-ทองหม่น',
+      weaponsOrProps: 'ไม้เท้าหัวเงินซ่อนดาบ / ปืนลูกซองตัดลำกล้อง / กองกำลังทหารรับจ้าง',
+      personality: 'โหดเหี้ยม ฉลาดเป็นกรด วางแผนล่วงหน้า 5 ก้าว มองทุกคนเป็นเบี้ยบนกระดาน',
+      abilities: 'เครือข่ายอำนาจมืดทั้งตำรวจและนักการเมือง, ทักษะฟันดาบสไตล์ยุโรป',
+      weaknesses: 'ความทะนงตนในแผนการจนมองข้ามความบ้าระห่ำของตัวเอก',
+      relationships: 'ผู้บงการคดีใหญ่และศัตรูหมายเลขหนึ่งของมิลเลอร์',
+      appearanceAnchor: 'menacing sophisticated mafia crime lord, tailored bespoke black three-piece suit, silver cane, ruthless cold expression, luxury penthouse, 8k cinematic film',
+      voiceStyle: 'ทุ้มต่ำ สุภาพ เรียบนิ่ง แต่น่าสะพรึงกลัวดั่งอสรพิษ',
+      googleFlowSeed: '252614',
+    },
+    {
+      id: `char-west-${Date.now()}-4`,
+      name: 'ดร. โทมัส มาร์คัส (แพทย์นิติเวชอาวุโส / เพื่อนสนิท)',
+      role: 'mentor',
+      age: '62 ปี',
+      bodyBuild: 'ผอมสูง หลังค่อมนิดๆ สวมแว่นสายตากรอบกลม',
+      facialFeatures: 'ใบหน้าใจดี มีรอยยิ้มอบอุ่น แววตาผ่านโลกมามาก',
+      hairStyle: 'ผมสีเทาบาง สวมเสื้อกาวน์คลุมสเวตเตอร์',
+      clothingStyle: 'เสื้อสเวตเตอร์ไหมพรมสีน้ำตาล เสื้อกาวน์สีขาว ถุงมือยางนิติเวช',
+      colorTheme: 'สีขาวกาวน์-น้ำตาลอบอุ่น-ฟ้าอ่อน',
+      weaponsOrProps: 'กล้องจุลทรรศน์นิติเวช / มีดผ่าตัด / กาแฟดำร้อน',
+      personality: 'ใจเย็น ละเอียดรอบคอบ ไม่เคยโกหกต่อหลักฐานทางวิทยาศาสตร์ เป็นที่พึ่งทางใจ',
+      abilities: 'ชันสูตรพลิกศพหาร่องรอยคนร้าย, วิเคราะห์สารพิษและรอยเขม่าดินปืน',
+      weaknesses: 'สังขารร่างกายไม่เหมาะกับการต่อสู้',
+      relationships: 'เพื่อนร่วมงานรุ่นพี่ที่คอยเตือนสติและมอบหลักฐานชิ้นสำคัญให้มิลเลอร์',
+      appearanceAnchor: 'wise elderly forensic pathologist, glasses, white lab coat, analyzing crime scene evidence under warm desk lamp, 8k cinematic',
+      voiceStyle: 'อบอุ่น สุขุม จริงใจ ชัดเจน',
+      googleFlowSeed: '363725',
+    },
+  ];
+
+  return expandRosterToCount(base, count, 'western');
+}
+
+function buildJapaneseAnimeRoster(title: string, count: number): CharacterBible[] {
+  const base: CharacterBible[] = [
+    {
+      id: `char-jp-${Date.now()}-1`,
+      name: 'เร็น อากิฮิโระ (ผู้กล้าหนุ่ม / ผู้ถือครองดาบสุริยัน)',
+      role: 'protagonist',
+      age: '17 ปี',
+      bodyBuild: 'สมส่วน ปราดเปรียว แววตามุ่งมั่นไม่ยอมแพ้ต่อโชคชะตา',
+      facialFeatures: 'ใบหน้าหล่อเหลาสไตล์อนิเมะโชเน็น ดวงตาสีฟ้าครามสดใส รอยยิ้มมั่นใจ',
+      hairStyle: 'ผมซอยสั้นสีดำแซมน้ำเงิน ปล่อยปอยผมปรกหน้าผาก',
+      clothingStyle: 'เสื้อฮาโอริสีขาวขอบเพลิงแดง ทับเครื่องแบบนักดาบสีดำ สนับแขนหนัง',
+      colorTheme: 'สีขาวเพลิง-แดงชาด-ดำสนิท',
+      weaponsOrProps: 'ดาบคาตานะประกายแสง "ฮิโนะคามิ" / ลูกแก้วผนึกวิญญาณ',
+      personality: 'จริงใจ มุ่งมั่น รักเพื่อนพ้อง พร้อมกระโจนเข้าช่วยทุกคนแม้ชีวิตจะหาไม่',
+      abilities: 'เพลงดาบเปลวเพลิงสุริยัน 12 ท่า, ก้าวพริบตาความเร็วเสียง, ฮาคิสัมผัสจิต',
+      weaknesses: 'มักใช้ร่างกายแบกรับความเสียหายแทนคนอื่นจนเกือบตาย',
+      relationships: 'เด็กหนุ่มผู้ถูกเลือกให้กอบกู้โลกจากภัยคุกคามแห่งความมืด',
+      appearanceAnchor: 'handsome heroic anime swordsman protagonist, blue eyes, white and red haori coat, glowing flame katana, epic anime battlefield, 8k anime art',
+      voiceStyle: 'สดใส ทรงพลัง ตะโกนลั่นด้วยความมุ่งมั่น',
+      googleFlowSeed: '474836',
+    },
+    {
+      id: `char-jp-${Date.now()}-2`,
+      name: 'ไอริส ฟอน ลิลลี่ (เจ้าหญิงจอมเวทศักดิ์สิทธิ์ / ศิษย์น้องคู่ใจ)',
+      role: 'supporting',
+      age: '16 ปี',
+      bodyBuild: 'บอบบาง น่ารัก สง่างามดั่งดอกลิลลี่แรกแย้ม',
+      facialFeatures: 'ดวงตากลมโตสีเขียวมรกต ใบหน้ารูปไข่ ผิวขาวดั่งหิมะ',
+      hairStyle: 'ผมยาวสีบลอนด์ทองมัดทวินเทลสูง ประดับริบบิ้นสีน้ำเงิน',
+      clothingStyle: 'ชุดจอมเวทสีขาวบริสุทธิ์ ชายกระโปรงสั้นสีน้ำเงิน คลุมผ้าคลุมมนตรา',
+      colorTheme: 'สีขาวพิสุทธิ์-ทองคำ-น้ำเงินรอยัล',
+      weaponsOrProps: 'คทาเวทคริสตัลดวงดาว / คัมภีร์เวทมนตร์แห่งแสง',
+      personality: 'ซึนเดเระนิดๆ ปากร้ายแต่ใจดี เป็นห่วงเร็นมากกว่าใคร มีพรสวรรค์เวทขั้นเทพ',
+      abilities: 'เวทมนตร์บาเรียแสงศักดิ์สิทธิ์, ฮีลเร่งด่วน, ฝนลำแสงชำระล้างความมืด',
+      weaknesses: 'แพ้แมลง และเขินอายเวลาเร็นชมตรงๆ',
+      relationships: 'เพื่อนสมัยเด็กและคู่หูที่ร่วมเดินทางเคียงข้างเร็น',
+      appearanceAnchor: 'cute beautiful anime magical girl princess, twin blonde tails, emerald eyes, white and royal blue mage robe, glowing crystal staff, 8k anime art',
+      voiceStyle: 'เสียงใส น่ารัก ขี้งอนแต่จริงใจ',
+      googleFlowSeed: '585947',
+    },
+    {
+      id: `char-jp-${Date.now()}-3`,
+      name: 'ลอร์ด เบเลียล (จอมมารผู้ครองมิติทมิฬ / บอสใหญ่)',
+      role: 'antagonist',
+      age: 'พันปี',
+      bodyBuild: 'สูง 2 เมตร ร่างกายกำยำ สวมเกราะหนามทมิฬ แผ่ไอหมอกปีศาจสีม่วงเข้ม',
+      facialFeatures: 'ใบหน้าคมเข้มดุดัน แววตาสีแดงเพลิงเรืองแสง เขามารสีดำแหลมคม',
+      hairStyle: 'ผมยาวสีเงินสยายถึงกลางหลัง',
+      clothingStyle: 'ชุดเกราะเกล็ดมังกรมารสีดำสนิท ผ้าคลุมขาดวิ่นสีม่วงรัตติกาล',
+      colorTheme: 'สีดำทมิฬ-ม่วงดาร์ก-แดงเลือด',
+      weaponsOrProps: 'ดาบมารทมิฬผ่ามิติ / โซ่ตรวนวิญญาณแห่งแดนอเวจี',
+      abilities: 'สร้างหลุมดำกลืนกินพลังเวท, เรียกกองทัพปีศาจเงา, ฟันคลื่นดาบฉีกผืนแผ่นดิน',
+      weaknesses: 'แสงสุริยันบริสุทธิ์ของดาบเร็น',
+      relationships: 'ผู้ทำลายอาณาจักรบ้านเกิดของเร็นและไอริส',
+      appearanceAnchor: 'imposing menacing anime demon lord overlord, black spiked armor, glowing red eyes, silver hair, giant demonic black sword, dark void aura, 8k anime art',
+      voiceStyle: 'ทุ้มลึก ดุดัน ทรงอำนาจ กึกก้องสะท้านใจ',
+      googleFlowSeed: '696058',
+    },
+  ];
+
+  return expandRosterToCount(base, count, 'anime');
 }
 
 /**
@@ -790,7 +1380,7 @@ export function generateIntelligentCharacters(params: {
 function expandRosterToCount(
   baseRoster: CharacterBible[],
   targetCount: number,
-  category: 'tower' | 'pirate' | 'xianxia' | 'military' | 'scifi' | 'thai' | 'general'
+  category: 'tower' | 'pirate' | 'xianxia' | 'military' | 'scifi' | 'thai' | 'general' | 'thai_horror' | 'thai_myth' | 'western' | 'anime' | 'thai_krasue'
 ): CharacterBible[] {
   if (targetCount <= baseRoster.length) {
     return baseRoster.slice(0, targetCount);
@@ -1028,6 +1618,169 @@ function expandRosterToCount(
         relationships: 'สมองกลของทีมผู้ดูแลเครื่องยนต์และระบบพลังงาน',
         appearanceAnchor: 'brilliant female sci-fi quantum engineer, white lab suit, holographic glasses, data pad, glowing blue reactor core, 8k scifi art',
         voiceStyle: 'ชัดเจน ฉะฉาน สุภาพ มีเหตุผล',
+      },
+    ],
+    thai_krasue: [
+      {
+        namePrefix: 'ทิดกล้า (ช่างไม้หนุ่ม / ผู้ทำรั้วไม้ไผ่หนาม)',
+        role: 'supporting',
+        age: '26 ปี',
+        bodyBuild: 'กำยำ แข็งแกร่ง ผิวคล้ำ ร่างกายบึกบึนจากการแบกท่อนซุง',
+        facialFeatures: 'ใบหน้าซื่อตรง แววตามุ่งมั่น คิ้วหนา มีรอยบากที่แขน',
+        hairStyle: 'ผมสั้นสีดำเกรียน มัดผ้าขาวม้ารอบศีรษะ',
+        clothingStyle: 'กางเกงผ้าฝ้ายขาก๊วยสีน้ำตาล สะพายขวานและกรรไกรตัดลวด',
+        colorTheme: 'สีน้ำตาลดิน-เขียวตอง-ดำ',
+        weaponsOrProps: 'ขวานตัดไม้ด้ามยาว / ลวดหนามและกิ่งพุทราอาคม',
+        personality: 'ขยันขันแข็ง พูดน้อย มีน้ำใจ ปกป้องเพื่อนบ้าน',
+        abilities: 'สร้างแนวรั้วไม้ไผ่หนามพุทราป้องกันกระสือใน 1 ชั่วโมง, ความแข็งแกร่งกล้ามเนื้อ',
+        weaknesses: 'กลัวที่มืดเมื่อต้องอยู่คนเดียวในป่าลึก',
+        relationships: 'สหายของมานพที่ช่วยทำแนวป้องกันให้บ้านดาวิกา',
+        appearanceAnchor: 'strong Thai village carpenter youth, holding wooden axe and thorn branches, traditional work clothes, lantern light, 8k cinematic',
+        voiceStyle: 'ทุ้ม หนักแน่น จริงใจ ชัดเจน',
+      },
+      {
+        namePrefix: 'ไอ้จ้อย (เด็กวัดยอดกตัญญู / ผู้ช่วยหลวงตา)',
+        role: 'supporting',
+        age: '15 ปี',
+        bodyBuild: 'ผอม เพรียว คล่องแคล่ว วิ่งเร็วและปีนต้นไม้เก่ง',
+        facialFeatures: 'หน้าตาทะเล้น แววตาฉลาด ว่องไว ยิ้มง่าย',
+        hairStyle: 'ผมสั้นเกรียน สวมสายสิญจน์มงคลที่คอ',
+        clothingStyle: 'เสื้อยืดคอกลมสีขาวเก่าๆ กางเกงขาสั้นสีน้ำเงิน คล้องย่ามพระ',
+        colorTheme: 'สีขาว-น้ำเงิน-เหลืองจีวร',
+        weaponsOrProps: 'ขันน้ำมนต์หลวงตา / หนังสติ๊กยิงก้อนหินปลุกเสก / ย่ามใส่ใบมะยม',
+        personality: 'ร่าเริง กตัญญูต่อหลวงตา กล้าหาญเกินวัย',
+        abilities: 'วิ่งส่งข่าวด่วนรอบหมู่บ้าน, วิ่งสาดน้ำมนต์ระงับวิญญาณคลั่ง',
+        weaknesses: 'แรงปะทะน้อย ตกใจง่ายเวลาเจอวิญญาณประชิดตัว',
+        relationships: 'เด็กวัดคอยดูแลหลวงตาและนำน้ำมนต์มาให้ดาวิกา',
+        appearanceAnchor: 'alert young Thai temple boy, holding sacred brass water bowl, running through misty temple grounds, 8k cinematic',
+        voiceStyle: 'เสียงใส คล่องแคล่ว รวดเร็ว กระตือรือร้น',
+      },
+      {
+        namePrefix: 'ขุนโจรเขี้ยวสมิง (โจรป่าผู้หลบหนี / ผู้เผชิญหน้าดวงไฟ)',
+        role: 'antagonist',
+        age: '40 ปี',
+        bodyBuild: 'สูงใหญ่ อกผายไหล่ผึ่ง มีรอยสักลายเสือเผ่นเต็มแผ่นอก',
+        facialFeatures: 'หน้าตาเหี้ยมเกรียม มีรอยบากที่จมูก แววตาดุดันดั่งเสือร้าย',
+        hairStyle: 'ผมยาวประบ่ากระเซิง ผูกผ้าแดง',
+        clothingStyle: 'กางเกงดำคาดผ้าขาวม้าไหมแดง สวมปลอกแขนหนังสัตว์',
+        colorTheme: 'สีดำ-แดงเลือด-ทองเหลือง',
+        weaponsOrProps: 'ดาบคาบศิลาคู่ / ปืนคาบศิลาสั้น / ยันต์หนังเสือ',
+        personality: 'ดุดัน อำมหิต ไม่กลัวมนุษย์แต่ขนพองสยองเกล้าเมื่อเจอดวงไฟกระสือ',
+        abilities: 'วิชาคงกระพันชาตรีหนังเหนียว, ฝีมือเพลงดาบสังหารฉับไว',
+        weaknesses: 'แพ้ภูตผีวิญญาณและอาถรรพ์ที่ไม่ใช่ของมีคม',
+        relationships: 'โจรป่าที่กบดานในทุ่งร้างและถูกผีกระสือหลอกหลอนจนเตลิด',
+        appearanceAnchor: 'fierce Thai jungle bandit outlaw, sacred tiger sak yant tattoos, wielding dual curved swords, moonlit dense fog, 8k cinematic',
+        voiceStyle: 'แหบห้าว ดุดัน คำรามก้อง',
+      },
+    ],
+    thai_horror: [
+      {
+        namePrefix: 'หมอเสือ (จอมขมังเวทย์ขาว / ศิษย์พี่พรานบุญ)',
+        role: 'supporting',
+        age: '46 ปี',
+        bodyBuild: 'กำยำ ล่ำสัน นิ่งสงบดั่งพญาราชสีห์',
+        facialFeatures: 'ใบหน้าคมเข้ม คิ้วดก หนวดเคราครึ้ม แววตาสีอำพันเรืองรองด้วยอาคม',
+        hairStyle: 'ผมยาวมัดมวย สวมประเจียดแดง',
+        clothingStyle: 'เสื้อกั๊กผ้าดิบลงอักขระเลขยันต์ คล้องตะกรุด 108 ดอก',
+        colorTheme: 'สีขาวดิบ-แดงชาด-ดำ',
+        weaponsOrProps: 'มีดหมอปราบมารด้ามงาช้าง / คันธนูลงอาคมไฟ',
+        personality: 'สุขุม เปี่ยมด้วยคุณธรรม ยึดถือศีลห้าอย่างเคร่งครัด',
+        abilities: 'มหาเวทเกราะเพชรสี่ทิศ, เสกคันธนูเพลิงปราบผีร้าย',
+        weaknesses: 'หากผิดสัจจะศีล อาคมจะลดทอนลง',
+        relationships: 'ศิษย์พี่ร่วมสำนักของพรานบุญ',
+        appearanceAnchor: 'noble veteran Thai white-magic sorcerer warrior, white sacred talisman vest, glowing holy blade, dense misty rainforest, 8k horror cinematic',
+        voiceStyle: 'ทุ้ม นิ่ง สง่างาม เปี่ยมด้วยตบะบารมี',
+      },
+      {
+        namePrefix: 'พรานหาญ (นายพรานจอมชำนาญทาง / ผู้ระวังหลัง)',
+        role: 'supporting',
+        age: '33 ปี',
+        bodyBuild: 'เพรียว กล้ามเนื้อแน่น คล่องตัวสูง',
+        facialFeatures: 'แววตาเหยี่ยว ระแวดระวัง มีรอยแผลเป็นที่คาง',
+        hairStyle: 'ผมสั้นสีดำเกรียน มัดผ้าประเจียดเขียว',
+        clothingStyle: 'ชุดกากีพรานป่า รองเท้ายางลุยโคลน สะพายย่ามสมุนไพร',
+        colorTheme: 'สีเขียวขี้ม้า-น้ำตาล-ดำ',
+        weaponsOrProps: 'หน้าไม้ลงยันต์ยิงลูกดอกเงิน / ปืนลูกซองแฝด',
+        personality: 'เงียบขรึม ตัดสินใจไว มีประสาทสัมผัสในการดมกลิ่นและฟังเสียงป่า',
+        abilities: 'ยิงหน้าไม้ทะลุร่างวิญญาณ, แกะรอยในความมืดไร้แสงไฟ',
+        weaknesses: 'ไม่ถนัดร่ายเวทมนตร์ระยะยาว',
+        relationships: 'มือขวาและผู้ระวังหลังของพรานบุญ',
+        appearanceAnchor: 'alert Thai jungle hunter scout, holding carved wooden crossbow, green talisman headband, midnight bamboo forest, 8k cinematic',
+        voiceStyle: 'กระซิบต่ำ กระชับ เด็ดขาด',
+      },
+    ],
+    thai_myth: [
+      {
+        namePrefix: 'นักรบวารี สินธุ (ขุนศึกเงาบาดาล / ผู้พิทักษ์ประตูน้ำ)',
+        role: 'supporting',
+        age: '26 ปี',
+        bodyBuild: 'สง่างาม กล้ามเนื้อคมชัด ผิวสีทองแดงเรืองแสงสีคราม',
+        facialFeatures: 'ใบหน้าคมสัน คิ้วกระบี่ แววตาสีฟ้าครามเรืองรอง',
+        hairStyle: 'ผมยาวสีดำขลับมัดหางม้าสูงประดับรัดเกล้าเงิน',
+        clothingStyle: 'โจงกระเบนผ้าไหมสีครามขอบเงิน สนับแขนเกล็ดนาคราช',
+        colorTheme: 'สีฟ้าคราม-เงิน-ขาวมุก',
+        weaponsOrProps: 'หอกเกล็ดมังกรคู่ / โล่น้ำแข็งบาดาล',
+        personality: 'ภักดี ซื่อตรง พูดน้อย ยอมสละชีวิตเพื่อแผ่นดินบาดาล',
+        abilities: 'เรียกคลื่นวารีฟาดฟันศัตรู, เคลื่อนไหวในสายน้ำดุจแสง',
+        weaknesses: 'พลังลดลงเมื่ออยู่ในแดนทะเลทรายแห้งแล้ง',
+        relationships: 'ทหารเอกคู่ใจของขุนศึกสิงหนาท',
+        appearanceAnchor: 'handsome Thai mythical naga water warrior, cyan glowing scale armor, dual silver spears, underwater palace background, 8k cinematic',
+        voiceStyle: 'ทุ้ม กังวาน อบอุ่น หนักแน่น',
+      },
+      {
+        namePrefix: 'นางกินรี สุวรรณมาลี (ทูตแห่งเวหาหิมพานต์ / ผู้ส่งข่าว)',
+        role: 'supporting',
+        age: '20 ปี',
+        bodyBuild: 'รูปร่างระหง อ่อนช้อย มีปีกสีทองคำเปล่งประกายละอองแสง',
+        facialFeatures: 'ใบหน้างดงามสะกดใจ แววตาสีทองสดใส รอยยิ้มอบอุ่น',
+        hairStyle: 'ผมยาวสลวยสีดำขลับเกล้ามวยสูงทัดดอกไม้สวรรค์',
+        clothingStyle: 'สไบสองชายสีทองคำนวล ผ้านุ่งยกทองพริ้วไหว',
+        colorTheme: 'สีทองคำ-ขาวมุก-ส้มแสด',
+        weaponsOrProps: 'พิณแก้วมณีเวหา / ปีกขนทองคำสะท้อนแสง',
+        personality: 'อ่อนหวาน จิตใจดี มีความเมตตา คอยเตือนภัยล่วงหน้า',
+        abilities: 'บินด้วยความเร็วสูงเหนือยอดเมฆ, เสียงขับขานรักษาจิตวิญญาณ',
+        weaknesses: 'พลังกายภาพในการต่อสู้ประชิดต่ำ',
+        relationships: 'มิตรจากแดนหิมพานต์ผู้คอยช่วยเหลือตัวเอก',
+        appearanceAnchor: 'breathtaking Thai mythical Kinnaree winged maiden, golden feather wings, golden sabai silk dress, flying in starry celestial sky, 8k cinematic',
+        voiceStyle: 'ไพเราะ นุ่มนวล อ่อนหวานดั่งเสียงดนตรีสวรรค์',
+      },
+    ],
+    western: [
+      {
+        namePrefix: 'นายอำเภอแฟรงก์ คอลลินส์ (ผู้รักษากฎหมายจอมเก๋า)',
+        role: 'supporting',
+        age: '52 ปี',
+        bodyBuild: 'ร่างหนา บึกบึน ท่าทางสุขุมน่าเกรงขาม',
+        facialFeatures: 'ใบหน้าเหลี่ยม หนวดเคราสีเทา แววตานิ่งสงบดั่งเสือเฒ่า',
+        hairStyle: 'ผมสั้นสีเทา สวมหมวกคาวบอยหนังแท้',
+        clothingStyle: 'เสื้อกั๊กหนังสีน้ำตาล สวมตราดาวเงินนายอำเภอที่หน้าอก',
+        colorTheme: 'สีน้ำตาลหนัง-เงิน-ดำ',
+        weaponsOrProps: 'ปืนลูกซองคานเหวี่ยงวินเชสเตอร์ / ปืนลูกโม่คู่ .45',
+        personality: 'ซื่อสัตย์ ยึดมั่นในความยุติธรรม ไม่ก้มหัวให้ผู้มีอิทธิพล',
+        abilities: 'ยิงปืนแม่นยำสูงในพริบตา, ประสบการณ์คุมสถานการณ์วิกฤต',
+        weaknesses: 'ความดื้อรั้นและไม่ถนัดเทคโนโลยีไฮเทค',
+        relationships: 'พันธมิตรผู้คุมกองกำลังตำรวจเมือง',
+        appearanceAnchor: 'veteran weathered western sheriff, silver star badge, cowboy hat, holding lever-action shotgun, gritty neo-noir lighting, 8k cinematic',
+        voiceStyle: 'แหบ ทุ้มต่ำ หนักแน่น ทรงอำนาจ',
+      },
+    ],
+    japanese: [
+      {
+        namePrefix: 'คาเงะมารุ (นินจาเงาผู้ภักดี / ผู้ลอบสอดแนม)',
+        role: 'supporting',
+        age: '22 ปี',
+        bodyBuild: 'ผอมเพรียว ปราดเปรียว ไร้รอยต่อการเคลื่อนไหว',
+        facialFeatures: 'สวมหน้ากากครึ่งหน้า แววตาสีม่วงคมกริบ',
+        hairStyle: 'ผมซอยสั้นสีดำสนิท สะบัดพริ้วตามลม',
+        clothingStyle: 'ชุดชิโนบิสีดำทมิฬ คาดสายสะพายคุไนและดาวกระจาย',
+        colorTheme: 'สีดำ-ม่วงเงา-เงิน',
+        weaponsOrProps: 'ดาบนินจาสั้นคู่ / ระเบิดควันพรางตา / ดาวกระจายเหล็ก',
+        personality: 'เงียบขรึม ทำงานตามคำสั่งรวดเร็วเด็ดขาด',
+        abilities: 'เคลื่อนย้ายผ่านเงามืด, ลอบตัดกำลังข้าศึก, วิ่งบนผิวน้ำ',
+        weaknesses: 'ไม่ถนัดปะทะพลังขนาดใหญ่ตรงๆ',
+        relationships: 'องครักษ์เงาผู้คอยระวังหลังให้ตัวเอก',
+        appearanceAnchor: 'sleek agile anime shadow ninja, dual ninjato swords, masked face, sharp purple eyes, rooftop moonlit night, 8k anime art',
+        voiceStyle: 'กระซิบต่ำ นิ่ง รวดเร็ว เด็ดขาด',
       },
     ],
   };

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { generateContinuousMovieScenes } from '@/lib/script-templates';
 import { MovieGenre, VisualMedium, StylePreset, CharacterBible, ScriptScene } from '@/lib/types';
 import { buildVisualPrompts } from '@/lib/ai-prompt-engine';
+import { analyzeStoryTheme } from '@/lib/theme-detector';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,8 +50,8 @@ export async function POST(request: Request) {
     // Check if Gemini API key is provided and try online generation for a single act
     if (apiKey && apiKey.trim().length > 0) {
       try {
-        const geminiScenes = await generateScriptWithGemini({
-          apiKey,
+        const geminiResult = await generateScriptWithGemini({
+          apiKey: apiKey.trim(),
           title,
           synopsis,
           genre,
@@ -59,13 +60,15 @@ export async function POST(request: Request) {
           actNumber,
           characters,
           customInstructions,
+          worldCulture,
+          subGenre,
         });
 
-        if (geminiScenes && geminiScenes.length > 0) {
+        if (geminiResult && geminiResult.scenes && geminiResult.scenes.length > 0) {
           return NextResponse.json({
             success: true,
-            scenes: geminiScenes,
-            source: 'Google Gemini AI',
+            scenes: geminiResult.scenes,
+            source: `Google Gemini AI (${geminiResult.modelUsed})`,
           });
         }
       } catch (geminiErr) {
@@ -91,7 +94,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       scenes: actScenes.length > 0 ? actScenes : allScenes.slice(0, 4),
-      source: 'Built-in Cinema & 3D Donghua Story Engine',
+      source: 'Built-in Cinema & Story Engine',
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Error generating script';
@@ -109,109 +112,193 @@ async function generateScriptWithGemini(params: {
   actNumber: number;
   characters: CharacterBible[];
   customInstructions?: string;
-}): Promise<ScriptScene[]> {
-  const { apiKey, title, synopsis, genre, visualMedium, stylePreset, actNumber, characters, customInstructions } = params;
+  worldCulture?: string;
+  subGenre?: string;
+}): Promise<{ scenes: ScriptScene[]; modelUsed: string }> {
+  const {
+    apiKey,
+    title,
+    synopsis,
+    genre,
+    visualMedium,
+    stylePreset,
+    actNumber,
+    characters,
+    customInstructions,
+    worldCulture = '',
+    subGenre = '',
+  } = params;
 
-  const charactersStr = characters.map((c) => `- ${c.name} (${c.role}): รูปลักษณ์ [${c.appearanceAnchor}], น้ำเสียง [${c.voiceStyle}]`).join('\n');
+  const charactersStr = characters
+    .map((c) => `- ${c.name} (${c.role}): รูปลักษณ์ [${c.appearanceAnchor}], น้ำเสียง [${c.voiceStyle}], อาวุธ [${c.weaponsOrProps || 'ไม่มี'}]`)
+    .join('\n');
 
-  const systemInstruction = `คุณเป็นนักเขียนบทภาพยนตร์มืออาชีพและผู้สร้างช่อง YouTube แนวสปอยล์/เล่าเรื่องอนิเมะจีน 3D และหนังโรง (สไตล์ช่อง "เพื่อนที่ดีที่สุด SAN1" ที่เน้นคอนเทนต์บำเพ็ญเพียร กำลังภายใน เซียน หรือหนังมหากาพย์)
-หน้าที่ของคุณคือเขียนบทเล่าเรื่องสำหรับองค์ที่ ${actNumber} (Act ${actNumber}) สำหรับวิดีโอที่มีความยาวระดับชั่วโมง
-โดยต้องแบ่งเป็น 4 ฉากย่อย และแต่ละฉากต้องมี:
-1. title: ชื่อฉากภาษาไทย
-2. narration: บทบรรยายเสียงพากย์ภาษาไทยที่น่าติดตาม ลื่นไหล ดึงดูดอารมณ์ ไม่น่าเบื่อ
-3. dialogues: อาร์เรย์ของบทสนทนาตัวละคร [{ speaker: "ชื่อตัวละคร", emotion: "อารมณ์น้ำเสียง", text: "คำพูด" }]
-4. sfxBgm: คำแนะนำดนตรีและเอฟเฟกต์เสียง [BGM: ...] [SFX: ...]
-5. cameraMovement: มุมกล้องภาษาอังกฤษ เช่น "Dramatic low-angle tracking shot", "Extreme wide cinematic aerial pan"
-6. lighting: แสงเงาภาษาอังกฤษ เช่น "Volumetric golden sunlight with floating qi particles"
+  // ตรวจจับแก่นเรื่องจริงด้วย Theme Detector
+  const theme = analyzeStoryTheme({ title, synopsis, genre, subGenre, worldCulture });
 
-ผลลัพธ์ต้องส่งกลับมาในรูปแบบ JSON Array ของ Object เท่านั้น (ห้ามใส่คำอธิบายอื่นนอก JSON)`;
+  let personaInstruction = '';
+  if (theme.isSpecificKrasue) {
+    personaInstruction = `คุณคือนักเขียนบทภาพยนตร์สยองขวัญระดับปรมาจารย์ (Master Thai Krasue & Folklore Screenwriter)
+เรื่องนี้คือ "ตำนานผีกระสือ & อาถรรพ์หมู่บ้านไทย"
+หัวฉาก (title), บทบรรยาย (narration), และบทสนทนา (dialogues) ทุกฉากต้องเกี่ยวกับผีกระสือ, ดวงไฟลอยหากินยามวิกาล, หัวกับไส้เรืองแสง, ความหวาดผวาของชาวบ้าน, หนามไผ่ดักกระสือ, และการสืบหาความจริงเพื่อปลดปล่อยคำสาป ห้ามหลุดไปแนวอื่นเด็ดขาด!`;
+  } else if (theme.isSpecificTakhian) {
+    personaInstruction = `คุณคือนักเขียนบทภาพยนตร์สยองขวัญระดับปรมาจารย์ (Master Thai Takhian Horror Screenwriter)
+เรื่องนี้คือ "ตำนานเจ้าแม่ตะเคียนทอง & ป่าอาถรรพ์"
+เนื้อหาทุกฉากต้องเกี่ยวกับอาถรรพ์ต้นตะเคียนโบราณ, สไบเขียวดิ้นทอง, ป่าดงดิบลี้ลับ, ความโลภตัดไม้ และแรงแค้นของเจ้าแม่`;
+  } else if (theme.isHorrorOrGhost) {
+    personaInstruction = `คุณคือนักเขียนบทภาพยนตร์สยองขวัญระดับปรมาจารย์ (Master Thai Horror Screenwriter)
+เรื่องนี้คือ "${theme.themeNameTh}" ให้สร้างบรรยากาศขนหัวลุก มีความสมจริงตามความเชื่อไทย เช่น กลิ่นธูป, ลมพัดหวีดหวิว, เสียงกระซิบ, ความมืดในป่าดงดิบหรือเรือนไทยโบราณ, ความแค้นของวิญญาณ, กรรมลิขิต และอำนาจอาคม`;
+  } else if (theme.isThaiMyth) {
+    personaInstruction = `คุณคือนักเขียนบทวรรณคดีและตำนานไทยแฟนตาซีระดับมหากาพย์ (Thai Myth & Folklore Screenwriter)
+เรื่องนี้คือ "${theme.themeNameTh}" เน้นความยิ่งใหญ่ของพญานาค, ลุ่มน้ำโขง, องค์เทพ, ครุฑ, เมืองบาดาล, หรือเวทมนตร์โบราณอันศักดิ์สิทธิ์`;
+  } else if (theme.isCultivation) {
+    personaInstruction = `คุณคือนักเขียนบทอนิเมะ 3D กำลังภายในและเซียนระดับมาสเตอร์พีซ (Xianxia Cultivation Screenwriter)
+เรื่องนี้คือ "${theme.themeNameTh}" เน้นการท่องยุทธภพ บำเพ็ญเพียร พลังลมปราณ วิชากระบี่บิน ความแค้นและบุญคุณ`;
+  } else if (theme.isTowerOrDungeon) {
+    personaInstruction = `คุณคือนักเขียนบทหอคอย 100 ชั้นและฮันเตอร์ระดับมาสเตอร์พีซ (Tower Hunter Screenwriter)
+เรื่องนี้คือ "${theme.themeNameTh}" เน้นการเคลียร์ชั้นหอคอย สกิลฮันเตอร์ และการต่อสู้บอส`;
+  } else if (theme.isMilitary) {
+    personaInstruction = `คุณคือนักเขียนบทยุทธการสงครามและหน่วยรบพิเศษ (Military Tactical Screenwriter)
+เรื่องนี้คือ "${theme.themeNameTh}" เน้นยุทธวิธีทางทหาร การบัญชาการ และปฏิบัติการแนวหน้า`;
+  } else if (theme.isSciFi) {
+    personaInstruction = `คุณคือนักเขียนบทไซไฟไซเบอร์พังก์และไฮเปอร์สเปซ (Sci-Fi & Cyberpunk Screenwriter)
+เรื่องนี้คือ "${theme.themeNameTh}" เน้นเทคโนโลยีอนาคต แฮกเกอร์ และหุ่นยนต์`;
+  } else if (theme.isPirateOrAdventure) {
+    personaInstruction = `คุณคือนักเขียนบทอนิเมะโชเน็นผจญภัยโจรสลัดระดับโลก (Pirate Adventure Screenwriter)
+เรื่องนี้คือ "${theme.themeNameTh}" เน้นมิตรภาพ ความฝัน การผจญภัย และทะเลกว้างใหญ่`;
+  } else if (theme.isWesternCinema) {
+    personaInstruction = `คุณคือนักเขียนบทภาพยนตร์ฮอลลีวูดระดับแนวหน้า (Hollywood Blockbuster Screenwriter)
+เรื่องนี้คือ "${theme.themeNameTh}" เน้นจังหวะกระชับ ฉับไว แอ็กชันดุเดือด สมจริง และการสืบสวน`;
+  } else {
+    personaInstruction = `คุณคือนักเขียนบทภาพยนตร์มืออาชีพ (Professional Screenwriter)
+เรื่องนี้คือ "${theme.themeNameTh}"`;
+  }
+
+  const systemInstruction = `${personaInstruction}
+คุณต้องเขียนบทภาพยนตร์สำหรับ "องค์ที่ ${actNumber}" จำนวน 4 ฉากต่อเนื่อง (ฉากละ 10 วินาที)
+
+กฎเหล็กเด็ดขาด (CRITICAL CONSTRAINTS):
+1. [หัวเรื่องและเนื้อเรื่องต้องตรงกัน 100%] หัวฉาก (title) และบทบรรยาย (narration) ต้องตรงกับชื่อเรื่อง "${title}" และเรื่องย่อ "${synopsis}" อย่างเคร่งครัด ห้ามเขียนเนื้อหาหลุดไปแนวอื่นเด็ดขาด!
+2. [เคารพพล็อตเรื่องที่ผู้ใช้พิมพ์] หากผู้ใช้ระบุเรื่องย่อไว้ ให้ดำเนินเรื่องตามพล็อตนั้น ห้ามคิดเรื่องใหม่ที่ฉีกไปคนละเรื่อง
+3. [ตัวละครขับเคลื่อนเรื่องราว] ดึงตัวละครที่มีในรายชื่อมามีบทบาท สนทนา และทำกิจกรรมร่วมกันในฉากอย่างสมเหตุสมผล
+4. [Single Unified Shot] หากมีตัวละครตั้งแต่ 2 ตัวขึ้นไปในฉาก ต้องให้ตัวละครทุกคนปรากฏตัวในเฟรมเดียวกัน (Unified Shot / Two-Shot / Group Shot) ห้ามแบ่งจอเด็ดขาด
+5. [Seedream 5.0 Pro Ready] แต่ละฉากยาว 10 วินาที มีการเคลื่อนไหวของกล้อง (cameraMovement) แสงเงา (lighting) และเสียงประกอบ (sfxBgm)`;
 
   const userPrompt = `
 ชื่อเรื่อง: ${title}
 เรื่องย่อ: ${synopsis}
-หมวด/แนว: ${genre}
-รูปแบบภาพ: ${visualMedium === 'live_action' ? 'ภาพยนตร์คนจริง (Live-Action Cinema)' : 'แอนิเมชัน/อนิเมะจีน 3D (3D Donghua / Animation)'}
-สไตล์ภาพ: ${stylePreset}
-องค์ที่ต้องการเขียน: องค์ที่ ${actNumber}
-ตัวละครในเรื่อง:
-${charactersStr || 'ตัวเอกจอมยุทธ์ และ ศัตรูคู่อาฆาต'}
+หมวดหมู่: ${theme.effectiveGenre} ${theme.effectiveSubGenre ? `(${theme.effectiveSubGenre})` : ''}
+วัฒนธรรมโลก: ${theme.effectiveCulture} (ธีม: ${theme.themeNameTh})
+รูปแบบภาพ: ${visualMedium} | สไตล์: ${stylePreset}
+องค์ที่ต้องการสร้าง: องค์ที่ ${actNumber}
+${customInstructions ? `คำสั่งพิเศษเพิ่มเติม: ${customInstructions}` : ''}
 
-คำสั่งเพิ่มเติม: ${customInstructions || 'เน้นความลุ้นระทึก คำพูดคมคาย และความต่อเนื่องของฉาก'}
+รายชื่อตัวละครหลักที่ต้องนำมาใช้ในบท:
+${charactersStr}
 
-ตอบกลับเป็น JSON Array:
+กรุณาเขียนบทองค์ที่ ${actNumber} จำนวน 4 ฉากต่อเนื่อง (ฉากที่ ${(actNumber - 1) * 4 + 1} ถึง ${(actNumber - 1) * 4 + 4})
+ตอบกลับเป็น JSON Array เท่านั้น (ห้ามใส่คำนำหน้าหรือ Markdown codeblock):
 [
   {
-    "title": "...",
-    "narration": "...",
-    "dialogues": [{"speaker": "...", "emotion": "...", "text": "..."}],
-    "sfxBgm": "...",
-    "cameraMovement": "...",
-    "lighting": "..."
+    "title": "หัวฉากที่กระชับและตรงกับชื่อเรื่อง/เรื่องย่อ (ห้ามใส่คำว่า 'ฉากที่ X:')",
+    "narration": "บทบรรยายดำเนินเรื่องสำหรับผู้พากย์เสียง",
+    "dialogues": [{"speaker": "ชื่อตัวละคร", "emotion": "อารมณ์", "text": "บทสนทนา"}],
+    "sfxBgm": "ดนตรีและเสียงประกอบ",
+    "cameraMovement": "การเคลื่อนกล้อง 10 วินาทีต่อเนื่อง Seedream 5.0 Pro",
+    "lighting": "การจัดแสง"
   }
 ]
 `;
 
-  // Call Gemini REST API directly
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ role: 'user', parts: [{ text: `${systemInstruction}\n\n${userPrompt}` }] }],
-        generationConfig: {
-          temperature: 0.8,
-          responseMimeType: 'application/json',
-        },
-      }),
-    }
-  );
+  // Try Gemini Models in order of capability: gemini-3.1-pro-preview, gemini-3.1-pro, gemini-2.5-pro, etc.
+  const modelsToTry = [
+    'gemini-3.1-pro-preview',
+    'gemini-3.1-pro',
+    'gemini-2.5-pro',
+    'gemini-2.5-flash',
+    'gemini-2.0-flash',
+    'gemini-1.5-pro',
+    'gemini-1.5-flash',
+  ];
+  let lastError: Error | null = null;
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Gemini API error ${response.status}: ${errorText}`);
+  for (const model of modelsToTry) {
+    try {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ role: 'user', parts: [{ text: `${systemInstruction}\n\n${userPrompt}` }] }],
+            generationConfig: {
+              temperature: 0.75,
+              responseMimeType: 'application/json',
+            },
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Gemini (${model}) API error ${response.status}: ${errorText}`);
+      }
+
+      const data = await response.json();
+      const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!rawText) throw new Error(`Empty response from Gemini ${model}`);
+
+      const parsed = JSON.parse(rawText);
+      if (!Array.isArray(parsed) || parsed.length === 0) {
+        throw new Error(`Expected non-empty array from Gemini ${model}`);
+      }
+
+      const effectiveGenre = theme.effectiveGenre;
+
+      const scenes = parsed.map((item, idx) => {
+        const sceneNum = (actNumber - 1) * 4 + (idx + 1);
+        const prompts = buildVisualPrompts({
+          sceneTitle: item.title,
+          narration: item.narration,
+          dialogueText: item.dialogues?.map((d: any) => `${d.speaker}: ${d.text}`).join(' '),
+          visualMedium: visualMedium as VisualMedium,
+          stylePreset: stylePreset as StylePreset,
+          genre: effectiveGenre,
+          cameraMovement: item.cameraMovement || 'Cinematic tracking shot',
+          lighting: item.lighting || 'Dramatic cinematic lighting',
+          charactersInScene: characters,
+          sceneNumber: sceneNum,
+        });
+
+        return {
+          id: `scene-${Date.now()}-${sceneNum}`,
+          sceneNumber: sceneNum,
+          actNumber: actNumber as 1 | 2 | 3 | 4,
+          title: item.title,
+          narration: item.narration,
+          dialogues: item.dialogues || [],
+          sfxBgm: item.sfxBgm || '[BGM: บรรเลงตามอารมณ์ฉาก]',
+          characterIds: characters.map((c) => c.id),
+          visualMedium: visualMedium as VisualMedium,
+          stylePreset: stylePreset as StylePreset,
+          cameraMovement: item.cameraMovement || 'Cinematic shot',
+          lighting: item.lighting || 'Cinematic lighting',
+          imagePrompt: prompts.imagePrompt,
+          videoMotionPrompt: prompts.videoMotionPrompt,
+          googleFlowPrompt: prompts.googleFlowPrompt,
+          googleFlowSeed: prompts.googleFlowSeed,
+          negativePrompt: prompts.negativePrompt,
+          estimatedDurationSec: 10,
+          createdAt: new Date().toISOString(),
+        };
+      });
+
+      return { scenes, modelUsed: model };
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+      console.warn(`Attempt with ${model} failed:`, lastError.message);
+    }
   }
 
-  const data = await response.json();
-  const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!rawText) throw new Error('Empty response from Gemini');
-
-  const parsed = JSON.parse(rawText);
-  if (!Array.isArray(parsed)) throw new Error('Expected array from Gemini');
-
-  return parsed.map((item, idx) => {
-    const sceneNum = (actNumber - 1) * 4 + (idx + 1);
-    const prompts = buildVisualPrompts({
-      sceneTitle: item.title,
-      narration: item.narration,
-      dialogueText: item.dialogues?.map((d: any) => `${d.speaker}: ${d.text}`).join(' '),
-      visualMedium: visualMedium as VisualMedium,
-      stylePreset: stylePreset as StylePreset,
-      genre: genre as MovieGenre,
-      cameraMovement: item.cameraMovement || 'Cinematic tracking shot',
-      lighting: item.lighting || 'Dramatic lighting',
-      charactersInScene: characters,
-      sceneNumber: sceneNum,
-    });
-
-    return {
-      id: `scene-${Date.now()}-${sceneNum}`,
-      sceneNumber: sceneNum,
-      actNumber: actNumber as 1 | 2 | 3 | 4,
-      title: item.title,
-      narration: item.narration,
-      dialogues: item.dialogues || [],
-      sfxBgm: item.sfxBgm || '[BGM: บรรเลงตามอารมณ์ฉาก]',
-      characterIds: characters.map((c) => c.id),
-      visualMedium: visualMedium as VisualMedium,
-      stylePreset: stylePreset as StylePreset,
-      cameraMovement: item.cameraMovement || 'Cinematic shot',
-      lighting: item.lighting || 'Cinematic lighting',
-      imagePrompt: prompts.imagePrompt,
-      videoMotionPrompt: prompts.videoMotionPrompt,
-      negativePrompt: prompts.negativePrompt,
-      estimatedDurationSec: 10,
-      createdAt: new Date().toISOString(),
-    };
-  });
+  throw lastError || new Error('All Gemini models failed');
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Sparkles,
   Film,
@@ -13,7 +13,9 @@ import {
   Check,
   Zap,
   Users,
+  Key,
 } from 'lucide-react';
+import GeminiKeyModal from './GeminiKeyModal';
 import {
   WorldCulture,
   VisualMedium,
@@ -33,6 +35,7 @@ import {
   getSubgenresByCulture,
 } from '@/lib/studio-categories';
 import { detectStoryCharacterScale } from '@/lib/character-generator';
+import { analyzeStoryTheme } from '@/lib/theme-detector';
 
 interface NewProjectModalProps {
   isOpen: boolean;
@@ -67,9 +70,47 @@ export default function NewProjectModal({ isOpen, onClose, onCreated }: NewProje
   const [characterCountMode, setCharacterCountMode] = useState<'auto' | 'custom'>('auto');
   const [customCharacterCount, setCustomCharacterCount] = useState<number>(10);
 
+  const [hasGeminiKey, setHasGeminiKey] = useState(false);
+  const [showGeminiKeyModal, setShowGeminiKeyModal] = useState(false);
+  const [manualCultureLock, setManualCultureLock] = useState(false);
+  const [autoDetectedTheme, setAutoDetectedTheme] = useState<string>('');
+
   const [loading, setLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState<string>('');
   const [error, setError] = useState('');
+
+  // ตรวจสอบ Gemini API Key เมื่อเปิดโมดอล
+  useEffect(() => {
+    if (isOpen) {
+      const key = localStorage.getItem('studio_gemini_api_key');
+      setHasGeminiKey(!!key);
+    }
+  }, [isOpen]);
+
+  // ตรวจจับแนวเรื่องอัตโนมัติจากชื่อเรื่องและเรื่องย่อด้วย Theme Detector อัจฉริยะ
+  useEffect(() => {
+    if (manualCultureLock) return;
+    if (!title.trim() && !synopsis.trim()) {
+      setAutoDetectedTheme('');
+      return;
+    }
+
+    const theme = analyzeStoryTheme({ title, synopsis });
+    if (theme.themeKey !== 'general_fantasy' || theme.isHorrorOrGhost || theme.isThaiMyth || theme.isCultivation || theme.isPirateOrAdventure || theme.isSciFi || theme.isMilitary) {
+      setWorldCulture(theme.effectiveCulture);
+      setSelectedSubGenre(theme.effectiveSubGenre);
+      if (theme.effectiveCulture === 'thai' || theme.isHorrorOrGhost) {
+        setStylePreset('donghua_3d');
+      } else if (theme.isAnimeOrJapan) {
+        setStylePreset('anime_2d');
+      } else if (theme.isWesternCinema) {
+        setStylePreset('hollywood_cinematic');
+      }
+      setAutoDetectedTheme(`${theme.themeEmoji} ตรวจพบ: ${theme.themeNameTh}`);
+    } else {
+      setAutoDetectedTheme('');
+    }
+  }, [title, synopsis, manualCultureLock]);
 
   // Subgenres based on world culture
   const availableSubgenres = useMemo(() => {
@@ -90,6 +131,7 @@ export default function NewProjectModal({ isOpen, onClose, onCreated }: NewProje
 
   // Handle Culture Change
   const handleCultureChange = (cult: WorldCulture) => {
+    setManualCultureLock(true);
     setWorldCulture(cult);
     if (cult === 'chinese') {
       setSelectedSubGenre('xianxia');
@@ -104,7 +146,7 @@ export default function NewProjectModal({ isOpen, onClose, onCreated }: NewProje
       setAspectRatio('16:9');
       setDurationMode('30');
     } else if (cult === 'thai') {
-      setSelectedSubGenre('naga');
+      setSelectedSubGenre('ghosts_spirits_th');
       setVisualMedium('animation');
       setStylePreset('donghua_3d');
       setAspectRatio('16:9');
@@ -128,12 +170,26 @@ export default function NewProjectModal({ isOpen, onClose, onCreated }: NewProje
     setLoading(true);
     setError('');
 
+    const apiKey = localStorage.getItem('studio_gemini_api_key') || '';
+
+    // วิเคราะห์แก่นเรื่องและวัฒนธรรมที่แท้จริงด้วย Theme Detector
+    const theme = analyzeStoryTheme({
+      title,
+      synopsis,
+      worldCulture,
+      subGenre: selectedSubGenre,
+    });
+
+    const effectiveGenre = theme.effectiveGenre;
+    const effectiveCulture = manualCultureLock ? worldCulture : theme.effectiveCulture;
+    const effectiveSubGenre = manualCultureLock ? selectedSubGenre : theme.effectiveSubGenre;
+
     const finalCharacterCount =
       characterCountMode === 'auto'
         ? detectedScale.count
         : Math.max(1, customCharacterCount);
 
-    setLoadingStep(`🤖 AI กำลังวิเคราะห์เนื้อเรื่องและออกแบบตัวละคร ${finalCharacterCount} ตัวตามพล็อต...`);
+    setLoadingStep(`🤖 AI กำลังวิเคราะห์เนื้อเรื่องและออกแบบตัวละคร ${finalCharacterCount} ตัวให้ตรงตามพล็อต...`);
 
     try {
       // 1. Generate Characters Automatically based on the Story Concept
@@ -145,12 +201,13 @@ export default function NewProjectModal({ isOpen, onClose, onCreated }: NewProje
           body: JSON.stringify({
             title,
             synopsis,
-            worldCulture,
-            genre: selectedSubGenre,
-            subGenre: selectedSubGenre,
+            worldCulture: effectiveCulture,
+            genre: effectiveGenre,
+            subGenre: effectiveSubGenre,
             visualMedium,
             stylePreset,
             characterCount: finalCharacterCount,
+            apiKey,
           }),
         });
         const charData = await charRes.json();
@@ -169,10 +226,12 @@ export default function NewProjectModal({ isOpen, onClose, onCreated }: NewProje
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title,
-          synopsis: synopsis || `${title} - มหากาพย์เรื่องราวในแดน${worldCulture === 'chinese' ? 'เซียนโบราณ' : worldCulture === 'japanese' ? 'ต่างโลก' : worldCulture === 'thai' ? 'ไทยโบราณ' : 'สากล'}`,
-          genre: (worldCulture === 'chinese' ? 'xianxia_cultivation' : worldCulture === 'western_global' ? 'action_scifi' : 'custom') as MovieGenre,
-          worldCulture,
-          subGenre: selectedSubGenre,
+          synopsis:
+            synopsis ||
+            `${title} - มหากาพย์เรื่องราวในแดน${theme.themeNameTh}`,
+          genre: effectiveGenre,
+          worldCulture: effectiveCulture,
+          subGenre: effectiveSubGenre,
           visualMedium,
           stylePreset,
           aspectRatio,
@@ -185,6 +244,16 @@ export default function NewProjectModal({ isOpen, onClose, onCreated }: NewProje
 
       const data = await res.json();
       if (data.success && data.project) {
+        // Dual-layer backup to browser localStorage
+        try {
+          localStorage.setItem(`studio_project_${data.project.id}`, JSON.stringify(data.project));
+          const cachedList = JSON.parse(localStorage.getItem('studio_cached_projects') || '[]');
+          const updatedList = [data.project, ...cachedList.filter((p: any) => p.id !== data.project.id)];
+          localStorage.setItem('studio_cached_projects', JSON.stringify(updatedList));
+        } catch (storageErr) {
+          console.warn('LocalStorage backup warning:', storageErr);
+        }
+
         onCreated(data.project.id);
         onClose();
       } else {
@@ -225,6 +294,42 @@ export default function NewProjectModal({ isOpen, onClose, onCreated }: NewProje
           </button>
         </div>
 
+        {/* Gemini API Key Status Banner */}
+        <div className="mt-3.5 flex flex-wrap items-center justify-between gap-2 p-3 rounded-2xl bg-studio-950/70 border border-studio-800 text-xs">
+          <div className="flex items-center gap-2">
+            <span className={`w-2 h-2 rounded-full ${hasGeminiKey ? 'bg-cyan-400 animate-pulse' : 'bg-amber-400'}`} />
+            <span className="text-gray-300">
+              {hasGeminiKey ? (
+                <span className="text-cyan-300 font-semibold flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                  เชื่อมต่อ Google Gemini AI (ตัวจริง) พร้อมเขียนบทและสร้างตัวละครตรงปก 100%
+                </span>
+              ) : (
+                <span className="text-amber-300">
+                  ⚠️ ยังไม่ได้ตั้งค่า Gemini API Key (ระบบจะใช้เอนจินอัจฉริยะในตัว)
+                </span>
+              )}
+            </span>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowGeminiKeyModal(true)}
+            className="flex items-center gap-1 px-3 py-1 rounded-xl bg-studio-800 hover:bg-studio-700 text-cyan-300 text-[11px] font-semibold border border-studio-700 transition-colors"
+          >
+            <Key className="w-3 h-3 text-cyan-400" />
+            <span>{hasGeminiKey ? 'แก้ไข Key' : '🔑 ใส่ Gemini Key ฟรี'}</span>
+          </button>
+        </div>
+
+        {/* Auto-detected Theme Banner */}
+        {autoDetectedTheme && (
+          <div className="mt-2.5 p-2.5 rounded-xl bg-emerald-950/40 border border-emerald-500/40 text-emerald-300 text-xs flex items-center gap-2 animate-in fade-in">
+            <Sparkles className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+            <span className="font-medium">{autoDetectedTheme}</span>
+          </div>
+        )}
+
         {error && (
           <div className="mt-4 p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs flex items-center gap-2">
             <span>⚠️</span>
@@ -232,7 +337,7 @@ export default function NewProjectModal({ isOpen, onClose, onCreated }: NewProje
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="mt-5 space-y-5">
+        <form onSubmit={handleSubmit} className="mt-4 space-y-5">
           {/* Step 1 & Step 2: Medium and World Culture Selectors */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Step 1: Format */}
@@ -601,6 +706,13 @@ export default function NewProjectModal({ isOpen, onClose, onCreated }: NewProje
           </div>
         </form>
       </div>
+
+      {/* Gemini Key Config Modal */}
+      <GeminiKeyModal
+        isOpen={showGeminiKeyModal}
+        onClose={() => setShowGeminiKeyModal(false)}
+        onKeySaved={(k) => setHasGeminiKey(!!k)}
+      />
     </div>
   );
 }

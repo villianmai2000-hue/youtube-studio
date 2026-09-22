@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Project, ScriptScene, VisualMedium, StylePreset, CharacterBible, User as UserType } from '@/lib/types';
@@ -17,6 +17,8 @@ import {
   cleanSceneTitle,
   formatTimeCode,
 } from '@/lib/script-templates';
+import { analyzeStoryTheme, isCastMismatched } from '@/lib/theme-detector';
+import { detectStoryCharacterScale, generateIntelligentCharacters } from '@/lib/character-generator';
 import {
   Film,
   Sparkles,
@@ -41,6 +43,7 @@ import {
   Eye,
   Globe,
   Zap,
+  RefreshCw,
 } from 'lucide-react';
 
 export default function ProjectStudioPage() {
@@ -108,6 +111,9 @@ export default function ProjectStudioPage() {
     };
 
     checkUser();
+    const savedKey = localStorage.getItem('studio_gemini_api_key');
+    if (savedKey) setApiKeyInput(savedKey);
+
     window.addEventListener('auth_change', checkUser);
     window.addEventListener('storage', checkUser);
 
@@ -117,28 +123,134 @@ export default function ProjectStudioPage() {
     };
   }, []);
 
-  // Fetch Project
+  // Fetch Project with dual-layer fallback to localStorage
   useEffect(() => {
-    fetch(`/api/projects/${projectId}`)
-      .then((res) => res.json())
-      .then((data) => {
+    let isMounted = true;
+    const loadProject = async () => {
+      // 1. Check localStorage first for instant display
+      const cachedStr = typeof window !== 'undefined' ? localStorage.getItem(`studio_project_${projectId}`) : null;
+      let localProject: Project | null = null;
+      if (cachedStr) {
+        try {
+          localProject = JSON.parse(cachedStr);
+          if (localProject && localProject.id === projectId) {
+            if (isMounted) {
+              setProject(localProject);
+              setLoading(false);
+            }
+          }
+        } catch {
+          // ignore json error
+        }
+      }
+
+      // 2. Fetch from backend API
+      try {
+        const res = await fetch(`/api/projects/${projectId}`);
+        const data = await res.json();
         if (data.success && data.project) {
-          setProject(data.project);
+          // Compare updatedAt between localProject and server project!
+          const localTime = localProject?.updatedAt ? new Date(localProject.updatedAt).getTime() : 0;
+          const serverTime = data.project.updatedAt ? new Date(data.project.updatedAt).getTime() : 0;
+
+          if (localProject && localTime > serverTime) {
+            // Local version in browser is NEWER than server! Keep local version and push to server
+            if (isMounted) setProject(localProject);
+            fetch(`/api/projects/${projectId}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(localProject),
+            }).catch((e) => console.warn('Resync local to server error:', e));
+          } else {
+            // Server version is newer or equal
+            if (isMounted) setProject(data.project);
+            localStorage.setItem(`studio_project_${projectId}`, JSON.stringify(data.project));
+          }
+        } else if (!localProject) {
+          // Only redirect if both server and local storage have no data
+          router.push('/');
         } else {
+          // Server returned error but we have local backup, re-sync back to server
+          await fetch(`/api/projects/${projectId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(localProject),
+          });
+        }
+      } catch (err) {
+        console.warn('Backend fetch error, using local project:', err);
+        if (!localProject) {
           router.push('/');
         }
-      })
-      .catch((err) => {
-        console.error('Error loading project:', err);
-        router.push('/');
-      })
-      .finally(() => setLoading(false));
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    loadProject();
+
+    return () => {
+      isMounted = false;
+    };
   }, [projectId, router]);
 
-  // Save Project to MongoDB Atlas
+  // Auto-save debounce effect whenever project state changes
+  const isInitialMount = useRef(true);
+  useEffect(() => {
+    if (isInitialMount.current) {
+      if (project) {
+        isInitialMount.current = false;
+      }
+      return;
+    }
+    if (!project) return;
+
+    const projectWithTime = {
+      ...project,
+      updatedAt: new Date().toISOString(),
+    };
+
+    // 1. Immediate local backup
+    try {
+      localStorage.setItem(`studio_project_${projectId}`, JSON.stringify(projectWithTime));
+      const cachedList = JSON.parse(localStorage.getItem('studio_cached_projects') || '[]');
+      const updatedList = [projectWithTime, ...cachedList.filter((p: any) => p.id !== projectWithTime.id)];
+      localStorage.setItem('studio_cached_projects', JSON.stringify(updatedList));
+    } catch (e) {
+      console.warn('LocalStorage auto-save error:', e);
+    }
+
+    // 2. Debounced save to server
+    const timer = setTimeout(() => {
+      fetch(`/api/projects/${projectId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(projectWithTime),
+      }).catch((err) => console.warn('Auto-save to server error:', err));
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [project, projectId]);
+
+  // Save Project to MongoDB Atlas & Local Storage
   const handleSave = async (projectToSave?: Project) => {
-    const target = projectToSave || project;
-    if (!target) return;
+    const rawTarget = projectToSave || project;
+    if (!rawTarget) return;
+
+    const target: Project = {
+      ...rawTarget,
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Immediate backup to localStorage
+    try {
+      localStorage.setItem(`studio_project_${projectId}`, JSON.stringify(target));
+      const cachedList = JSON.parse(localStorage.getItem('studio_cached_projects') || '[]');
+      const updatedList = [target, ...cachedList.filter((p: any) => p.id !== target.id)];
+      localStorage.setItem('studio_cached_projects', JSON.stringify(updatedList));
+    } catch (e) {
+      console.warn('LocalStorage save error:', e);
+    }
 
     setSaving(true);
     setSavedSuccess(false);
@@ -234,12 +346,14 @@ export default function ProjectStudioPage() {
           title: project.title,
           synopsis: project.synopsis,
           genre: project.genre,
+          worldCulture: project.worldCulture,
+          subGenre: project.subGenre,
           visualMedium: project.visualMedium,
           stylePreset: project.stylePreset,
           targetDurationMinutes: project.targetDurationMinutes,
           actNumber: actToGenerate,
           characters: project.characters,
-          apiKey: apiKeyInput,
+          apiKey: apiKeyInput || (typeof window !== 'undefined' ? localStorage.getItem('studio_gemini_api_key') || '' : ''),
           customInstructions: customAiPrompt,
         }),
       });
@@ -264,16 +378,111 @@ export default function ProjectStudioPage() {
     }
   };
 
+  // วิเคราะห์แก่นเรื่องและตรวจสอบความสอดคล้องของตัวละครกับชื่อเรื่อง
+  const currentTheme = useMemo(() => {
+    if (!project) return null;
+    return analyzeStoryTheme({
+      title: project.title,
+      synopsis: project.synopsis,
+      genre: project.genre,
+      subGenre: project.subGenre,
+      worldCulture: project.worldCulture,
+    });
+  }, [project?.title, project?.synopsis, project?.genre, project?.subGenre, project?.worldCulture]);
+
+  const castMismatched = useMemo(() => {
+    if (!project || !currentTheme) return false;
+    return isCastMismatched(project.characters || [], currentTheme);
+  }, [project?.characters, currentTheme]);
+
+  // ซิงค์ทุกอย่างให้ตรงกับชื่อเรื่องและเรื่องย่อ 100% (Auto-heal 1-Click)
+  const handleSyncAllToTitle = async () => {
+    if (!project) return;
+    const theme = analyzeStoryTheme({
+      title: project.title,
+      synopsis: project.synopsis,
+      genre: project.genre,
+      subGenre: project.subGenre,
+      worldCulture: project.worldCulture,
+    });
+    const scale = detectStoryCharacterScale(project.title, project.synopsis, theme.effectiveCulture, theme.effectiveSubGenre);
+    const confirmed = confirm(
+      `⚡ ยืนยันการซิงค์ตัวละครและเขียนบทใหม่ให้ตรงกับชื่อเรื่อง 100%:\n\n` +
+      `📌 ชื่อเรื่อง: ${project.title}\n` +
+      `🎭 แก่นเรื่องที่ตรวจพบ: ${theme.themeEmoji} ${theme.themeNameTh}\n` +
+      `👥 ปรับปรุงตัวละคร: สร้างทีมใหม่ ${scale.count} ตัวละครที่ตรงกับ "${project.title}" โดยเฉพาะ\n` +
+      `🎬 บทภาพยนตร์: คำนวณและเขียนใหม่ทุกฉากให้สอดคล้องกับพล็อตและชื่อเรื่อง\n\n` +
+      `ต้องการดำเนินการหรือไม่?`
+    );
+    if (!confirmed) return;
+
+    setGeneratingFullScenes(true);
+    try {
+      // 1. Generate Intelligent Characters matching this title & synopsis
+      const freshCharacters = generateIntelligentCharacters({
+        title: project.title,
+        synopsis: project.synopsis,
+        worldCulture: theme.effectiveCulture,
+        genre: theme.effectiveGenre,
+        subGenre: theme.effectiveSubGenre,
+        visualMedium: project.visualMedium,
+        count: scale.count,
+      });
+
+      // 2. Generate Continuous Movie Scenes with fresh characters
+      const freshScenes = generateContinuousMovieScenes({
+        title: project.title,
+        synopsis: project.synopsis,
+        genre: theme.effectiveGenre,
+        visualMedium: project.visualMedium,
+        stylePreset: project.stylePreset,
+        targetDurationMinutes: project.targetDurationMinutes,
+        characters: freshCharacters,
+        aspectRatio: project.aspectRatio,
+        worldCulture: theme.effectiveCulture,
+        subGenre: theme.effectiveSubGenre,
+      });
+
+      const updatedProject: Project = {
+        ...project,
+        genre: theme.effectiveGenre,
+        worldCulture: theme.effectiveCulture,
+        subGenre: theme.effectiveSubGenre,
+        characters: freshCharacters,
+        scenes: freshScenes,
+      };
+
+      setProject(updatedProject);
+      await handleSave(updatedProject);
+      setStudioPage(1);
+      alert(`🎉 ซิงค์ชื่อเรื่อง "${project.title}" กับตัวละคร (${freshCharacters.length} ตัว) และบทภาพยนตร์ (${freshScenes.length} ฉาก) เรียบร้อยแล้ว! ตรงปก 100%`);
+    } catch (err: unknown) {
+      alert('เกิดข้อผิดพลาดในการซิงค์: ' + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setGeneratingFullScenes(false);
+    }
+  };
+
   // Generate Full Continuous Movie Scenes matching project.targetDurationMinutes (e.g. 150 min = 900 scenes @ 10s/scene)
   const handleGenerateFullMovieScenes = async () => {
     if (!project) return;
     const calc = calculateMovieScenesCount(project.targetDurationMinutes);
+    const theme = analyzeStoryTheme({
+      title: project.title,
+      synopsis: project.synopsis,
+      genre: project.genre,
+      subGenre: project.subGenre,
+      worldCulture: project.worldCulture,
+    });
+    const isMismatched = isCastMismatched(project.characters || [], theme);
+
     const confirmed = confirm(
       `⚡ ยืนยันการคำนวณและสร้างฉากเต็มเวลา (Seedream 5.0 Pro):\n\n` +
       `📌 ชื่อเรื่อง: ${project.title}\n` +
       `⏱️ ความยาวเป้าหมาย: ${project.targetDurationMinutes} นาที\n` +
-      `📐 สูตรคำนวณ: ${calc.calculationBreakdown}\n\n` +
-      `ระบบจะสร้างบทบรรยายภาษาไทย, บทพูดตัวละคร, มุมกล้อง Seedream 5.0 Pro (10 วิ/ฉาก ไหลลื่นไม่ตัด) ` +
+      `📐 สูตรคำนวณ: ${calc.calculationBreakdown}\n` +
+      (isMismatched ? `\n⚠️ ระบบจะปรับทีมตัวละครให้ตรงกับแก่นเรื่อง "${theme.themeNameTh}" อัตโนมัติด้วย!\n` : '') +
+      `\nระบบจะสร้างบทบรรยายภาษาไทย, บทพูดตัวละคร, มุมกล้อง Seedream 5.0 Pro (10 วิ/ฉาก ไหลลื่นไม่ตัด) ` +
       `และเสียงดนตรี ครบทั้ง ${calc.totalScenes} ฉากทันที!\n\n` +
       `ต้องการดำเนินการต่อหรือไม่?`
     );
@@ -281,21 +490,39 @@ export default function ProjectStudioPage() {
 
     setGeneratingFullScenes(true);
     try {
+      let activeCharacters = project.characters;
+      if (!activeCharacters || activeCharacters.length === 0 || isMismatched) {
+        const scale = detectStoryCharacterScale(project.title, project.synopsis, theme.effectiveCulture, theme.effectiveSubGenre);
+        activeCharacters = generateIntelligentCharacters({
+          title: project.title,
+          synopsis: project.synopsis,
+          worldCulture: theme.effectiveCulture,
+          genre: theme.effectiveGenre,
+          subGenre: theme.effectiveSubGenre,
+          visualMedium: project.visualMedium,
+          count: scale.count,
+        });
+      }
+
       const newScenes = generateContinuousMovieScenes({
         title: project.title,
         synopsis: project.synopsis,
-        genre: project.genre,
+        genre: theme.effectiveGenre,
         visualMedium: project.visualMedium,
         stylePreset: project.stylePreset,
         targetDurationMinutes: project.targetDurationMinutes,
-        characters: project.characters,
+        characters: activeCharacters,
         aspectRatio: project.aspectRatio,
-        worldCulture: project.worldCulture,
-        subGenre: project.subGenre,
+        worldCulture: theme.effectiveCulture,
+        subGenre: theme.effectiveSubGenre,
       });
 
-      const updatedProject = {
+      const updatedProject: Project = {
         ...project,
+        genre: theme.effectiveGenre,
+        worldCulture: theme.effectiveCulture,
+        subGenre: theme.effectiveSubGenre,
+        characters: activeCharacters,
         scenes: newScenes,
       };
 
@@ -428,13 +655,13 @@ export default function ProjectStudioPage() {
   // Multi-type batch copy handler
   const [copyState, setCopyState] = useState<string | null>(null);
 
-  const handleCopyType = (type: 'narration' | 'dialogues' | 'images' | 'videos' | 'flow' | 'full' | 'meta') => {
+  const handleCopyType = (type: 'narration' | 'dialogues' | 'images' | 'videos' | 'flow' | 'full' | 'meta' | 'characters') => {
     if (!project) return;
     const targets = project.scenes
       .filter((s) => (selectedSceneIds.length > 0 ? selectedSceneIds.includes(s.id) : true))
       .sort((a, b) => a.sceneNumber - b.sceneNumber);
 
-    if (targets.length === 0) {
+    if (type !== 'characters' && targets.length === 0) {
       alert('ไม่มีฉากที่เลือก');
       return;
     }
@@ -562,6 +789,39 @@ export default function ProjectStudioPage() {
         output += `🎨 Prompt ภาพ (Midjourney/Flux): ${s.imagePrompt}\n`;
         output += `📹 Prompt วิดีโอ (Kling/Runway): ${sanitizePrompt(s.videoMotionPrompt)}\n`;
         output += `🌊 flow.google.com: ${sanitizePrompt(s.googleFlowPrompt || s.imagePrompt)}\n\n`;
+      });
+    } else if (type === 'characters') {
+      const chars = project.characters || [];
+      if (chars.length === 0) {
+        alert('ยังไม่มีตัวละครในโปรเจกต์');
+        return;
+      }
+      output = `👥 ข้อมูลตัวละครและคำสั่งสร้างภาพ AI (Character Bible & Prompts)\n`;
+      output += `📌 ชื่อเรื่อง: ${project.title}\n`;
+      output += `🎭 แก่นเรื่อง: ${currentTheme?.themeEmoji || '🎬'} ${currentTheme?.themeNameTh || ''}\n`;
+      output += `==========================================================\n\n`;
+      chars.forEach((c, idx) => {
+        const roleLabel =
+          c.role === 'protagonist'
+            ? '👑 ตัวเอก / ผู้นำ (Protagonist)'
+            : c.role === 'antagonist'
+            ? '⚔️ ศัตรู / บอสใหญ่ (Antagonist)'
+            : c.role === 'mentor'
+            ? '📜 อาจารย์ / ผู้รู้ (Mentor)'
+            : '🛡️ สหาย / ผู้ร่วมทีม (Supporting)';
+
+        output += `【ลำดับที่ ${idx + 1}: ${c.name} - ${roleLabel}】\n`;
+        output += `• รูปลักษณ์เด่น: ${c.appearanceAnchor || '-'}\n`;
+        output += `• รูปร่าง/หน้าตา: ${c.bodyBuild || '-'} | ${c.facialFeatures || '-'}\n`;
+        output += `• เสื้อผ้าประจำตัว: ${c.clothingStyle || '-'}\n`;
+        output += `• โทนสี: ${c.colorTheme || '-'}\n`;
+        output += `• อาวุธ/ไอเทม: ${c.weaponsOrProps || '-'}\n`;
+        output += `• พลัง/ทักษะ: ${c.abilities || '-'}\n`;
+        output += `• นิสัย/บุคลิก: ${c.personality || '-'}\n`;
+        output += `• น้ำเสียง: ${c.voiceStyle || '-'}\n`;
+        output += `• Google Flow Seed: ${c.googleFlowSeed || '12345'}\n`;
+        output += `🎨 Prompt สร้างภาพตัวละคร AI (Midjourney / Kling / SD / Flow):\n`;
+        output += `${c.googleFlowPrompt || `${c.appearanceAnchor}, ${c.clothingStyle}, character portrait, 8k resolution, cinematic lighting`}\n\n`;
       });
     }
 
@@ -703,11 +963,14 @@ export default function ProjectStudioPage() {
                 className="font-extrabold text-lg sm:text-xl text-white bg-transparent border-b border-transparent hover:border-studio-700 focus:border-amber-500 focus:outline-none transition-colors"
               />
             </div>
-            <p className="text-xs text-gray-400">
-              {project.genre === 'xianxia_cultivation'
-                ? '⚔️ สไตล์ อนิเมะจีน 3D กำลังภายใน (เพื่อนที่ดีที่สุด SAN1)'
-                : `🎬 หมวดหมู่: ${project.genre}`}
-            </p>
+            <div className="flex items-center gap-2 flex-wrap text-xs mt-0.5">
+              <span className="px-2 py-0.5 rounded-lg bg-studio-900 border border-studio-700 text-amber-300 font-semibold flex items-center gap-1">
+                <span>{currentTheme?.themeEmoji || '🎬'}</span>
+                <span>{currentTheme?.themeNameTh || project.genre}</span>
+              </span>
+              <span className="text-gray-500">•</span>
+              <span className="text-gray-400">เป้าหมาย {project.targetDurationMinutes || 60} นาที</span>
+            </div>
           </div>
         </div>
 
@@ -765,6 +1028,18 @@ export default function ProjectStudioPage() {
             <span>🎬 สร้างภาคต่อ</span>
           </button>
 
+          {/* Sync All to Title Button */}
+          <button
+            type="button"
+            onClick={handleSyncAllToTitle}
+            disabled={generatingFullScenes}
+            className="px-3 py-2 rounded-xl bg-gradient-to-r from-emerald-500/20 via-cyan-500/20 to-blue-500/20 hover:from-emerald-500/30 hover:to-cyan-500/30 border border-emerald-500/40 hover:border-emerald-400 text-emerald-300 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm disabled:opacity-50"
+            title={`ซิงค์ตัวละครและสร้างฉากใหม่ทั้งหมดให้ตรงกับ "${project.title}" ทันที 100%`}
+          >
+            <RefreshCw className={`w-3.5 h-3.5 text-emerald-400 ${generatingFullScenes ? 'animate-spin' : ''}`} />
+            <span>🔄 ซิงค์ให้ตรงชื่อเรื่อง</span>
+          </button>
+
           {/* Generate Full Movie Continuous Scenes Button */}
           <button
             onClick={handleGenerateFullMovieScenes}
@@ -813,6 +1088,39 @@ export default function ProjectStudioPage() {
           </button>
         </div>
       </div>
+
+      {/* Mismatched Cast Warning Banner (Auto-heal 1-Click) */}
+      {castMismatched && currentTheme && (
+        <div className="p-4 rounded-2xl bg-amber-500/15 border-2 border-amber-500/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg shadow-amber-500/10 animate-in fade-in duration-300">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-amber-500 text-black font-extrabold text-lg flex items-center justify-center">
+              {currentTheme.themeEmoji}
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-extrabold text-amber-300 text-sm">
+                  ⚠️ ตรวจพบรายชื่อตัวละครไม่ตรงกับชื่อเรื่อง:
+                </span>
+                <span className="font-bold text-white text-sm">
+                  &quot;{project.title}&quot; ({currentTheme.themeNameTh})
+                </span>
+              </div>
+              <p className="text-xs text-amber-200/80 mt-0.5">
+                ตัวละครในระบบปัจจุบัน ({project.characters?.[0]?.name || ''}) ไม่สอดคล้องกับพล็อตเรื่อง กดปุ่มเพื่อปรับตัวละครและเขียนบทให้ตรงปก 100% ทันที
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleSyncAllToTitle}
+            disabled={generatingFullScenes}
+            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-black font-black text-xs shadow-glow flex items-center gap-1.5 transition-all whitespace-nowrap disabled:opacity-50"
+          >
+            <Zap className="w-4 h-4 fill-black" />
+            <span>⚡ ซิงค์ตัวละครและเขียนบทใหม่ให้ตรงกับ &quot;{project.title}&quot; (1 คลิกตรงปก 100%)</span>
+          </button>
+        </div>
+      )}
 
       {/* Series Navigation Ribbon */}
       {(project.partNumber || project.parentProjectId || project.nextPartProjectId || project.seriesTitle) && (
@@ -1018,8 +1326,11 @@ export default function ProjectStudioPage() {
               <input
                 type="password"
                 value={apiKeyInput}
-                onChange={(e) => setApiKeyInput(e.target.value)}
-                placeholder="Gemini API Key (ไม่ใส่ก็ใช้ Template ได้)"
+                onChange={(e) => {
+                  setApiKeyInput(e.target.value);
+                  localStorage.setItem('studio_gemini_api_key', e.target.value);
+                }}
+                placeholder="Gemini API Key (บันทึกอัตโนมัติ)"
                 className="w-full px-3 py-2 rounded-xl bg-studio-950 border border-studio-800 text-white placeholder-gray-500 focus:outline-none focus:border-amber-500 text-xs font-mono"
               />
             </div>
@@ -1165,13 +1476,32 @@ export default function ProjectStudioPage() {
           </button>
         </div>
 
-        {/* 6 1-Click Batch Copier Buttons Grid */}
+        {/* 7 1-Click Batch Copier Buttons Grid */}
         <div className="space-y-2 pt-1">
           <span className="text-[11px] font-bold text-amber-300 uppercase tracking-wider block">
             📋 คัดลอกแยกหมวดหมู่ย่อย (1-Click Batch Copier):
           </span>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
-            {/* 1. Voiceover Narration */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2">
+            {/* 1. Characters & Prompts */}
+            <button
+              type="button"
+              onClick={() => handleCopyType('characters')}
+              className="p-2.5 rounded-xl bg-studio-950 hover:bg-amber-950/40 border border-amber-500/40 hover:border-amber-400 text-left transition-all group"
+            >
+              <div className="flex items-center justify-between text-xs font-bold text-amber-400 mb-0.5">
+                <span>👥 ตัวละคร &amp; พร้อมต์</span>
+                {copyState === 'characters' ? (
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                ) : (
+                  <Copy className="w-3.5 h-3.5 text-gray-500 group-hover:text-amber-400" />
+                )}
+              </div>
+              <p className="text-[10px] text-gray-400">
+                {copyState === 'characters' ? '✅ คัดลอกสำเร็จ!' : 'คัดลอกข้อมูลตัวละคร & พร้อมต์ AI'}
+              </p>
+            </button>
+
+            {/* 2. Voiceover Narration */}
             <button
               type="button"
               onClick={() => handleCopyType('narration')}
@@ -1190,7 +1520,7 @@ export default function ProjectStudioPage() {
               </p>
             </button>
 
-            {/* 2. Character Dialogues */}
+            {/* 3. Character Dialogues */}
             <button
               type="button"
               onClick={() => handleCopyType('dialogues')}
@@ -1209,7 +1539,7 @@ export default function ProjectStudioPage() {
               </p>
             </button>
 
-            {/* 3. Image Prompts */}
+            {/* 4. Image Prompts */}
             <button
               type="button"
               onClick={() => handleCopyType('images')}
@@ -1228,7 +1558,7 @@ export default function ProjectStudioPage() {
               </p>
             </button>
 
-            {/* 4. Video Motion Prompts */}
+            {/* 5. Video Motion Prompts */}
             <button
               type="button"
               onClick={() => handleCopyType('videos')}
@@ -1247,7 +1577,7 @@ export default function ProjectStudioPage() {
               </p>
             </button>
 
-            {/* 5. Google Flow Prompts with Seed */}
+            {/* 6. Google Flow Prompts with Seed */}
             <button
               type="button"
               onClick={() => handleCopyType('flow')}
@@ -1266,7 +1596,7 @@ export default function ProjectStudioPage() {
               </p>
             </button>
 
-            {/* 6. Full Production Script */}
+            {/* 7. Full Production Script */}
             <button
               type="button"
               onClick={() => handleCopyType('full')}

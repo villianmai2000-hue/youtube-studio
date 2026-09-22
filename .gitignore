@@ -28,6 +28,7 @@ yarn-error.log*
 
 # Local Storage & Fallback
 .studio_media/
+.studio_projects/
 .studio_local_data.json
 .studio_users.json
 .studio_security.json
