@@ -206,16 +206,26 @@ ${customInstructions ? `คำสั่งพิเศษเพิ่มเต�
 รายชื่อตัวละครหลักที่ต้องนำมาใช้ในบท:
 ${charactersStr}
 
+⚠️ กฎการเขียนบท 4 ฉากต่อเนื่อง (Story Arc Structure):
+- ฉากที่ ${(actNumber - 1) * 4 + 1}: [เปิดองค์ / ตั้งสถานการณ์] แนะนำสถานที่ + ตัวละคร + ความขัดแย้งเริ่มต้น
+- ฉากที่ ${(actNumber - 1) * 4 + 2}: [ขยายเหตุการณ์] พัฒนาความขัดแย้ง + ปฏิสัมพันธ์ตัวละคร ต่อเนื่องจากฉากแรก
+- ฉากที่ ${(actNumber - 1) * 4 + 3}: [จุดเปลี่ยน / ไคลแม็กซ์] จุดพีคของอารมณ์ ปมเรื่องถูกท้าทาย หรือตัวละครต้องตัดสินใจ
+- ฉากที่ ${(actNumber - 1) * 4 + 4}: [ปิดองค์ / เปิดทางไปองค์ถัดไป] ผลลัพธ์และเงื่อนไขที่ยังค้างคาใจ
+▶ narration, dialogues และ sceneAction ของแต่ละฉากต้องเป็นเรื่องเดียวกัน ต่อเนื่องกัน ไม่ตัดไปคนละเรื่อง
+▶ บทสนทนา (dialogues) ต้องเกิดจากสิ่งที่เกิดขึ้นใน narration ของฉากนั้น ไม่ใช่เรื่องที่ไม่เกี่ยวกัน
+▶ sceneAction คืออธิบาย "ตัวละครกำลังทำอะไร อยู่ที่ไหน ท่าทางอย่างไร" สำหรับใช้สร้างภาพและวิดีโอ ต้องตรงกับ narration และ dialogues เสมอ
+
 กรุณาเขียนบทองค์ที่ ${actNumber} จำนวน 4 ฉากต่อเนื่อง (ฉากที่ ${(actNumber - 1) * 4 + 1} ถึง ${(actNumber - 1) * 4 + 4})
 ตอบกลับเป็น JSON Array เท่านั้น (ห้ามใส่คำนำหน้าหรือ Markdown codeblock):
 [
   {
-    "title": "หัวฉากที่กระชับและตรงกับชื่อเรื่อง/เรื่องย่อ (ห้ามใส่คำว่า 'ฉากที่ X:')",
-    "narration": "บทบรรยายดำเนินเรื่องสำหรับผู้พากย์เสียง",
-    "dialogues": [{"speaker": "ชื่อตัวละคร", "emotion": "อารมณ์", "text": "บทสนทนา"}],
-    "sfxBgm": "ดนตรีและเสียงประกอบ",
+    "title": "หัวฉากสั้น กระชับ ตรงกับเหตุการณ์ในฉากนั้น (ห้ามใส่คำว่า 'ฉากที่ X:')",
+    "narration": "บทบรรยายเสียงพากย์ดำเนินเรื่อง 2-3 ประโยค อธิบายเหตุการณ์ที่เกิดขึ้นในฉากนี้อย่างต่อเนื่องจากฉากก่อน",
+    "sceneAction": "อธิบาย 'ตัวละครกำลังทำอะไร ท่าทางอย่างไร มองไปที่ไหน อยู่ในสภาพแวดล้อมแบบไหน' ให้ชัดเจนใน 1-2 ประโยค เพื่อใช้สร้างภาพและวิดีโอ",
+    "dialogues": [{"speaker": "ชื่อตัวละคร", "emotion": "อารมณ์ที่สอดคล้องกับ narration", "text": "บทสนทนาที่ตรงกับเหตุการณ์ใน narration ฟังดูเป็นธรรมชาติ"}],
+    "sfxBgm": "ดนตรีและเสียงประกอบที่เหมาะกับอารมณ์ฉาก",
     "cameraMovement": "การเคลื่อนกล้อง 10 วินาทีต่อเนื่อง Seedream 5.0 Pro",
-    "lighting": "การจัดแสง"
+    "lighting": "การจัดแสงที่เสริมอารมณ์ฉาก"
   }
 ]
 `;
@@ -242,12 +252,13 @@ ${charactersStr}
           body: JSON.stringify({
             contents: [{ role: 'user', parts: [{ text: `${systemInstruction}\n\n${userPrompt}` }] }],
             generationConfig: {
-              temperature: 0.75,
+              temperature: 0.65,
               responseMimeType: 'application/json',
             },
           }),
         }
       );
+
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -267,8 +278,13 @@ ${charactersStr}
 
       const scenes = parsed.map((item, idx) => {
         const sceneNum = (actNumber - 1) * 4 + (idx + 1);
+        // ✅ ใช้ sceneAction เป็นตัวนำในการสร้างภาพ/วิดีโอ แทน title เพียงอย่างเดียว
+        // ถ้า Gemini ไม่ส่ง sceneAction มา ให้สร้างจาก narration + title แทน
+        const visualAction = item.sceneAction ||
+          `${item.narration ? item.narration.substring(0, 120) : ''} ${item.title}`.trim();
+
         const prompts = buildVisualPrompts({
-          sceneTitle: item.title,
+          sceneTitle: visualAction,   // ✅ ใช้ sceneAction แทน title เพื่อให้ภาพตรงกับบทพูด
           narration: item.narration,
           dialogueText: item.dialogues?.map((d: any) => `${d.speaker}: ${d.text}`).join(' '),
           visualMedium: visualMedium as VisualMedium,
@@ -286,6 +302,7 @@ ${charactersStr}
           actNumber: actNumber as 1 | 2 | 3 | 4,
           title: item.title,
           narration: item.narration,
+          sceneAction: item.sceneAction || '',   // ✅ เก็บ sceneAction ไว้ด้วย
           dialogues: item.dialogues || [],
           sfxBgm: item.sfxBgm || '[BGM: บรรเลงตามอารมณ์ฉาก]',
           characterIds: characters.map((c) => c.id),
@@ -302,6 +319,7 @@ ${charactersStr}
           createdAt: new Date().toISOString(),
         };
       });
+
 
       return { scenes, modelUsed: model };
     } catch (err) {
