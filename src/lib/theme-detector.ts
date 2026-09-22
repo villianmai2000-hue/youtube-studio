@@ -34,6 +34,7 @@ export interface StoryThemeAnalysis {
   isSciFi: boolean;
   isAnimeOrJapan: boolean;
   isWesternCinema: boolean;
+  isThaiDrama: boolean;
   recommendedCastStructure: string[];
 }
 
@@ -109,6 +110,7 @@ export function analyzeStoryTheme(params: {
     );
 
   // 5. ตรวจจับเซียนจีน 3D / กำลังภายใน (Chinese Xianxia Cultivation)
+  // ✅ FIX: ต้องมี worldCulture === 'chinese' หรือ keyword เซียนจีน ถึงจะเป็น cultivation ไม่ใช่แค่ genre ชื่อ
   const isCultivation =
     !isHorrorOrGhost &&
     !isThaiMyth &&
@@ -117,8 +119,8 @@ export function analyzeStoryTheme(params: {
     (/เซียน|กำลังภายใน|ลมปราณ|ตบะ|กระบี่บิน|เสวียนหยวน|สำนัก|เต๋า|มหายาน|บำเพ็ญเพียร|จอมยุทธ์|ยุทธภพ|ตานเถียน|พลังยุทธ์|xianxia|cultivation|wuxia/i.test(
       context
     ) ||
-      genre === 'xianxia_cultivation' ||
-      subGenre === 'xianxia');
+      (genre === 'xianxia_cultivation' && worldCulture === 'chinese') ||
+      (subGenre === 'xianxia' && worldCulture === 'chinese'));
 
   // 6. ตรวจจับทหาร / ยุทธการสงคราม (Military Tactical)
   const isMilitary =
@@ -170,13 +172,36 @@ export function analyzeStoryTheme(params: {
       ) ||
       genre === 'mystery_noir');
 
+  // 10. ✅ ตรวจจับหนัง/ละครไทยทั่วไป (Thai Drama / Romance / Action / Life)
+  // ครอบคลุมทุกแนวที่เป็น "ไทย" แต่ไม่ใช่ผี ไม่ใช่ตำนานนาค ไม่ใช่จีน
+  const isThaiDrama =
+    !isHorrorOrGhost &&
+    !isThaiMyth &&
+    !isCultivation &&
+    !isPirateOrAdventure &&
+    !isTowerOrDungeon &&
+    !isAnimeOrJapan &&
+    !isWesternCinema &&
+    !isSciFi &&
+    !isMilitary &&
+    (worldCulture === 'thai' ||
+      subGenre === 'thai_drama' ||
+      subGenre === 'thai_romance' ||
+      subGenre === 'thai_action' ||
+      subGenre === 'thai_comedy' ||
+      subGenre === 'thai_life' ||
+      /ไทย|ละครไทย|หนังไทย|บ้านนอก|ชนบท|กรุงเทพ|สาวไทย|หนุ่มไทย|คนไทย|บ้านทุ่ง|ท้องทุ่ง|ทุ่งนา|ชาวบ้าน|หมู่บ้าน|พระเอก|นางเอก|พ่อบ้าน|แม่บ้าน|น้าสาว|อาสาว|ครอบครัว|ความรัก|คบกัน|จีบ|น้ำตา|ทะเลาะ|คืนดี|วัยรุ่น|มหาลัย|โรงเรียน|thai drama|thai romance/i.test(
+        context
+      ));
+
   // กำหนด Theme Key และรายละเอียด
   let themeKey: StoryThemeKey = 'general_fantasy';
   let effectiveGenre: MovieGenre = 'epic_fantasy';
-  let effectiveCulture: WorldCulture = 'chinese';
-  let effectiveSubGenre = subGenre || 'xianxia';
-  let themeNameTh = 'แฟนตาซีทั่วไป';
-  let themeEmoji = '✨';
+  // ✅ FIX: เคารพ worldCulture ที่ผู้ใช้ส่งมา ไม่ hardcode เป็น chinese เสมอ
+  let effectiveCulture: WorldCulture = (worldCulture as WorldCulture) || 'thai';
+  let effectiveSubGenre = subGenre || 'thai_drama';
+  let themeNameTh = 'ดราม่า / ความรัก / ชีวิตไทย';
+  let themeEmoji = '🎭';
   let recommendedCastStructure: string[] = [];
 
   if (isSpecificKrasue) {
@@ -236,6 +261,21 @@ export function analyzeStoryTheme(params: {
       'ฤาษี / พระเกจิผู้บำเพ็ญฌานชี้แนะธรรมะ',
       'ธิดานาคราช (ผู้กุมความลับวังบาดาล)',
       'ขุนพลเอกผู้พิทักษ์ทวารบาดาล',
+    ];
+  } else if (isThaiDrama) {
+    // ✅ หนัง/ละครไทยทั่วไป — โรแมนติก, ดราม่า, ชีวิต, บู๊ไทย
+    themeKey = 'general_fantasy';
+    effectiveGenre = 'epic_fantasy';
+    effectiveCulture = 'thai';
+    effectiveSubGenre = subGenre || 'thai_drama';
+    themeNameTh = title || 'ดราม่า / โรแมนติก / ชีวิตคนไทย';
+    themeEmoji = '🎭';
+    recommendedCastStructure = [
+      'ตัวเอกหญิง / นางเอก (บุคลิกแข็งแกร่ง มีจุดอ่อน มีความฝัน)',
+      'ตัวเอกชาย / พระเอก (เข้มแข็ง ยึดมั่นในคุณธรรม)',
+      'ตัวร้าย / คู่อาฆาต (ขัดขวางความสัมพันธ์หรือเป้าหมาย)',
+      'เพื่อนสนิทผู้คอยเคียงข้าง',
+      'ผู้ใหญ่ / พ่อแม่ที่มีอิทธิพลต่อเรื่อง',
     ];
   } else if (isPirateOrAdventure) {
     themeKey = 'pirate_anime';
@@ -354,6 +394,7 @@ export function analyzeStoryTheme(params: {
     isSciFi,
     isAnimeOrJapan,
     isWesternCinema,
+    isThaiDrama,
     recommendedCastStructure,
   };
 }

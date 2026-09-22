@@ -12,18 +12,19 @@ export async function POST(request: Request) {
     const {
       title,
       synopsis = '',
-      genre = 'xianxia_cultivation',
-      visualMedium = 'animation',
-      stylePreset = 'donghua_3d',
+      genre = 'epic_fantasy',
+      visualMedium = 'live_action',
+      stylePreset = 'hollywood_cinematic',
       targetDurationMinutes = 60,
       actNumber = 1,
       characters = [],
       apiKey = process.env.GEMINI_API_KEY,
       customInstructions = '',
       mode = 'act', // 'act' | 'full_movie'
-      worldCulture = 'chinese',
+      worldCulture = 'thai',
       subGenre = '',
     } = body;
+
 
     // Full Movie Continuous Generator Mode
     if (mode === 'full_movie') {
@@ -151,6 +152,12 @@ async function generateScriptWithGemini(params: {
   } else if (theme.isThaiMyth) {
     personaInstruction = `คุณคือนักเขียนบทวรรณคดีและตำนานไทยแฟนตาซีระดับมหากาพย์ (Thai Myth & Folklore Screenwriter)
 เรื่องนี้คือ "${theme.themeNameTh}" เน้นความยิ่งใหญ่ของพญานาค, ลุ่มน้ำโขง, องค์เทพ, ครุฑ, เมืองบาดาล, หรือเวทมนตร์โบราณอันศักดิ์สิทธิ์`;
+  } else if (theme.isThaiDrama) {
+    personaInstruction = `คุณคือนักเขียนบทละครโทรทัศน์และภาพยนตร์ไทยระดับมืออาชีพ (Master Thai Drama & Film Screenwriter)
+เรื่องนี้คือ "${title}" — เป็นเรื่อง${synopsis ? `เกี่ยวกับ "${synopsis}"` : 'ดราม่า / โรแมนติก / ชีวิตคนไทย'}
+⚠️ กฎเด็ดขาด: ต้องเขียนในสไตล์หนัง/ละครไทยเท่านั้น! ห้ามใช้คำจีน, ชื่อจีน, สำนักเซียน, ลมปราณ, กระบี่บิน หรือสไตล์อนิเมะจีน/ญี่ปุ่นโดยเด็ดขาด!
+ฉากและบรรยากาศต้องเป็นไทย: บ้านทรงไทย, ทุ่งนา, กรุงเทพ, ตลาด, วัด, โรงเรียน, ชนบท หรือ สถานที่ที่สอดคล้องกับเรื่องย่อ
+ชื่อตัวละครและบทสนทนาต้องเป็นภาษาไทยสมจริง ฟังดูเป็นธรรมชาติ ไม่แข็งกระด้าง`;
   } else if (theme.isCultivation) {
     personaInstruction = `คุณคือนักเขียนบทอนิเมะ 3D กำลังภายในและเซียนระดับมาสเตอร์พีซ (Xianxia Cultivation Screenwriter)
 เรื่องนี้คือ "${theme.themeNameTh}" เน้นการท่องยุทธภพ บำเพ็ญเพียร พลังลมปราณ วิชากระบี่บิน ความแค้นและบุญคุณ`;
@@ -171,7 +178,8 @@ async function generateScriptWithGemini(params: {
 เรื่องนี้คือ "${theme.themeNameTh}" เน้นจังหวะกระชับ ฉับไว แอ็กชันดุเดือด สมจริง และการสืบสวน`;
   } else {
     personaInstruction = `คุณคือนักเขียนบทภาพยนตร์มืออาชีพ (Professional Screenwriter)
-เรื่องนี้คือ "${theme.themeNameTh}"`;
+เรื่องนี้คือ "${title || theme.themeNameTh}"
+สไตล์การเขียนต้องสอดคล้องกับวัฒนธรรม "${theme.effectiveCulture}" ห้ามเขียนสไตล์จีนหากเป็นเรื่องไทย และห้ามเขียนสไตล์ไทยหากเป็นเรื่องจีน`;
   }
 
   const systemInstruction = `${personaInstruction}
@@ -182,7 +190,9 @@ async function generateScriptWithGemini(params: {
 2. [เคารพพล็อตเรื่องที่ผู้ใช้พิมพ์] หากผู้ใช้ระบุเรื่องย่อไว้ ให้ดำเนินเรื่องตามพล็อตนั้น ห้ามคิดเรื่องใหม่ที่ฉีกไปคนละเรื่อง
 3. [ตัวละครขับเคลื่อนเรื่องราว] ดึงตัวละครที่มีในรายชื่อมามีบทบาท สนทนา และทำกิจกรรมร่วมกันในฉากอย่างสมเหตุสมผล
 4. [Single Unified Shot] หากมีตัวละครตั้งแต่ 2 ตัวขึ้นไปในฉาก ต้องให้ตัวละครทุกคนปรากฏตัวในเฟรมเดียวกัน (Unified Shot / Two-Shot / Group Shot) ห้ามแบ่งจอเด็ดขาด
-5. [Seedream 5.0 Pro Ready] แต่ละฉากยาว 10 วินาที มีการเคลื่อนไหวของกล้อง (cameraMovement) แสงเงา (lighting) และเสียงประกอบ (sfxBgm)`;
+5. [Seedream 5.0 Pro Ready] แต่ละฉากยาว 10 วินาที มีการเคลื่อนไหวของกล้อง (cameraMovement) แสงเงา (lighting) และเสียงประกอบ (sfxBgm)
+6. [วัฒนธรรมถูกต้อง] บท, ชื่อสถานที่, เครื่องแต่งกาย, ดนตรี ต้องสอดคล้องกับวัฒนธรรม "${theme.effectiveCulture}" โดยเฉพาะ ห้ามปะปนวัฒนธรรมอื่นโดยไม่มีเหตุผล`;
+
 
   const userPrompt = `
 ชื่อเรื่อง: ${title}
