@@ -655,7 +655,7 @@ export default function ProjectStudioPage() {
   // Multi-type batch copy handler
   const [copyState, setCopyState] = useState<string | null>(null);
 
-  const handleCopyType = (type: 'narration' | 'dialogues' | 'images' | 'videos' | 'flow' | 'full' | 'meta' | 'characters') => {
+  const handleCopyType = (type: 'selected_ordered' | 'narration' | 'dialogues' | 'images' | 'videos' | 'flow' | 'full' | 'meta' | 'characters') => {
     if (!project) return;
     const targets = project.scenes
       .filter((s) => (selectedSceneIds.length > 0 ? selectedSceneIds.includes(s.id) : true))
@@ -678,7 +678,28 @@ export default function ProjectStudioPage() {
         .trim();
     };
 
-    if (type === 'narration') {
+    if (type === 'selected_ordered') {
+      output = `🎬 รวมสคริปต์ฉากที่เลือก (${targets.length} ฉาก) - เรื่อง: ${project.title}\n`;
+      output += `==========================================================\n\n`;
+      targets.forEach((s) => {
+        output += `【ฉากที่ ${s.sceneNumber}】: ${cleanSceneTitle(s.title)}\n`;
+        if (s.imagePrompt) {
+          output += `🎨 พร้อมสร้างภาพ:\n${s.imagePrompt.trim()}\n\n`;
+        }
+        output += `📹 พร้อมสร้างวิดีโอ:\n${sanitizePrompt(s.videoMotionPrompt)}\n\n`;
+        if (s.dialogues && s.dialogues.length > 0) {
+          output += `💬 บทสนทนาตัวละคร:\n`;
+          s.dialogues.forEach((d) => {
+            output += `  • ${d.speaker || 'ตัวละคร'} (${d.emotion || 'ปกติ'}): "${d.text || ''}"\n`;
+          });
+          output += `\n`;
+        }
+        if (s.sfxBgm) {
+          output += `🎵 ดนตรี & ซาวด์: ${s.sfxBgm}\n`;
+        }
+        output += `----------------------------------------------------------\n\n`;
+      });
+    } else if (type === 'narration') {
       // Merged Narrations
       output = targets
         .map((s) => s.narration.trim())
@@ -1373,14 +1394,34 @@ export default function ProjectStudioPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Primary Copy Selected Ordered Button */}
+            <button
+              type="button"
+              onClick={() => handleCopyType('selected_ordered')}
+              className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-black font-extrabold text-xs shadow-glow flex items-center gap-1.5 transition-all"
+              title="คัดลอกเฉพาะฉากที่ติ๊กเลือก มารวมกันเรียงตามลำดับฉาก"
+            >
+              {copyState === 'selected_ordered' ? (
+                <>
+                  <Check className="w-4 h-4 text-black" />
+                  <span>คัดลอกฉากที่เลือกแล้ว!</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="w-4 h-4 text-black" />
+                  <span>📋 คัดลอกฉากที่เลือก (เรียงตามลำดับ)</span>
+                </>
+              )}
+            </button>
+
             {/* Play Button */}
             <button
               type="button"
               onClick={() => setIsTimelinePlayerOpen(true)}
-              className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-bold text-xs shadow-glow flex items-center gap-1.5 transition-all"
+              className="px-4 py-2 rounded-xl bg-studio-800 hover:bg-studio-700 border border-studio-700 text-white font-bold text-xs flex items-center gap-1.5 transition-all"
             >
-              <Play className="w-4 h-4 fill-black" />
+              <Play className="w-4 h-4 fill-amber-400 text-amber-400" />
               <span>
                 {selectedSceneIds.length > 0
                   ? `เล่นภาพต่อเนื่องที่เลือก (${selectedSceneIds.length * 10} วิ)`
@@ -1501,26 +1542,64 @@ export default function ProjectStudioPage() {
               </p>
             </button>
 
-            {/* 2. Voiceover Narration */}
+            {/* 2. Selected Scenes in Order */}
             <button
               type="button"
-              onClick={() => handleCopyType('narration')}
-              className="p-2.5 rounded-xl bg-studio-950 hover:bg-amber-950/30 border border-studio-800 hover:border-amber-500/50 text-left transition-all group"
+              onClick={() => handleCopyType('selected_ordered')}
+              className="p-2.5 rounded-xl bg-studio-950 hover:bg-amber-950/40 border border-amber-500/60 hover:border-amber-400 text-left transition-all group ring-1 ring-amber-500/20"
             >
-              <div className="flex items-center justify-between text-xs font-bold text-amber-400 mb-0.5">
-                <span>🎙️ บทบรรยายรวม</span>
-                {copyState === 'narration' ? (
+              <div className="flex items-center justify-between text-xs font-bold text-amber-300 mb-0.5">
+                <span>📋 รวมฉากที่เลือก (เรียงลำดับ)</span>
+                {copyState === 'selected_ordered' ? (
                   <Check className="w-3.5 h-3.5 text-emerald-400" />
                 ) : (
                   <Copy className="w-3.5 h-3.5 text-gray-500 group-hover:text-amber-400" />
                 )}
               </div>
               <p className="text-[10px] text-gray-400">
-                {copyState === 'narration' ? '✅ คัดลอกสำเร็จ!' : 'รวมเสียงพากย์สำหรับบอทอ่าน'}
+                {copyState === 'selected_ordered' ? '✅ คัดลอกสำเร็จ!' : 'รวมภาพ + วิดีโอ + บทพูด เรียงฉาก'}
               </p>
             </button>
 
-            {/* 3. Character Dialogues */}
+            {/* 3. Image Prompts */}
+            <button
+              type="button"
+              onClick={() => handleCopyType('images')}
+              className="p-2.5 rounded-xl bg-studio-950 hover:bg-amber-950/30 border border-studio-800 hover:border-amber-500/50 text-left transition-all group"
+            >
+              <div className="flex items-center justify-between text-xs font-bold text-amber-300 mb-0.5">
+                <span>🎨 พร้อมสร้างภาพรวม</span>
+                {copyState === 'images' ? (
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                ) : (
+                  <Copy className="w-3.5 h-3.5 text-gray-500 group-hover:text-amber-300" />
+                )}
+              </div>
+              <p className="text-[10px] text-gray-400">
+                {copyState === 'images' ? '✅ คัดลอกสำเร็จ!' : 'คำสั่งสร้างภาพนิ่งทุกฉาก'}
+              </p>
+            </button>
+
+            {/* 4. Video Motion Prompts */}
+            <button
+              type="button"
+              onClick={() => handleCopyType('videos')}
+              className="p-2.5 rounded-xl bg-studio-950 hover:bg-cyan-950/30 border border-studio-800 hover:border-cyan-500/50 text-left transition-all group"
+            >
+              <div className="flex items-center justify-between text-xs font-bold text-cyan-300 mb-0.5">
+                <span>📹 พร้อมสร้างวิดีโอรวม</span>
+                {copyState === 'videos' ? (
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                ) : (
+                  <Copy className="w-3.5 h-3.5 text-gray-500 group-hover:text-cyan-300" />
+                )}
+              </div>
+              <p className="text-[10px] text-gray-400">
+                {copyState === 'videos' ? '✅ คัดลอกสำเร็จ!' : 'สำหรับ Kling / Runway / Luma'}
+              </p>
+            </button>
+
+            {/* 5. Character Dialogues */}
             <button
               type="button"
               onClick={() => handleCopyType('dialogues')}
@@ -1539,41 +1618,22 @@ export default function ProjectStudioPage() {
               </p>
             </button>
 
-            {/* 4. Image Prompts */}
+            {/* 6. Voiceover Narration */}
             <button
               type="button"
-              onClick={() => handleCopyType('images')}
+              onClick={() => handleCopyType('narration')}
               className="p-2.5 rounded-xl bg-studio-950 hover:bg-amber-950/30 border border-studio-800 hover:border-amber-500/50 text-left transition-all group"
             >
-              <div className="flex items-center justify-between text-xs font-bold text-amber-300 mb-0.5">
-                <span>🎨 พร้อมต์ภาพรวม</span>
-                {copyState === 'images' ? (
+              <div className="flex items-center justify-between text-xs font-bold text-amber-400 mb-0.5">
+                <span>🎙️ บทบรรยายรวม</span>
+                {copyState === 'narration' ? (
                   <Check className="w-3.5 h-3.5 text-emerald-400" />
                 ) : (
-                  <Copy className="w-3.5 h-3.5 text-gray-500 group-hover:text-amber-300" />
+                  <Copy className="w-3.5 h-3.5 text-gray-500 group-hover:text-amber-400" />
                 )}
               </div>
               <p className="text-[10px] text-gray-400">
-                {copyState === 'images' ? '✅ คัดลอกสำเร็จ!' : 'สำหรับ Midjourney / Flux'}
-              </p>
-            </button>
-
-            {/* 5. Video Motion Prompts */}
-            <button
-              type="button"
-              onClick={() => handleCopyType('videos')}
-              className="p-2.5 rounded-xl bg-studio-950 hover:bg-cyan-950/30 border border-studio-800 hover:border-cyan-500/50 text-left transition-all group"
-            >
-              <div className="flex items-center justify-between text-xs font-bold text-cyan-300 mb-0.5">
-                <span>🎥 พร้อมต์วิดีโอรวม</span>
-                {copyState === 'videos' ? (
-                  <Check className="w-3.5 h-3.5 text-emerald-400" />
-                ) : (
-                  <Copy className="w-3.5 h-3.5 text-gray-500 group-hover:text-cyan-300" />
-                )}
-              </div>
-              <p className="text-[10px] text-gray-400">
-                {copyState === 'videos' ? '✅ คัดลอกสำเร็จ!' : 'สำหรับ Kling / Runway Gen-3'}
+                {copyState === 'narration' ? '✅ คัดลอกสำเร็จ!' : 'รวมเสียงพากย์สำหรับอ่าน'}
               </p>
             </button>
 
