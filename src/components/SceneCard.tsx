@@ -44,6 +44,49 @@ export default function SceneCard({
 }: SceneCardProps) {
   const [copiedPrompt, setCopiedPrompt] = useState<string | null>(null);
   const [regenerating, setRegenerating] = useState(false);
+  const [polishing, setPolishing] = useState(false);
+
+  // ขัดเกลาบทสนทนาตัวละครให้เป็นธรรมชาติและมีเคมีโต้ตอบกัน
+  const handlePolishDialogues = async (tone?: string) => {
+    setPolishing(true);
+    try {
+      const localApiKey = typeof window !== 'undefined' ? localStorage.getItem('studio_gemini_api_key') || '' : '';
+      const presentNames = scene.characterIds && scene.characterIds.length > 0
+        ? characters.filter((c) => scene.characterIds.includes(c.id)).map((c) => c.name)
+        : characters.slice(0, 2).map((c) => c.name);
+
+      const res = await fetch('/api/ai/polish-dialogues', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sceneNumber: scene.sceneNumber,
+          sceneTitle: scene.title,
+          narration: scene.narration,
+          sceneAction: scene.videoMotionPrompt || scene.imagePrompt,
+          characters,
+          charactersPresent: presentNames,
+          currentDialogues: scene.dialogues || [],
+          tonePreset: tone || '',
+          genre,
+          apiKey: localApiKey,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success && Array.isArray(data.dialogues) && data.dialogues.length > 0) {
+        onUpdate({ ...scene, dialogues: data.dialogues });
+        setCopiedPrompt('polished');
+        setTimeout(() => setCopiedPrompt(null), 2500);
+      } else {
+        alert(data.error || 'ขัดเกลาบทสนทนาไม่สำเร็จ');
+      }
+    } catch (err) {
+      console.error('Polish error:', err);
+      alert('เกิดข้อผิดพลาดในการขัดเกลาบทสนทนา');
+    } finally {
+      setPolishing(false);
+    }
+  };
 
   // Copy to clipboard helper
   const handleCopy = (text: string, type: string) => {
@@ -351,6 +394,16 @@ export default function SceneCard({
               )}
             </div>
             <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => handlePolishDialogues()}
+                disabled={polishing}
+                className="text-xs text-amber-300 hover:text-amber-200 font-bold flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-500/15 border border-amber-500/40 hover:bg-amber-500/25 transition-all shadow-sm disabled:opacity-50"
+                title="ให้ AI ขัดเกลาบทสนทนาให้ลื่นไหล มีเคมีธรรมชาติ ไม่ซ้ำซาก"
+              >
+                <Sparkles className={`w-3.5 h-3.5 text-amber-400 ${polishing ? 'animate-spin' : ''}`} />
+                <span>{polishing ? 'กำลังขัดเกลา...' : '✨ ขัดเกลาบทพูด'}</span>
+              </button>
               {scene.dialogues && scene.dialogues.length > 0 && (
                 <button
                   type="button"
@@ -383,6 +436,37 @@ export default function SceneCard({
                 <Plus className="w-3.5 h-3.5" /> เพิ่มบทพูด
               </button>
             </div>
+          </div>
+
+          {/* Quick Dialogue Tone Pills for Scene Polish */}
+          <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+            <span className="text-[10px] text-gray-400 font-semibold flex items-center gap-1">
+              🎭 เลือกโทนขัดเกลา:
+            </span>
+            {[
+              { label: '🔥 เถียง/ปะทะ', tone: 'เถียงกันดุเดือด มีข้อขัดแย้ง ตัวละครปะทะคารมไม่ยอมกัน' },
+              { label: '🤝 วางแผน', tone: 'วางแผนกลยุทธ์ ตึงเครียด ตัวละครวิเคราะห์สถานการณ์และแบ่งหน้าที่' },
+              { label: '😂 แซวกัน', tone: 'หยอกล้อ แซวกันขี้เล่น ผ่อนคลาย มีมุกและคำอุทานธรรมชาติ' },
+              { label: '❤️ เปิดใจ', tone: 'เปิดใจ ซาบซึ้งประทับใจ แสดงความผูกพัน' },
+              { label: '⚡ กดดัน', tone: 'กดดัน บีบคั้น เผชิญหน้ากับศัตรูหรือวิกฤติตรงหน้า' },
+              { label: '🕵️ สืบสวน', tone: 'สืบสวน สงสัย จับพิรุธ ชิงไหวชิงพริบ' },
+            ].map((p, pIdx) => (
+              <button
+                key={pIdx}
+                type="button"
+                onClick={() => handlePolishDialogues(p.tone)}
+                disabled={polishing}
+                className="px-2 py-0.5 rounded-lg bg-studio-900 hover:bg-studio-800 border border-studio-700/80 hover:border-amber-400/50 text-[10px] text-gray-300 hover:text-amber-300 transition-colors disabled:opacity-50"
+                title={`ขัดเกลาบทพูดฉากนี้เป็นแนว: ${p.label}`}
+              >
+                {p.label}
+              </button>
+            ))}
+            {copiedPrompt === 'polished' && (
+              <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1 animate-pulse ml-1">
+                <Check className="w-3 h-3 text-emerald-400" /> ขัดเกลาบทพูดแล้ว!
+              </span>
+            )}
           </div>
 
           {!scene.dialogues || scene.dialogues.length === 0 ? (

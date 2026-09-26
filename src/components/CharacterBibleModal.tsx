@@ -54,6 +54,7 @@ export default function CharacterBibleModal({
   const [isInjectingScript, setIsInjectingScript] = useState(false);
   const [generatingAll, setGeneratingAll] = useState(false);
   const [generatingAiCharacters, setGeneratingAiCharacters] = useState(false);
+  const [enrichingDynamics, setEnrichingDynamics] = useState(false);
   const [generatingCharId, setGeneratingCharId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [copiedPromptId, setCopiedPromptId] = useState<string | null>(null);
@@ -307,6 +308,44 @@ export default function CharacterBibleModal({
     }
   };
 
+  // 1.5 Auto-Enrich Character Dynamics & Chemistry (มิติตัวละครและเคมีความสัมพันธ์)
+  const handleAutoEnrichDynamics = async () => {
+    if (!characters || characters.length === 0) {
+      alert('ไม่มีตัวละครให้เติมมิติ');
+      return;
+    }
+    setEnrichingDynamics(true);
+    try {
+      const localApiKey = typeof window !== 'undefined' ? localStorage.getItem('studio_gemini_api_key') || '' : '';
+      const res = await fetch('/api/ai/enrich-characters', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: project?.title || '',
+          synopsis: project?.synopsis || '',
+          worldCulture: project?.worldCulture || 'thai',
+          genre: project?.genre || '',
+          subGenre: project?.subGenre || '',
+          characters,
+          apiKey: localApiKey,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success && data.characters && data.characters.length > 0) {
+        setCharacters(data.characters);
+        alert(`✨ เติมมิติและเคมีความสัมพันธ์ให้ ${data.characters.length} ตัวละครเรียบร้อยแล้ว!\n(มีบุคลิก คำติดปาก น้ำเสียง และเคมีคู่ปรับ/คู่หูครบถ้วน)\n\nอย่าลืมกด "บันทึกข้อมูลตัวละครทั้งหมด" เพื่ออัปเดตลงโปรเจกต์`);
+      } else {
+        alert(data.error || 'เติมมิติตัวละครไม่สำเร็จ');
+      }
+    } catch (err) {
+      console.error('Error enriching characters:', err);
+      alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์เติมมิติตัวละคร');
+    } finally {
+      setEnrichingDynamics(false);
+    }
+  };
+
   // 2. Generate Image for a single character
   const handleGenerateSingleImage = async (index: number) => {
     const char = characters[index];
@@ -543,6 +582,26 @@ export default function CharacterBibleModal({
                   <>
                     <Bot className="w-4 h-4 text-black" />
                     <span>🤖 AI เจนทีมตัวละครยกแก๊ง ({selectedCount} ตัว)</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleAutoEnrichDynamics}
+                disabled={enrichingDynamics}
+                className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-purple-500/20 via-pink-500/20 to-amber-500/20 hover:from-purple-500/30 hover:to-amber-500/30 text-purple-300 hover:text-white border border-purple-500/40 hover:border-purple-400 text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm disabled:opacity-50"
+                title="เติมมิติ บุคลิกคู่ตรงข้าม คำติดปาก น้ำเสียง และเคมีความสัมพันธ์ให้ตัวละครอัตโนมัติ"
+              >
+                {enrichingDynamics ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-purple-300" />
+                    <span>กำลังเติมเคมี...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 text-purple-400" />
+                    <span>✨ เติมเคมี &amp; มิติตัวละคร</span>
                   </>
                 )}
               </button>

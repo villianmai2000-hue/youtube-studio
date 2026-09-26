@@ -83,6 +83,7 @@ export default function ProjectStudioPage() {
   const [customAiPrompt, setCustomAiPrompt] = useState('');
   const [apiKeyInput, setApiKeyInput] = useState('');
   const [generatingFullScenes, setGeneratingFullScenes] = useState(false);
+  const [enrichingCharacters, setEnrichingCharacters] = useState(false);
 
   // Studio Scenes Pagination (Supports up to 900+ scenes smoothly)
   const [studioPage, setStudioPage] = useState(1);
@@ -378,6 +379,45 @@ export default function ProjectStudioPage() {
       alert('Error: ' + (err instanceof Error ? err.message : String(err)));
     } finally {
       setGeneratingAct(false);
+    }
+  };
+
+  // เติมมิติ บุคลิกคู่ตรงข้าม คำติดปาก และเคมีความสัมพันธ์ให้ตัวละครทุกคนอัตโนมัติ
+  const handleEnrichCharacters = async () => {
+    if (!project || !project.characters || project.characters.length === 0) {
+      alert('ไม่มีตัวละครในโปรเจกต์');
+      return;
+    }
+    setEnrichingCharacters(true);
+    try {
+      const localApiKey = typeof window !== 'undefined' ? localStorage.getItem('studio_gemini_api_key') || '' : '';
+      const res = await fetch('/api/ai/enrich-characters', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: project.title,
+          synopsis: project.synopsis,
+          worldCulture: project.worldCulture,
+          genre: project.genre,
+          subGenre: project.subGenre,
+          characters: project.characters,
+          apiKey: localApiKey,
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.characters) {
+        const updatedProject = { ...project, characters: data.characters };
+        setProject(updatedProject);
+        handleSave(updatedProject);
+        alert(`✨ เติมมิติและเคมีความสัมพันธ์ให้ ${data.characters.length} ตัวละครเรียบร้อยแล้ว!\n(บุคลิกคู่ตรงข้าม, คำติดปาก, น้ำเสียง และเคมีคู่หู/คู่ปรับครบถ้วน)`);
+      } else {
+        alert(data.error || 'เติมเคมีตัวละครไม่สำเร็จ');
+      }
+    } catch (err) {
+      console.error('Enrich error:', err);
+      alert('เกิดข้อผิดพลาดในการเติมเคมีตัวละคร');
+    } finally {
+      setEnrichingCharacters(false);
     }
   };
 
@@ -1036,6 +1076,18 @@ export default function ProjectStudioPage() {
             <span>สมุดคุมตัวละคร ({(project.characters || []).length})</span>
           </button>
 
+          {/* Auto-Enrich Character Dynamics Button */}
+          <button
+            type="button"
+            onClick={handleEnrichCharacters}
+            disabled={enrichingCharacters}
+            className="px-3 py-2 rounded-xl bg-gradient-to-r from-purple-500/20 via-pink-500/20 to-amber-500/20 hover:from-purple-500/30 hover:to-amber-500/30 border border-purple-500/40 hover:border-purple-400 text-purple-300 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm disabled:opacity-50"
+            title="เติมมิติ บุคลิกคู่ตรงข้าม คำติดปาก น้ำเสียง และเคมีความสัมพันธ์ให้ตัวละครทุกคนอัตโนมัติ"
+          >
+            <Sparkles className={`w-3.5 h-3.5 text-purple-400 ${enrichingCharacters ? 'animate-spin' : ''}`} />
+            <span>{enrichingCharacters ? 'กำลังเติมเคมี...' : '✨ เติมเคมีตัวละคร'}</span>
+          </button>
+
           {/* World & Story Bible Button */}
           <button
             onClick={() => setIsWorldStoryModalOpen(true)}
@@ -1337,6 +1389,60 @@ export default function ProjectStudioPage() {
               <Sparkles className={`w-3.5 h-3.5 ${generatingAct ? 'animate-spin' : ''}`} />
               <span>{generatingAct ? 'AI กำลังคิดบท...' : `เขียนบท AI องค์ที่ ${selectedAct}`}</span>
             </button>
+          </div>
+
+          {/* Smart Screenplay Dialogue & Story Tone Pills */}
+          <div className="flex flex-wrap items-center gap-1.5 pt-1 text-xs">
+            <span className="text-[11px] font-bold text-amber-400 flex items-center gap-1">
+              🎭 โทนบทสนทนา &amp; เคมี:
+            </span>
+            {[
+              { label: '🔥 เถียง/ปะทะคารม', promptText: 'เน้นบทสนทนาเถียงกันดุเดือด มีข้อขัดแย้ง ตัวละครปะทะคารมไม่ยอมกันแต่รักพวกพ้อง' },
+              { label: '🤝 วางแผนกลยุทธ์', promptText: 'เน้นบทสนทนาวางแผนกลยุทธ์รอบคอบ ตึงเครียด วิเคราะห์จุดอ่อนสถานการณ์และแบ่งหน้าที่' },
+              { label: '😂 แซวกันขี้เล่น', promptText: 'เน้นบทสนทนาหยอกล้อ แซวกันขี้เล่น ผ่อนคลายบรรยากาศ มีคำอุทานและมุกธรรมชาติ' },
+              { label: '❤️ เปิดใจซาบซึ้ง', promptText: 'เน้นบทสนทนาเปิดใจ ซาบซึ้งประทับใจ แสดงความผูกพันและสัญญาใจที่ลึกซึ้ง' },
+              { label: '⚡ เผชิญหน้ากดดัน', promptText: 'เน้นบทสนทนากดดัน บีบคั้น เผชิญหน้ากับศัตรูหรือวิกฤติตรงหน้าชวนระทึก' },
+              { label: '🕵️ สืบสวนสงสัย', promptText: 'เน้นบทสนทนาสืบสวน ตั้งข้อสงสัย จับพิรุธ ชิงไหวชิงพริบ คลี่คลายเงื่อนงำ' },
+            ].map((pill, idx) => {
+              const isSelected = customAiPrompt.includes(pill.promptText);
+              return (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => {
+                    if (isSelected) {
+                      setCustomAiPrompt(
+                        customAiPrompt
+                          .replace(` | ${pill.promptText}`, '')
+                          .replace(pill.promptText, '')
+                          .trim()
+                      );
+                    } else {
+                      setCustomAiPrompt(
+                        customAiPrompt ? `${customAiPrompt} | ${pill.promptText}` : pill.promptText
+                      );
+                    }
+                  }}
+                  className={`px-2.5 py-1 rounded-xl text-xs font-semibold border transition-all ${
+                    isSelected
+                      ? 'bg-amber-500 text-black border-amber-400 shadow-glow font-bold'
+                      : 'bg-studio-950/80 hover:bg-studio-800 text-gray-300 hover:text-white border-studio-700/80'
+                  }`}
+                >
+                  {pill.label}
+                </button>
+              );
+            })}
+            {customAiPrompt && (
+              <button
+                type="button"
+                onClick={() => setCustomAiPrompt('')}
+                className="text-[11px] text-gray-400 hover:text-red-400 px-2 py-0.5 rounded-lg hover:bg-studio-800 transition-colors ml-auto"
+                title="ล้างข้อความคำสั่งพิเศษ"
+              >
+                ✕ ล้าง
+              </button>
+            )}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 text-xs">
