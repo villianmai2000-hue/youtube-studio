@@ -683,6 +683,9 @@ export default function ProjectStudioPage() {
       output += `==========================================================\n\n`;
       targets.forEach((s) => {
         output += `【ฉากที่ ${s.sceneNumber}】: ${cleanSceneTitle(s.title)}\n`;
+        if (s.narration) {
+          output += `🎙️ บทเล่าเรื่อง / เสียงพากย์:\n${s.narration.trim()}\n\n`;
+        }
         if (s.imagePrompt) {
           output += `🎨 พร้อมสร้างภาพ:\n${s.imagePrompt.trim()}\n\n`;
         }

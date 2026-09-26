@@ -14,6 +14,7 @@ import {
   RefreshCw,
   Sparkles,
   Music,
+  BookOpen,
 } from 'lucide-react';
 
 interface SceneCardProps {
@@ -209,7 +210,40 @@ export default function SceneCard({
 
       {/* Main Content Sections */}
       <div className="space-y-4">
-        {/* 1. พร้อมสร้างภาพ (Image Prompt) */}
+        {/* 1. บทเล่าเรื่อง / เสียงพากย์ (Story Narration) */}
+        <div className="p-3.5 rounded-2xl bg-studio-950 border border-emerald-500/30 space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+              <BookOpen className="w-3.5 h-3.5 text-emerald-400" /> บทเล่าเรื่อง / เสียงพากย์ (Story Narration)
+            </label>
+            <button
+              type="button"
+              onClick={() => handleCopy(scene.narration || '', 'narration')}
+              className="px-3 py-1 rounded-lg bg-studio-900 hover:bg-studio-800 border border-studio-700 text-gray-200 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-colors"
+            >
+              {copiedPrompt === 'narration' ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="text-emerald-400 font-bold">คัดลอกบทเล่าเรื่องแล้ว!</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>คัดลอกบทเล่าเรื่อง</span>
+                </>
+              )}
+            </button>
+          </div>
+          <textarea
+            rows={3}
+            value={scene.narration || ''}
+            onChange={(e) => onUpdate({ ...scene, narration: e.target.value })}
+            placeholder="บทบรรยายดำเนินเรื่องสำหรับผู้พากย์เสียง ค่อยๆ เล่าเรื่องราวต่อเนื่องกัน..."
+            className="w-full px-3.5 py-2.5 rounded-xl bg-studio-900/90 border border-studio-800 text-gray-100 text-xs sm:text-sm leading-relaxed focus:outline-none focus:border-emerald-500 font-sans placeholder-gray-600"
+          />
+        </div>
+
+        {/* 2. พร้อมสร้างภาพ (Image Prompt) */}
         <div className="p-3.5 rounded-2xl bg-studio-950 border border-studio-800/90 space-y-2">
           <div className="flex items-center justify-between">
             <label className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
@@ -254,7 +288,7 @@ export default function SceneCard({
           />
         </div>
 
-        {/* 2. ใต้พร้อมสร้างภาพมี พร้อมสร้างวิดีโอ (Video Motion Prompt) */}
+        {/* 3. พร้อมสร้างวิดีโอ (Video Motion Prompt) */}
         <div className="p-3.5 rounded-2xl bg-studio-950 border border-studio-800/90 space-y-2">
           <div className="flex items-center justify-between">
             <label className="text-xs font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-1.5">
@@ -287,7 +321,7 @@ export default function SceneCard({
           />
         </div>
 
-        {/* 3. บทสนทนาตัวละคร (Character Dialogues) ปรับให้เป็นธรรมชาติ */}
+        {/* 4. บทสนทนาตัวละคร (Character Dialogues) */}
         <div className="p-3.5 rounded-2xl bg-studio-950 border border-studio-800/90 space-y-2.5">
           <div className="flex items-center justify-between">
             <label className="text-xs font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1.5">

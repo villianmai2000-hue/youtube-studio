@@ -109,6 +109,9 @@ export default function VideoTimelinePlayer({
 
     selectedScenes.forEach((s) => {
       merged += `[ฉากที่ ${s.sceneNumber}]: ${cleanSceneTitle(s.title)}\n`;
+      if (s.narration) {
+        merged += `🎙️ บทเล่าเรื่อง / เสียงพากย์:\n${s.narration.trim()}\n\n`;
+      }
       if (s.imagePrompt) {
         merged += `🎨 พร้อมสร้างภาพ:\n${s.imagePrompt}\n\n`;
       }
