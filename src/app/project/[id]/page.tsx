@@ -355,6 +355,9 @@ export default function ProjectStudioPage() {
           characters: project.characters,
           apiKey: apiKeyInput || (typeof window !== 'undefined' ? localStorage.getItem('studio_gemini_api_key') || '' : ''),
           customInstructions: customAiPrompt,
+          previousScenes: (project.scenes || [])
+            .filter((s) => s.actNumber < actToGenerate)
+            .slice(-4),
         }),
       });
 

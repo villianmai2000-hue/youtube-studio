@@ -23,6 +23,7 @@ export async function POST(request: Request) {
       mode = 'act', // 'act' | 'full_movie'
       worldCulture = 'thai',
       subGenre = '',
+      previousScenes = [],
     } = body;
 
 
@@ -63,6 +64,7 @@ export async function POST(request: Request) {
           customInstructions,
           worldCulture,
           subGenre,
+          previousScenes,
         });
 
         if (geminiResult && geminiResult.scenes && geminiResult.scenes.length > 0) {
@@ -115,6 +117,7 @@ async function generateScriptWithGemini(params: {
   customInstructions?: string;
   worldCulture?: string;
   subGenre?: string;
+  previousScenes?: any[];
 }): Promise<{ scenes: ScriptScene[]; modelUsed: string }> {
   const {
     apiKey,
@@ -128,11 +131,36 @@ async function generateScriptWithGemini(params: {
     customInstructions,
     worldCulture = '',
     subGenre = '',
+    previousScenes = [],
   } = params;
 
+  // รายละเอียดตัวละครครบทุกมิติ (ชื่อ, บทบาท, บุคลิก, สไตล์เสียง, ความสัมพันธ์, อาวุธ)
   const charactersStr = characters
-    .map((c) => `- ${c.name} (${c.role}): รูปลักษณ์ [${c.appearanceAnchor}], น้ำเสียง [${c.voiceStyle}], อาวุธ [${c.weaponsOrProps || 'ไม่มี'}]`)
+    .map((c) => {
+      const parts = [`- ${c.name} (${c.role})`];
+      if (c.personality) parts.push(`บุคลิก/นิสัย: "${c.personality}"`);
+      if (c.voiceStyle) parts.push(`น้ำเสียง/สไตล์การพูด: "${c.voiceStyle}"`);
+      if (c.relationships) parts.push(`ความสัมพันธ์: "${c.relationships}"`);
+      if (c.weaponsOrProps) parts.push(`อาวุธ/ไอเทม: "${c.weaponsOrProps}"`);
+      if (c.appearanceAnchor) parts.push(`รูปลักษณ์: "${c.appearanceAnchor}"`);
+      return parts.join(' | ');
+    })
     .join('\n');
+
+  // ข้อมูลจากฉากก่อนหน้า เพื่อป้องกันการเริ่มเรื่องใหม่ และป้องกันบทพูดซ้ำซาก
+  const previousScenesStr =
+    previousScenes && previousScenes.length > 0
+      ? `\n🎞️ บริบทและบทพูดจากฉากก่อนหน้า (เพื่อดำเนินเรื่องต่อจากจุดนี้ ห้ามพูดประโยคเดิมซ้ำ และห้ามรีเซ็ตเรื่องใหม่):\n` +
+        previousScenes
+          .slice(-4)
+          .map(
+            (s: any) =>
+              `- ฉากที่ ${s.sceneNumber} (${s.title}): บทพากย์ [${(s.narration || '').substring(0, 100)}...] | บทพูดล่าสุด: [${
+                s.dialogues?.map((d: any) => `${d.speaker}: "${d.text}"`).join(' / ') || '-'
+              }]`
+          )
+          .join('\n')
+      : '';
 
   // ตรวจจับแก่นเรื่องจริงด้วย Theme Detector
   const theme = analyzeStoryTheme({ title, synopsis, genre, subGenre, worldCulture });
@@ -185,23 +213,31 @@ async function generateScriptWithGemini(params: {
   const systemInstruction = `${personaInstruction}
 คุณต้องเขียนบทภาพยนตร์สำหรับ "องค์ที่ ${actNumber}" จำนวน 4 ฉากต่อเนื่อง (ฉากละ 10 วินาที)
 
-กฎเหล็กเด็ดขาด (CRITICAL CONSTRAINTS):
+กฎเหล็กเด็ดขาดเรื่องบทละครและบทสนทนา (CRITICAL SCREENWRITING CONSTRAINTS):
 1. [หัวเรื่องและเนื้อเรื่องต้องตรงกัน 100%] หัวฉาก (title) และบทบรรยาย (narration) ต้องตรงกับชื่อเรื่อง "${title}" และเรื่องย่อ "${synopsis}" อย่างเคร่งครัด ห้ามเขียนเนื้อหาหลุดไปแนวอื่นเด็ดขาด!
 2. [เคารพพล็อตเรื่องที่ผู้ใช้พิมพ์] หากผู้ใช้ระบุเรื่องย่อไว้ ให้ดำเนินเรื่องตามพล็อตนั้น ห้ามคิดเรื่องใหม่ที่ฉีกไปคนละเรื่อง
 3. [ค่อยๆ เล่าเรื่องแบบภาพยนตร์ต่อเนื่อง ไม่ตัดข้าม] (SLOW-BURN CONTINUOUS CINEMATIC PACING):
    - ต้อง "ค่อยๆ เล่าเรื่อง" อย่างประณีต ลุ่มลึก มีมิติ ไม่เร่งรีบตัดข้ามเหตุการณ์
    - ความต่อเนื่องแบบภาพยนตร์ไร้รอยต่อ (Continuous Long-Take Sequence / No Jump Cuts): แต่ละฉาก (10 วินาที) ต้องดำเนินต่อจากวินาทีสุดท้ายของฉากก่อนหน้าทันที ในสถานที่เดิม เวลาเดิม หรือต่อเนื่องในแอ็กชันเดียวกัน ห้ามตัดข้ามเวลาหรือสถานที่เด็ดขาด
    - ฉากที่ 1 -> ฉากที่ 2 -> ฉากที่ 3 -> ฉากที่ 4 ต้องเชื่อมโยงกันแนบสนิทเหมือนกล้องถ่ายทำช็อตต่อเนื่อง
-4. [บทพูดตัวละครต้องมีมากขึ้นและโต้ตอบกันอย่างเป็นธรรมชาติ] (RICH INTERACTIVE DIALOGUES):
-   - ในแต่ละฉาก ต้องมีบทสนทนาโต้ตอบระหว่างตัวละครอย่างน้อย 2-4 บรรทัด (ห้ามใส่แค่ 1 บรรทัดเด็ดขาด)
-   - มีการถาม-ตอบ, วางแผน, โต้แย้ง, ส่งสัญญาณ หรือแสดงอารมณ์ความรู้สึกต่อเหตุการณ์เฉพาะหน้าอย่างมีชีวิตชีวา
-   - อารมณ์ (emotion) และสำนวนคำพูดต้องสมจริง สอดคล้องกับบุคลิกตัวละครและวัฒนธรรม "${theme.effectiveCulture}"
-5. [บทเล่าเรื่องสัมพันธ์ต่อเนื่องกัน] (COHERENT STORY NARRATION):
+4. [ห้ามบทพูดซ้ำซากจำเจเด็ดขาด (ZERO DIALOGUE REPETITION)]:
+   - ❌ ห้ามใช้ประโยคสำเร็จรูปซ้ำซาก เช่น "ระวังตัวด้วย!", "ไปกันเถอะ!", "ข้างหน้านั้นมีอะไร?", "ข้าจะไม่ยอมแพ้!", "เราต้องรอดกลับไป", "เกิดอะไรขึ้นน่ะ" ซ้ำๆ ทุกฉาก
+   - แต่ละฉากต้องมี "ประเด็นพูดคุยใหม่ (New Information / New Beat)" ที่พูดถึงเหตุการณ์ที่อยู่ตรงหน้าจริงๆ ในวินาทีนั้น
+5. [บทพูดต้องเป็นธรรมชาติและสะท้อนบุคลิกตัวละคร (NATURAL & DISTINCT CHARACTER VOICES)]:
+   - ❌ ห้ามใช้ภาษาหนังสือแข็งกระด้างหรือพูดเหมือนหุ่นยนต์ท่องจำ (เช่น "เราต้องทำการตรวจสอบสิ่งนี้โดยพลัน")
+   - ✅ ต้องใช้ "ภาษาพูดจริง (Spoken Natural Dialogue)" ที่มีชีวิตชีวา อารมณ์ คำเชื่อม คำอุทาน หรือภาษาเฉพาะตามวัฒนธรรม "${theme.effectiveCulture}"
+   - ตัวละครแต่ละตัวต้องพูดไม่เหมือนกันตาม "บุคลิก (personality)" และ "น้ำเสียง (voiceStyle)" ที่ระบุไว้ในรายชื่อตัวละคร (เช่น ตัวเอกสุขุมพูดน้อยแต่เฉียบขาด, สหายขี้เล่นชอบแซวหรือบ่น, ตัวร้ายเยาะเย้ยกดดัน)
+   - คำเรียกขานต้องตรงกับ "ความสัมพันธ์ (relationships)" ระหว่างกัน (เช่น "พี่...", "อาจารย์", "แก!", "นาย...")
+6. [ตัวละครในฉากต้องสัมพันธ์กับบทสนทนา (SCENE CAST COHERENCE)]:
+   - ในแต่ละฉาก ให้ระบุ "charactersPresent" ว่ามีตัวละครใดบ้างที่อยู่ในฉากนั้นจริงๆ (1-3 คน)
+   - ⚠️ บทสนทนาในฉากนั้น ต้องพูดโดยตัวละครที่อยู่ใน charactersPresent เท่านั้น! ห้ามมีตัวละครที่ไม่ได้อยู่ในฉากโผล่มาพูด
+   - ตัวละครที่อยู่ด้วยกันต้องมีปฏิสัมพันธ์โต้ตอบกันอย่างน้อย 2-4 บรรทัด (ถาม-ตอบ, ขัดคอ, เตือนสติ, ปรึกษากลยุทธ์ หรือแสดงความรู้สึก)
+7. [บทเล่าเรื่องสัมพันธ์ต่อเนื่องกัน] (COHERENT STORY NARRATION):
    - บทบรรยายดำเนินเรื่อง (narration) ของแต่ละฉากต้องมีเนื้อหา 2-4 ประโยคที่สละสลวย ชวนติดตาม
    - บรรยายปูบรรยากาศและร้อยเรียงเข้ากับบทพูดตัวละครอย่างกลมกลืน ส่งต่ออารมณ์จากฉากก่อนหน้าสู่ฉากถัดไปอย่างไร้รอยต่อ
-6. [Single Unified Shot] หากมีตัวละครตั้งแต่ 2 ตัวขึ้นไปในฉาก ต้องให้ตัวละครทุกคนปรากฏตัวในเฟรมเดียวกัน (Unified Shot / Two-Shot / Group Shot) ห้ามแบ่งจอเด็ดขาด
-7. [Seedream 5.0 Pro Ready] แต่ละฉากยาว 10 วินาที มีการเคลื่อนไหวของกล้อง (cameraMovement) แสงเงา (lighting) และเสียงประกอบ (sfxBgm)
-8. [วัฒนธรรมถูกต้อง] บท, ชื่อสถานที่, เครื่องแต่งกาย, ดนตรี ต้องสอดคล้องกับวัฒนธรรม "${theme.effectiveCulture}" โดยเฉพาะ ห้ามปะปนวัฒนธรรมอื่นโดยไม่มีเหตุผล`;
+8. [Single Unified Shot] หากมีตัวละครตั้งแต่ 2 ตัวขึ้นไปในฉาก ต้องให้ตัวละครทุกคนปรากฏตัวในเฟรมเดียวกัน (Unified Shot / Two-Shot / Group Shot) ห้ามแบ่งจอเด็ดขาด
+9. [Seedream 5.0 Pro Ready] แต่ละฉากยาว 10 วินาที มีการเคลื่อนไหวของกล้อง (cameraMovement) แสงเงา (lighting) และเสียงประกอบ (sfxBgm)
+10. [วัฒนธรรมถูกต้อง] บท, ชื่อสถานที่, เครื่องแต่งกาย, ดนตรี ต้องสอดคล้องกับวัฒนธรรม "${theme.effectiveCulture}" โดยเฉพาะ ห้ามปะปนวัฒนธรรมอื่นโดยไม่มีเหตุผล`;
 
 
   const userPrompt = `
@@ -213,10 +249,11 @@ async function generateScriptWithGemini(params: {
 องค์ที่ต้องการสร้าง: องค์ที่ ${actNumber}
 ${customInstructions ? `คำสั่งพิเศษเพิ่มเติม: ${customInstructions}` : ''}
 
-รายชื่อตัวละครหลักที่ต้องนำมาใช้ในบท:
+รายชื่อตัวละครและบุคลิกเฉพาะตัว:
 ${charactersStr}
+${previousScenesStr}
 
-🎬 กฎการเขียนบทภาพยนตร์ 4 ฉากต่อเนื่อง (Cinematic Continuity & Story Flow):
+🎬 กฎการเขียนบทภาพยนตร์ 4 ฉากต่อเนื่อง (Cinematic Continuity & Natural Dialogues):
 - [จังหวะการเล่า] ค่อยๆ เล่าเรื่อง (Slow-Burn Narrative) ละเมียดละไม ให้ความสำคัญกับบรรยากาศและการกระทำต่อเนื่อง ไม่ตัดข้ามเวลา
 - [ความต่อเนื่องไม่ตัดข้าม (No Jump Cuts)]:
   • ฉากที่ ${(actNumber - 1) * 4 + 1}: [เปิดฉาก / ประคองสถานการณ์] ค่อยๆ เปิดฉาก บรรยายบรรยากาศ สภาพแวดล้อม และตัวละครเริ่มสังเกตหรือเผชิญสิ่งตรงหน้า
@@ -224,7 +261,8 @@ ${charactersStr}
   • ฉากที่ ${(actNumber - 1) * 4 + 3}: [จังหวะบีบคั้น / อารมณ์ขยายตัว] ต่อเนื่องจากฉาก 2 สถานการณ์ตึงเครียดขึ้น ตัวละครพูดคุยตัดสินใจแอ็กชันเฉพาะหน้า
   • ฉากที่ ${(actNumber - 1) * 4 + 4}: [สรุปจังหวะและส่งต่อ] ผลลัพธ์ต่อเนื่องจากฉาก 3 ทิ้งอารมณ์และปมสำคัญเพื่อส่งต่อไปยังองค์ถัดไปอย่างไร้รอยต่อ
 ▶ [บทเล่าเรื่อง (narration)]: 2-4 ประโยค ค่อยๆ เล่าเรื่อง ดำเนินเรื่องอย่างละเมียดละไม เชื่อมโยงฉากต่อฉาก
-▶ [บทสนทนา (dialogues)]: ต้องมีบทพูดตัวละครโต้ตอบกันอย่างน้อย 2-4 บรรทัดต่อฉาก (ถาม-ตอบ หรือโต้แย้งกันอย่างมีมิติ ไม่ใช่มีแค่ประโยคเดียว)
+▶ [บทสนทนา (dialogues)]: ต้องมีบทพูดตัวละครโต้ตอบกันอย่างน้อย 2-4 บรรทัดต่อฉาก (เป็นภาษาพูดธรรมชาติ มีเอกลักษณ์ตามบุคลิก ห้ามใช้คำซ้ำซาก)
+▶ [charactersPresent]: ระบุรายชื่อตัวละครที่มีบทบาทในฉากนี้จริงๆ (1-3 คน) จากรายชื่อตัวละครด้านบน
 ▶ [sceneAction]: บรรยายภาพที่ตรงกับ narration และ dialogues สำหรับสร้างภาพ/วิดีโอต่อเนื่อง
 
 กรุณาเขียนบทองค์ที่ ${actNumber} จำนวน 4 ฉากต่อเนื่อง (ฉากที่ ${(actNumber - 1) * 4 + 1} ถึง ${(actNumber - 1) * 4 + 4})
@@ -232,12 +270,13 @@ ${charactersStr}
 [
   {
     "title": "หัวฉากสั้น กระชับ ตรงกับเหตุการณ์ในฉากนั้น (ห้ามใส่คำว่า 'ฉากที่ X:')",
+    "charactersPresent": ["ชื่อตัวละครที่อยู่ในฉากนี้ (ตรงกับรายชื่อตัวละคร)"],
     "narration": "บทบรรยายเสียงพากย์ดำเนินเรื่อง 2-4 ประโยคที่สละสลวย ค่อยๆ เล่าเรื่องราวให้เห็นภาพชัดเจนและต่อเนื่องจากฉากก่อนหน้า",
     "sceneAction": "อธิบายตัวละครกำลังทำอะไร ท่าทางอย่างไร อยู่ในสภาพแวดล้อมแบบไหน เพื่อใช้สร้างภาพและวิดีโอต่อเนื่อง",
     "dialogues": [
-      {"speaker": "ชื่อตัวละคร 1", "emotion": "อารมณ์/น้ำเสียง", "text": "บทสนทนาประโยคแรกที่เปิดประเด็นในฉาก"},
-      {"speaker": "ชื่อตัวละคร 2", "emotion": "อารมณ์/น้ำเสียง", "text": "บทสนทนาโต้ตอบอย่างเป็นธรรมชาติ"},
-      {"speaker": "ชื่อตัวละคร 1", "emotion": "อารมณ์/น้ำเสียง", "text": "บทสนทนาตอบรับหรือสั่งการต่อเนื่อง"}
+      {"speaker": "ชื่อตัวละคร (ต้องอยู่ใน charactersPresent)", "emotion": "อารมณ์/น้ำเสียงตามบุคลิก", "text": "บทสนทนาประโยคแรกที่เป็นธรรมชาติ ตรงตามสถานการณ์"},
+      {"speaker": "ชื่อตัวละครอีกตัว (ต้องอยู่ใน charactersPresent)", "emotion": "อารมณ์/น้ำเสียงตามบุคลิก", "text": "บทสนทนาโต้ตอบอย่างมีเอกลักษณ์ ไม่ใช้คำซ้ำซาก"},
+      {"speaker": "ชื่อตัวละคร", "emotion": "อารมณ์/น้ำเสียง", "text": "บทสนทนาต่อยอดหรือข้อสรุปของช็อตนี้"}
     ],
     "sfxBgm": "ดนตรีและเสียงประกอบที่เหมาะกับอารมณ์ฉาก",
     "cameraMovement": "การเคลื่อนกล้อง 10 วินาทีต่อเนื่อง Seedream 5.0 Pro (สเตดิแคม/ดอลลี่ ไหลลื่นไม่ตัดข้าม)",
@@ -275,7 +314,6 @@ ${charactersStr}
         }
       );
 
-
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`Gemini (${model}) API error ${response.status}: ${errorText}`);
@@ -294,13 +332,26 @@ ${charactersStr}
 
       const scenes = parsed.map((item, idx) => {
         const sceneNum = (actNumber - 1) * 4 + (idx + 1);
+
+        // ✅ จับคู่ตัวละครที่ปรากฏในฉากนี้จริงๆ เพื่อผูก characterIds และส่งให้ buildVisualPrompts
+        const presentNames: string[] = Array.isArray(item.charactersPresent) ? item.charactersPresent : [];
+        const dialogueSpeakers: string[] = (item.dialogues || []).map((d: any) => d.speaker || '');
+
+        const matchedChars = characters.filter((c) =>
+          presentNames.some((n: string) => n && (n.toLowerCase().includes(c.name.toLowerCase()) || c.name.toLowerCase().includes(n.toLowerCase()))) ||
+          dialogueSpeakers.some((s: string) => s && (s.toLowerCase().includes(c.name.toLowerCase()) || c.name.toLowerCase().includes(s.toLowerCase())))
+        );
+
+        // ถ้า match ได้ ให้ใช้ตัวละครเหล่านั้น ถ้าไม่เจอเลย ให้ใช้ตัวละครหลัก 1-2 ตัวแรก
+        const activeSceneChars = matchedChars.length > 0 ? matchedChars : characters.slice(0, Math.min(2, characters.length));
+
         // ✅ ใช้ sceneAction เป็นตัวนำในการสร้างภาพ/วิดีโอ แทน title เพียงอย่างเดียว
         // ถ้า Gemini ไม่ส่ง sceneAction มา ให้สร้างจาก narration + title แทน
         const visualAction = item.sceneAction ||
           `${item.narration ? item.narration.substring(0, 120) : ''} ${item.title}`.trim();
 
         const prompts = buildVisualPrompts({
-          sceneTitle: visualAction,   // ✅ ใช้ sceneAction แทน title เพื่อให้ภาพตรงกับบทพูด
+          sceneTitle: visualAction,
           narration: item.narration,
           dialogueText: item.dialogues?.map((d: any) => `${d.speaker}: ${d.text}`).join(' '),
           visualMedium: visualMedium as VisualMedium,
@@ -308,7 +359,7 @@ ${charactersStr}
           genre: effectiveGenre,
           cameraMovement: item.cameraMovement || 'Cinematic tracking shot',
           lighting: item.lighting || 'Dramatic cinematic lighting',
-          charactersInScene: characters,
+          charactersInScene: activeSceneChars, // ✅ ส่งเฉพาะตัวละครที่อยู่ในฉากจริงๆ
           sceneNumber: sceneNum,
           worldCulture: theme.effectiveCulture,
         });
@@ -319,10 +370,10 @@ ${charactersStr}
           actNumber: actNumber as 1 | 2 | 3 | 4,
           title: item.title,
           narration: item.narration,
-          sceneAction: item.sceneAction || '',   // ✅ เก็บ sceneAction ไว้ด้วย
+          sceneAction: item.sceneAction || '',
           dialogues: item.dialogues || [],
           sfxBgm: item.sfxBgm || '[BGM: บรรเลงตามอารมณ์ฉาก]',
-          characterIds: characters.map((c) => c.id),
+          characterIds: activeSceneChars.map((c) => c.id), // ✅ เฉพาะตัวละครที่อยู่ในฉากนี้จริงๆ
           visualMedium: visualMedium as VisualMedium,
           stylePreset: stylePreset as StylePreset,
           cameraMovement: item.cameraMovement || 'Cinematic shot',
@@ -336,7 +387,6 @@ ${charactersStr}
           createdAt: new Date().toISOString(),
         };
       });
-
 
       return { scenes, modelUsed: model };
     } catch (err) {

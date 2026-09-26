@@ -113,15 +113,21 @@ export default function SceneCard({
   };
 
   const handleAddDialogue = () => {
-    const defaultSpeaker = (characters && characters[0]?.name) || 'ตัวละคร';
+    const existing = scene.dialogues || [];
+    let defaultSpeaker = (characters && characters[0]?.name) || 'ตัวละคร';
+    if (existing.length > 0 && characters && characters.length > 1) {
+      const lastSpeaker = existing[existing.length - 1].speaker;
+      const otherChar = characters.find((c) => c.name !== lastSpeaker);
+      if (otherChar) defaultSpeaker = otherChar.name;
+    }
     const newDialogue: CharacterDialogue = {
       speaker: defaultSpeaker,
-      emotion: 'สุขุม',
+      emotion: 'แสดงความรู้สึก',
       text: '',
     };
     onUpdate({
       ...scene,
-      dialogues: [...(scene.dialogues || []), newDialogue],
+      dialogues: [...existing, newDialogue],
     });
   };
 
@@ -323,10 +329,27 @@ export default function SceneCard({
 
         {/* 4. บทสนทนาตัวละคร (Character Dialogues) */}
         <div className="p-3.5 rounded-2xl bg-studio-950 border border-studio-800/90 space-y-2.5">
-          <div className="flex items-center justify-between">
-            <label className="text-xs font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
-              <MessageSquare className="w-3.5 h-3.5 text-amber-400" /> บทสนทนาตัวละคร (Character Dialogues)
-            </label>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="text-xs font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
+                <MessageSquare className="w-3.5 h-3.5 text-amber-400" /> บทสนทนาตัวละคร (Character Dialogues)
+              </label>
+              {scene.characterIds && scene.characterIds.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1">
+                  {characters
+                    .filter((c) => scene.characterIds.includes(c.id))
+                    .map((c) => (
+                      <span
+                        key={c.id}
+                        className="px-2 py-0.5 rounded-md bg-amber-500/15 border border-amber-500/30 text-[10px] text-amber-300 font-medium"
+                        title={`${c.name} (${c.role}): ${c.personality || c.voiceStyle || ''}`}
+                      >
+                        👤 {c.name}
+                      </span>
+                    ))}
+                </div>
+              )}
+            </div>
             <div className="flex items-center gap-2">
               {scene.dialogues && scene.dialogues.length > 0 && (
                 <button
@@ -377,11 +400,19 @@ export default function SceneCard({
                     {/* Speaker */}
                     <input
                       type="text"
+                      list={`speakers-${scene.id}`}
                       value={dlg.speaker || ''}
                       onChange={(e) => handleUpdateDialogue(dIdx, 'speaker', e.target.value)}
                       placeholder="ผู้พูด"
                       className="w-28 px-2.5 py-1.5 rounded-lg bg-studio-950 border border-studio-700 text-amber-300 font-bold text-xs focus:outline-none focus:border-amber-400"
                     />
+                    <datalist id={`speakers-${scene.id}`}>
+                      {(characters || []).map((c) => (
+                        <option key={c.id} value={c.name}>
+                          {c.name} ({c.role})
+                        </option>
+                      ))}
+                    </datalist>
                     {/* Emotion */}
                     <input
                       type="text"
