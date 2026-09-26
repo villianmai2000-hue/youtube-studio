@@ -284,6 +284,7 @@ export function generateContinuousMovieScenes(options: GenerateScriptOptions): S
       isSpecificTakhian: theme.isSpecificTakhian,
       isHorrorOrGhost: theme.isHorrorOrGhost,
       isThaiMyth: theme.isThaiMyth,
+      isThaiDrama: theme.isThaiDrama,
       isWesternCinema: theme.isWesternCinema,
       isAnimeOrJapan: theme.isAnimeOrJapan,
       isPirateOrAdventure: theme.isPirateOrAdventure,
@@ -291,6 +292,8 @@ export function generateContinuousMovieScenes(options: GenerateScriptOptions): S
       isCultivation: theme.isCultivation,
       isMilitary: theme.isMilitary,
       isSciFi: theme.isSciFi,
+      worldCulture: theme.effectiveCulture,
+      genre: theme.effectiveGenre,
       transition,
       timeRangeStr,
     });

@@ -7,6 +7,7 @@ import {
   generateAnimeJapanScene,
   generateMangaBusSurvivalScene,
 } from './procedural-folklore-beats';
+import { buildDynamicSceneBeat } from './story-synopsis-analyzer';
 
 export interface SceneBeatParams {
   sceneNumber: number;
@@ -24,6 +25,7 @@ export interface SceneBeatParams {
   isSpecificTakhian?: boolean;
   isHorrorOrGhost?: boolean;
   isThaiMyth?: boolean;
+  isThaiDrama?: boolean;
   isWesternCinema?: boolean;
   isAnimeOrJapan?: boolean;
   isPirateOrAdventure: boolean;
@@ -31,6 +33,8 @@ export interface SceneBeatParams {
   isCultivation: boolean;
   isMilitary: boolean;
   isSciFi: boolean;
+  worldCulture?: string;
+  genre?: string;
   transition: string;
   timeRangeStr: string;
 }
@@ -49,18 +53,47 @@ export interface SceneContentResult {
  * โดยไม่มีการซ้ำบทพูดเดิมในแต่ละฉาก แม้จะเป็นหนังยาว 900 ฉาก (2 ชั่วโมง 30 นาที)
  */
 export function generateProceduralSceneContent(params: SceneBeatParams): SceneContentResult {
+  const { primaryChar, secondaryChar, leadChar, antagonist } = normalizeActors(params);
+
+  // 1. มังงะรีแคป ชายคนเดียวบนรถบัส (Manga Realms MRE)
   if (params.isMangaBusSurvival) {
     return generateMangaBusSurvivalScene(params);
   }
+  // 2. ผีกระสือเฉพาะเจาะจง
   if (params.isSpecificKrasue) {
     return generateKrasueHorrorScene(params);
   }
+  // 3. ผีไทย / เจ้าแม่ตะเคียน / สยองขวัญ
   if (params.isHorrorOrGhost) {
     return generateHorrorGhostScene(params);
   }
+  // 4. ตำนานไทย / พญานาค
   if (params.isThaiMyth) {
     return generateThaiMythScene(params);
   }
+
+  // 5. ✅ หากมีพล็อตเรื่องย่อเฉพาะตัว หรือเป็นเรื่องไทย/ดราม่า/สืบสวน/ชีวิต/ความรัก
+  // ให้สังเคราะห์บทพากย์และบทสนทนาจากพล็อตเรื่องจริง (Semantic Story Synthesizer) 100%
+  // เพื่อให้ทุกเรื่องมีความเป็นเอกลักษณ์ ไม่ซ้ำบทพูดเดิมและไม่ซ้ำพล็อตกัน!
+  const hasCustomSynopsis = params.synopsis && params.synopsis.trim().length > 10;
+  if (params.isThaiDrama || hasCustomSynopsis) {
+    return buildDynamicSceneBeat({
+      sceneNumber: params.sceneNumber,
+      totalScenes: params.totalScenes,
+      actNumber: params.actNumber,
+      progress: params.progress,
+      title: params.cleanTitleStr,
+      synopsis: params.synopsis,
+      primaryChar,
+      secondaryChar,
+      antagonist,
+      transition: params.transition,
+      timeRangeStr: params.timeRangeStr,
+      worldCulture: params.worldCulture,
+      genre: params.genre,
+    });
+  }
+
   if (params.isWesternCinema) {
     return generateWesternCinemaScene(params);
   }
@@ -82,7 +115,22 @@ export function generateProceduralSceneContent(params: SceneBeatParams): SceneCo
   if (params.isSciFi) {
     return generateSciFiScene(params);
   }
-  return generateGeneralFantasyScene(params);
+
+  return buildDynamicSceneBeat({
+    sceneNumber: params.sceneNumber,
+    totalScenes: params.totalScenes,
+    actNumber: params.actNumber,
+    progress: params.progress,
+    title: params.cleanTitleStr,
+    synopsis: params.synopsis,
+    primaryChar,
+    secondaryChar,
+    antagonist,
+    transition: params.transition,
+    timeRangeStr: params.timeRangeStr,
+    worldCulture: params.worldCulture,
+    genre: params.genre,
+  });
 }
 
 // --------------------------------------------------------------------------

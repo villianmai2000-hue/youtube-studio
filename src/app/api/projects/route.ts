@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getAllProjects, saveProject, getProjectById } from '@/lib/storage';
-import { Project, MovieGenre, VisualMedium, StylePreset, CharacterBible, AspectRatio, ScriptEngine, WorldCulture } from '@/lib/types';
+import { Project, MovieGenre, VisualMedium, StylePreset, CharacterBible, AspectRatio, ScriptEngine, WorldCulture, ScriptScene } from '@/lib/types';
 import { generateContinuousMovieScenes } from '@/lib/script-templates';
 import { generateIntelligentCharacters, detectStoryCharacterScale } from '@/lib/character-generator';
+import { generateScriptWithGemini } from '@/lib/gemini-script-service';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -58,6 +59,7 @@ export async function POST(request: Request) {
       nextPartProjectId,
       previousPartTitle,
       previousEndingRecap,
+      apiKey: clientApiKey,
     } = body;
 
 
@@ -109,21 +111,49 @@ export async function POST(request: Request) {
       });
     }
 
-    // ✅ สร้างแค่ 4 ฉากแรก (Act 1 Preview) ตอนสร้างโปรเจก
-    // เพื่อป้องกัน Vercel timeout — ฉากองค์อื่นๆ user จะกด AI generate ทีหลัง
-    // (60 นาที = 360 ฉาก ถ้าสร้างทั้งหมดตอนสร้างโปรเจก จะ timeout แน่นอน)
-    const initialScenes = generateContinuousMovieScenes({
-      title: title || (genre === 'military_tactical' ? 'ยุทธการสายฟ้าแลบ ทะลวงฐานทัพศัตรู' : 'มหากาพย์การต่อสู้ทวงแค้น'),
-      synopsis: synopsis || (genre === 'military_tactical' ? 'ปฏิบัติการทางทหารและขีปนาวุธความเร็วเหนือเสียง สยบภัยคุกคามใน 5 นาที' : 'มหากาพย์การต่อสู้ทวงแค้นและก้าวสู่ความเป็นหนึ่ง'),
-      genre: genre as MovieGenre,
-      visualMedium: visualMedium as VisualMedium,
-      stylePreset: stylePreset as StylePreset,
-      targetDurationMinutes: 1,   // ✅ แค่ 1 นาที = 6 ฉาก (Act 1 preview) สร้างเร็ว ไม่ timeout
-      characters: projectCharacters,
-      aspectRatio: (aspectRatio as AspectRatio) || '16:9',
-      worldCulture,
-      subGenre,
-    });
+    // ✅ สร้างฉากองค์ที่ 1 (Act 1 Preview) ตอนสร้างโปรเจก
+    // หากมี Gemini API Key ให้ใช้ Gemini AI เจนบทที่มีความลึกซึ้งและตรงกับเรื่องย่อ 100%
+    // หากไม่มีหรือเกิดข้อผิดพลาด จะใช้ Cinema Engine อัจฉริยะ (Semantic Story Synthesizer) แทน
+    const effectiveApiKey = (clientApiKey || process.env.GEMINI_API_KEY || '').trim();
+    let initialScenes: ScriptScene[] = [];
+
+    if (effectiveApiKey) {
+      try {
+        const geminiResult = await generateScriptWithGemini({
+          apiKey: effectiveApiKey,
+          title: title || (genre === 'military_tactical' ? 'ยุทธการสายฟ้าแลบ ทะลวงฐานทัพศัตรู' : 'มหากาพย์การต่อสู้ทวงแค้น'),
+          synopsis: synopsis || '',
+          genre: (subGenre || genre || 'epic_fantasy') as string,
+          visualMedium: visualMedium as string,
+          stylePreset: stylePreset as string,
+          actNumber: 1,
+          characters: projectCharacters,
+          worldCulture,
+          subGenre,
+        });
+
+        if (geminiResult?.scenes?.length > 0) {
+          initialScenes = geminiResult.scenes;
+        }
+      } catch (geminiErr) {
+        console.warn('POST /api/projects: Gemini scene generation failed, falling back to dynamic cinema engine:', geminiErr);
+      }
+    }
+
+    if (!initialScenes || initialScenes.length === 0) {
+      initialScenes = generateContinuousMovieScenes({
+        title: title || (genre === 'military_tactical' ? 'ยุทธการสายฟ้าแลบ ทะลวงฐานทัพศัตรู' : 'มหากาพย์การต่อสู้ทวงแค้น'),
+        synopsis: synopsis || (genre === 'military_tactical' ? 'ปฏิบัติการทางทหารและขีปนาวุธความเร็วเหนือเสียง สยบภัยคุกคามใน 5 นาที' : 'มหากาพย์การต่อสู้ทวงแค้นและก้าวสู่ความเป็นหนึ่ง'),
+        genre: genre as MovieGenre,
+        visualMedium: visualMedium as VisualMedium,
+        stylePreset: stylePreset as StylePreset,
+        targetDurationMinutes: 1,   // ✅ แค่ 1 นาที = 6 ฉาก (Act 1 preview) สร้างเร็ว ไม่ timeout
+        characters: projectCharacters,
+        aspectRatio: (aspectRatio as AspectRatio) || '16:9',
+        worldCulture,
+        subGenre,
+      });
+    }
 
 
     const newProject: Project = {

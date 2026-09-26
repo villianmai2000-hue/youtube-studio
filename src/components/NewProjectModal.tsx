@@ -242,6 +242,7 @@ export default function NewProjectModal({ isOpen, onClose, onCreated }: NewProje
           targetDurationMinutes: durationMode === 'custom' ? customDurationMinutes : Number(durationMode),
           characterCount: finalCharacterCount,
           characters,
+          apiKey,
         }),
       });
 
