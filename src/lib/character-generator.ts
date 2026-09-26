@@ -77,6 +77,11 @@ export function generateIntelligentCharacters(params: {
   // ใช้ Theme Detector อัจฉริยะแบบรวมศูนย์ ป้องกันการตีความเป็นไซไฟหรือโจรสลัดผิดพลาด
   const theme = analyzeStoryTheme({ title, synopsis, genre, subGenre, worldCulture });
 
+  // 0. มังงะรีแคป ชายคนเดียวบนรถบัส / ไวรัสซอมบี้วันสิ้นโลก (Manga Realms MRE / Bus Apocalypse)
+  if (theme.isMangaBusSurvival) {
+    return buildMangaBusApocalypseRoster(title, count);
+  }
+
   // 1. ผีกระสือเฉพาะเจาะจง (Thai Krasue Folklore)
   if (theme.isSpecificKrasue) {
     return buildThaiKrasueRoster(title, count);
@@ -820,6 +825,169 @@ export function generateIntelligentCharacters(params: {
 // --------------------------------------------------------------------------
 // Specialized Ensemble Rosters by Culture & Genre
 // --------------------------------------------------------------------------
+
+function buildMangaBusApocalypseRoster(title: string, count: number): CharacterBible[] {
+  const base: CharacterBible[] = [
+    {
+      id: `char-bus-${Date.now()}-1`,
+      name: 'เร็น (ชายหนุ่มคนเดียวบนรถบัส / ตัวเอกผู้นำจำเป็น)',
+      role: 'protagonist',
+      age: '18 ปี',
+      bodyBuild: 'รูปร่างเพรียวสมส่วน แข็งแรง ว่องไว สายตาเฉียบคมและเต็มไปด้วยไหวพริบเอาชีวิตรอด',
+      facialFeatures: 'ใบหน้าหล่อเหลาคมคายแบบอนิเมะญี่ปุ่น แววตามุ่งมั่นสุขุมแม้ในสถานการณ์วิกฤต',
+      hairStyle: 'ผมซอยสั้นสีดำยุ่งเล็กน้อย สไตล์พระเอกอนิเมะเอาชีวิตรอด',
+      clothingStyle: 'ชุดนักเรียนมัธยมปลายญี่ปุ่น (เบลเซอร์สีเทาเข้มปลดกระดุม เสื้อเชิ้ตขาวพับแขน) สะพายเป้แทคติคอลสีดำ',
+      colorTheme: 'สีดำ-เทาเข้ม-แดงเลือดหมู',
+      weaponsOrProps: 'ชะแลงเหล็กเสริมด้ามจับยาง / มีดพับอเนกประสงค์ / แผนที่เส้นทางรถบัส',
+      personality: 'สุขุม กล้าหาญ มีสติสัมปชัญญะสูง คิดคำนวณอย่างรอบคอบ ไม่ทอดทิ้งเพื่อนร่วมชะตากรรม',
+      abilities: 'การประเมินสถานการณ์และทางหนีทีไล่ฉับไว, การต่อสู้ระยะประชิดด้วยอาวุธดัดแปลง, ความเป็นผู้นำสร้างขวัญกำลังใจ',
+      weaknesses: 'แบกรับความรับผิดชอบและความปลอดภัยของสาวๆ ทุกคนบนรถบัสไว้คนเดียวจนกดดัน',
+      relationships: 'ผู้ชายคนเดียวที่รอดชีวิตบนรถบัส กลายเป็นผู้นำและศูนย์รวมจิตใจของหญิงสาวทุกคนในรถ',
+      appearanceAnchor: 'handsome 18yo Japanese anime male protagonist Ren, dark messy hair, intense determined amber eyes, unbuttoned school blazer over white shirt, holding metal crowbar inside darkened zombie apocalypse bus, cinematic anime lighting, Makoto Shinkai aesthetic, 8k anime masterpiece',
+      voiceStyle: 'ทุ้ม นุ่ม สุขุม หนักแน่น ฉลาด เปี่ยมภาวะผู้นำ (สไตล์เสียงพากย์อนิเมะพระเอก Manga Realms)',
+      googleFlowSeed: '991011',
+    },
+    {
+      id: `char-bus-${Date.now()}-2`,
+      name: 'รินกะ (ดาวโรงเรียนสาวซึนเดระ / สาวมั่นปากร้ายผู้พึ่งพาพระเอก)',
+      role: 'supporting',
+      age: '18 ปี',
+      bodyBuild: 'รูปร่างเพรียวบาง สง่างาม ทรวดทรงดี ผิวขาวเนียน ท่วงท่านางพญาประจำห้องเรียน',
+      facialFeatures: 'ใบหน้าน่ารักเฉี่ยว ดวงตาสีฟ้าครามทรงพลัง ปากนิดจมูกหน่อย มักแสดงสีหน้าดุซึนเดระแต่แอบหน้าแดงยามใกล้เร็น',
+      hairStyle: 'ผมยาวดัดลอนสีน้ำตาลคาราเมล มัดทวินเทลสองข้างสูงติดโบว์สีดำ',
+      clothingStyle: 'เครื่องแบบกะลาสีนักเรียนหญิงญี่ปุ่นชั้นสูง เสื้อกะลาสีปกน้ำเงิน กระโปรงสั้นลายสก็อต ถุงเท้ายาวสีดำเหนือเข่า (Zettai Ryouiki)',
+      colorTheme: 'สีน้ำเงินนาวี-ขาว-ชมพูพีช',
+      weaponsOrProps: 'ไฟฉายสปอร์ตไลท์แรงสูงพร้อมฟังก์ชันช็อตไฟฟ้า / สเปรย์พริกไทย / สมาร์ตโฟนที่แบตใกล้หมด',
+      personality: 'ปากแข็ง ปากร้าย ขี้วีนแต่จิตใจอ่อนโยน ซึนเดระ ไม่ยอมรับตรงๆ ว่าพึ่งพาเร็นแต่จะคอยอยู่เคียงข้างเสมอ',
+      abilities: 'สัญชาตญาณระวังภัยยอดเยี่ยม, ส่งสัญญาณขอความช่วยเหลือ, วิ่งเร็วปราดเปรียว',
+      weaknesses: 'กลัวความมืดและแมลงสาบ/ซอมบี้ระยะประชิด ตื่นตระหนกง่ายหากเร็นไม่อยู่ในสายตา',
+      relationships: 'เพื่อนร่วมชั้นของเร็นที่เดิมเคยหยิ่งใส่ แต่เมื่อเผชิญวิกฤตกลับยกใจและเชื่อใจเร็นที่สุด',
+      appearanceAnchor: 'stunning beautiful Japanese anime tsundere school idol Rinka, caramel twin-tails hair with ribbons, blue eyes, modern school uniform with tartan pleated skirt, black thigh-high socks, clutching stun flashlight inside survivor bus, dramatic anime lighting, 8k',
+      voiceStyle: 'เสียงใส คมชัด แฝงความหยิ่งเล็กน้อยแต่สั่นเครือยามตกใจ ปนความซึนเดระน่ารัก',
+      googleFlowSeed: '991012',
+    },
+    {
+      id: `char-bus-${Date.now()}-3`,
+      name: 'อายาเนะ (สาวแว่นแพทย์สนาม / ผู้พิทักษ์เสบียงและปฐมพยาบาล)',
+      role: 'supporting',
+      age: '19 ปี',
+      bodyBuild: 'รูปร่างอวบอิ่มสมส่วน ผิวขาวผ่อง ท่าทางสุภาพ อ่อนโยน สงบเสงี่ยม',
+      facialFeatures: 'ใบหน้ารูปไข่อ่อนหวาน สวมแว่นตากรอบรีสีเงิน แววตาเปี่ยมความเมตตาและรอบคอบ',
+      hairStyle: 'ผมบ็อบสั้นสีดำขลับปรกข้างแก้ม ติดกิ๊บรูปกากบาทสีเขียวพยาบาล',
+      clothingStyle: 'ชุดนักศึกษาพยาบาล/เสื้อไหมพรมคาร์ดิแกนสีเขียวมิ้นต์ สวมทับกระโปรงพลีทสีเข้ม สะพายกล่องปฐมพยาบาลสีแดง',
+      colorTheme: 'สีเขียวมิ้นต์-ขาว-แดงกาชาด',
+      weaponsOrProps: 'กระเป๋าปฐมพยาบาลฉุกเฉิน / ยาฆ่าเชื้อและผ้าพันแผล / เข็มฉีดยาอะดรีนาลีน / กรรไกรแพทย์สแตนเลส',
+      personality: 'ใจเย็น อ่อนโยน มีเมตตา อดทนสูง ทำหน้าที่ดูแลคนเจ็บและจัดสรรน้ำอาหารบนรถบัสอย่างเป็นธรรม',
+      abilities: 'การปฐมพยาบาลห้ามเลือดและเย็บแผลฉุกเฉิน, ตรวจคัดกรองผู้ติดเชื้อไวรัส, วางแผนคำนวณเสบียงอาหาร',
+      weaknesses: 'ร่างกายไม่แข็งแรงเท่าคนอื่น ไม่ถนัดการต่อสู้ใช้กำลัง',
+      relationships: 'พึ่งพาและคอยทำแผลให้เร็นอย่างทะนุถนอม เป็นที่ปรึกษาด้านจิตใจให้ทุกคนบนรถ',
+      appearanceAnchor: 'gentle Japanese anime nursing student Ayane with silver glasses, neat black bob hair, mint green cardigan, holding red cross emergency first aid kit inside survivor bus, soft compassionate eyes, 8k anime art',
+      voiceStyle: 'นุ่ม อ่อนหวาน เรียบร้อย สุภาพ และคอยปลอบประโลมหัวใจทุกคน',
+      googleFlowSeed: '991013',
+    },
+    {
+      id: `char-bus-${Date.now()}-4`,
+      name: 'เรย์นะ (สาวเท่กัปตันเคนโด้ / ยอดนักสู้แนวหน้าคุมประตูรถ)',
+      role: 'supporting',
+      age: '18 ปี',
+      bodyBuild: 'รูปร่างสูงโปร่ง นักกีฬา กล้ามเนื้อกระชับ แข็งแรงและยืดหยุ่น ท่าทางมั่นคงดุดัน',
+      facialFeatures: 'ใบหน้าคมสวย สันกรามชัดเจน แววตามุ่งมั่นไม่เกรงกลัวความตาย มีเสน่ห์แบบสาวเท่ (Girl Crush)',
+      hairStyle: 'ผมยาวสีดำมัดหางม้าสูง (High Ponytail) ผูกด้วยผ้าคาดสีแดง',
+      clothingStyle: 'เสื้อแจ็กเก็ตกีฬาสีดำ-ขาว กางเกงวอร์มขายาวรัดรูป ผ้ารัดข้อมือ และรองเท้าผ้าใบวิ่ง',
+      colorTheme: 'สีดำ-แดงเพลิง-ขาว',
+      weaponsOrProps: 'ดาบไม้เคนโด้ (Bokken) เสริมโครงเหล็ก / ท่อเหล็กกลมยาว 1.2 เมตร / มีดพกติดสายรัดต้นขา',
+      personality: 'ห้าวหาญ ตรงไปตรงมา รักความยุติธรรม ปฏิบัติการรวดเร็ว ไม่ยอมให้ซอมบี้ก้าวผ่านประตูรถแม้แต่ก้าวเดียว',
+      abilities: 'เพลงดาบเคนโด้และคาราเต้สายดำ, ปฏิกิริยาตอบสนองความเร็วสูง, สกัดกั้นฝูงซอมบี้ที่ทางเข้าแคบ',
+      weaknesses: 'มักชอบเอาตัวเข้าแลกเพื่อปกป้องคนอื่นจนเสี่ยงได้รับบาดเจ็บ',
+      relationships: 'คู่หูรบแถวหน้าของเร็น ชื่นชมในความกล้าหาญของเร็นและพร้อมสู้เคียงบ่าเคียงไหล่',
+      appearanceAnchor: 'fierce athletic Japanese anime girl Reina, high black ponytail with red ribbon, sharp intense eyes, sporty black jacket, wielding reinforced steel pipe ready for combat at bus entrance door, dynamic anime action pose, 8k',
+      voiceStyle: 'ห้าว เท่ แข็งแรง มั่นใจ สั่งการกระชับ รวดเร็ว จริงจัง',
+      googleFlowSeed: '991014',
+    },
+    {
+      id: `char-bus-${Date.now()}-5`,
+      name: 'ยูนะ (ไอดอลสาวน้อยน่ารัก / ผู้เยียวยาจิตใจและขวัญกำลังใจ)',
+      role: 'supporting',
+      age: '17 ปี',
+      bodyBuild: 'ตัวเล็กกะทัดรัด (Petite) ผิวขาวอมชมพู รูปร่างบอบบางน่าทะนุถนอม',
+      facialFeatures: 'ใบหน้ากลม ดวงตากลมโตเป็นประกายสีอำพัน แก้มอมชมพู รอยยิ้มสดใสบริสุทธิ์',
+      hairStyle: 'ผมประบ่าดัดลอนสีน้ำตาลอ่อน ผูกโบว์ริบบิ้นสีเหลืองพาสเทล',
+      clothingStyle: 'เสื้อฮู้ดโอเวอร์ไซส์สีชมพูพาสเทล กระโปรงสั้น ถุงเท้าขาว กอดตุ๊กตาหมีสีน้ำตาลเก่าๆ',
+      colorTheme: 'สีชมพูพาสเทล-เหลืองอ่อน-ขาวครีม',
+      weaponsOrProps: 'ตุ๊กตาหมีนำโชค "คุมะจัง" / นกหวีดกู้ภัยฉุกเฉิน / ขนมเยลลี่และลูกอมแจกเพื่อน',
+      personality: 'สดใส มองโลกในแง่ดี ไร้เดียงสา ร้องไห้ง่ายแต่เมื่อตั้งสติได้จะพยายามให้กำลังใจทุกคน',
+      abilities: 'สร้างบรรยากาศผ่อนคลายและลดความตึงเครียดในรถ, ร้องเพลงกล่อมขวัญ, สังเกตรายละเอียดเล็กๆ',
+      weaknesses: 'ไม่มีทักษะต่อสู้ ขวัญอ่อนยามได้ยินเสียงทุบกระจกรถบัส',
+      relationships: 'มองเร็นเหมือนพี่ชายคนโตที่พึ่งพาได้ และมักจะจับแขนเสื้อเร็นไว้ตลอดเวลา',
+      appearanceAnchor: 'cute petite Japanese anime junior girl Yuna, oversized pastel pink hoodie, clutching a stuffed teddy bear, wide teary amber eyes, sitting in survivor bus seat, anime aesthetic, 8k',
+      voiceStyle: 'น่ารัก สดใส เสียงเล็ก มีอ้อนปนเสียงสะอื้นยามหวาดกลัว',
+      googleFlowSeed: '991015',
+    },
+    {
+      id: `char-bus-${Date.now()}-6`,
+      name: 'ดร. มิยาบิ (นักวิจัยสาวปริศนา / ผู้กุมข้อมูลไวรัสและคลื่นวิทยุ)',
+      role: 'supporting',
+      age: '24 ปี',
+      bodyBuild: 'รูปร่างสูงเพรียว สัดส่วนผู้ใหญ่ สงบนิ่ง ลึกลับ เยือกเย็นและฉลาดปราดเปรียว',
+      facialFeatures: 'ใบหน้ารูปไข่เฉียบคม แววตาสีม่วงอเมทิสต์ลึกซึ้ง ไร้อารมณ์หวั่นไหว มีไฝเสน่ห์ใต้ตาซ้าย',
+      hairStyle: 'ผมยาวสลวยสีเงินประกายม่วง แสกข้างปล่อยยาวถึงกลางหลัง',
+      clothingStyle: 'เสื้อกาวน์สีขาวทับชุดคอเต่าแขนยาวสีดำ กางเกงสแล็คเข้ารูป สร้อยคอห้อยแฟลชไดรฟ์รหัสลับ',
+      colorTheme: 'สีขาวกาวน์-ดำสนิท-ม่วงนีออน',
+      weaponsOrProps: 'วิทยุสื่อสารคลื่นสั้นทหาร (Ham Radio) / แท็บเล็ตวิเคราะห์ DNA ไวรัส / เข็มฉีดยายับยั้งเชื้อระยะ 1',
+      personality: 'ฉลาดเป็นกรด ลึกลับ พูดน้อยแต่ทุกคำตรงเป้าและมีเหตุผล รู้ต้นตอการระบาดของไวรัส',
+      abilities: 'การถอดรหัสสัญญาณวิทยุกองทัพ, การสังเคราะห์สูตรยับยั้งเชื้อกลายพันธุ์, ความรู้จุดอ่อนซอมบี้ทุกสายพันธุ์',
+      weaknesses: 'ร่างกายอ่อนเพลียจากการอดนอน มักปิดบังข้อมูลบางอย่างจนเกิดความไม่ไว้ใจในตอนแรก',
+      relationships: 'มองเห็นศักยภาพการเป็นผู้นำของเร็น และเลือกจะส่งมอบข้อมูลวิทยุสื่อสารให้เร็นเป็นผู้สั่งการ',
+      appearanceAnchor: 'mysterious cool Japanese anime female virologist Dr. Miyabi, long silver hair with purple tint, intense violet eyes, beauty mark under eye, white lab coat over black turtleneck, holding military walkie-talkie and tablet inside bus, 8k anime',
+      voiceStyle: 'ทุ้มต่ำ มีเสน่ห์ เยือกเย็น ฉลาด พูดจาช้าชัดและแฝงความลึกลับ',
+      googleFlowSeed: '991016',
+    },
+    {
+      id: `char-bus-${Date.now()}-7`,
+      name: 'ราชาซอมบี้กลายพันธุ์อัลฟ่า (จ่าฝูงซอมบี้วิวัฒนาการภายนอกรถบัส)',
+      role: 'antagonist',
+      age: '35 ปี (กลายพันธุ์)',
+      bodyBuild: 'ร่างยักษ์กลายพันธุ์สูง 2.4 เมตร กล้ามเนื้อปูดโปนขยายใหญ่ ผิวหนังสีเทาคล้ำมีเส้นเลือดแดงก่ำเต้นตุบๆ',
+      facialFeatures: 'กะโหลกศีรษะเปิดเผยกระดูกเกราะ แววตาสีแดงเลือดไร้รูม่านตา ปากฉีกถึงใบหูเผยฟันแหลมคมสองชั้น',
+      hairStyle: 'หัวล้านมีคราบสะเก็ดแผลและเส้นเอ็นกลายพันธุ์พาดผ่าน',
+      clothingStyle: 'เศษซากชุดทหารเกราะขาดวิ่น เผยผิวหนังกลายพันธุ์หนาเตอะดุจเกราะชีวภาพ',
+      colorTheme: 'สีเทาซากศพ-แดงเลือดเดือด-ดำไหม้',
+      weaponsOrProps: 'กรงเล็บกระดูกยาว 30 เซนติเมตร / เสาป้ายจราจรเหล็กหักงอที่ใช้เป็นกระบองยักษ์',
+      personality: 'ดุร้าย คลุ้มคลั่ง แต่มีสติปัญญาบัญชาการฝูงซอมบี้ระดับต่ำ มีความแค้นต่อแสงไฟและมนุษย์',
+      abilities: 'พละกำลังมหาศาลสามารถพลิกรถบัสได้, เสียงคำรามคลื่นเสียงสั่งการซอมบี้ทั้งฝูง, ผิวหนังทนทานต่อกระสุนปืนสั้น',
+      weaknesses: 'แกนคอร์ไวรัสเรืองแสงสีแดงที่หลังต้นคอ และแพ้เสียงสะท้อนความถี่สูงของคลื่นวิทยุ',
+      relationships: 'บอสใหญ่ของเรื่อง ผู้ตามล่ารถบัสคันนี้อย่างไม่ลดละเพื่อกลืนกินเร็นและผู้รอดชีวิต',
+      appearanceAnchor: 'terrifying hulking 2.4m Alpha Mutant Zombie king, pulsating crimson veins, bone armored carapace, glowing red demonic eyes, shattered military combat armor, holding twisted steel road sign outside bus, surrounded by zombie horde, nightmare horror anime cinematic, 8k',
+      voiceStyle: 'เสียงคำรามต่ำลึกดังกึกก้องแผ่นดิน เสียงขู่คำรามในลำคอดุจสัตว์ร้ายยุคโบราณ',
+      googleFlowSeed: '991017',
+    },
+    {
+      id: `char-bus-${Date.now()}-8`,
+      name: 'ลุงเคนจิ (คนขับรถบัสผู้เสียสละ / ผู้คุมพวงมาลัยฝ่าวิกฤต)',
+      role: 'supporting',
+      age: '52 ปี',
+      bodyBuild: 'ร่างท้วมแข็งแรง หลังตรง แขนล่ำสันจากการคุมพวงมาลัยรถบัสใหญ่มา 30 ปี ผิวกร้านแดด',
+      facialFeatures: 'ใบหน้าเปี่ยมประสบการณ์ มีหนวดเคราสีดอกเลา แววตาเคร่งขรึมแต่แฝงความอบอุ่นแบบผู้ใหญ่ใจดี',
+      hairStyle: 'ผมสั้นสีเทาแซมขาว สวมหมวกคนขับรถประจำทาง',
+      clothingStyle: 'เครื่องแบบคนขับรถบัสสีน้ำเงินเข้ม เนกไทหลุดลุ่ย เสื้อเชิ้ตเปื้อนคราบน้ำมันเครื่อง',
+      colorTheme: 'สีน้ำเงินกรมท่า-เทาควันบุหรี่-เหลืองไฟหน้ารถ',
+      weaponsOrProps: 'ประแจเลื่อนเหล็กขนาดใหญ่ / ไฟแช็ก Zippo โบราณ / พวงกุญแจรถบัสสำรอง',
+      personality: 'หนักแน่น มีสัจจะ มีจิตวิญญาณคนขับรถที่ไม่ยอมปล่อยให้ผู้โดยสารต้องตายเด็ดขาด',
+      abilities: 'ทักษะการขับรถบัสขั้นเทพในทุกสภาพถนน, รู้วิศวกรรมเครื่องยนต์และการต่อสายตรงรถ, ความใจเย็นยามขับฝ่าฝูงซอมบี้',
+      weaknesses: 'ขาซ้ายเริ่มบาดเจ็บจากการกระแทก และเริ่มเหนื่อยล้าจากการขับต่อเนื่องหลายชั่วโมง',
+      relationships: 'เคารพการตัดสินใจของเร็น และพร้อมเหยียบคันเร่งพารถบัสทะลวงบาเรียซอมบี้ตามคำสั่งของเร็น',
+      appearanceAnchor: 'veteran 52yo Japanese bus driver Kenji, driver cap, grim determined face with gray mustache, gripping giant steering wheel of battle-damaged bus crashing through barricade, rain on windshield, 8k cinematic anime',
+      voiceStyle: 'แหบทุ้ม หนักแน่น สุขุม แบบผู้ใหญ่ผ่านโลกมามาก',
+      googleFlowSeed: '991018',
+    },
+  ];
+
+  if (count <= base.length) {
+    return base.slice(0, count);
+  }
+
+  return expandRosterToCount(base, count, 'anime');
+}
 
 function buildThaiKrasueRoster(title: string, count: number): CharacterBible[] {
   const base: CharacterBible[] = [

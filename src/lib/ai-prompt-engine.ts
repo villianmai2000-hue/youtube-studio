@@ -75,6 +75,9 @@ export function buildVisualPrompts(params: PromptGenerationParams): {
     } else if (stylePreset === 'anime_2d') {
       styleKeywordsTh = 'อนิเมะญี่ปุ่น 2D ระดับโรงภาพยนตร์, ลายเส้นวาดมือคมชัดประณีต (สไตล์ Ufotable และ มาโกโตะ ชินไค), แสงสีสันสดใสเรืองรองสะดุดตา, ท้องฟ้าและเมฆไล่เฉดสีงดงาม';
       styleKeywordsEn = 'cinematic 2D Japanese anime, Ufotable and Makoto Shinkai aesthetic, high-end theatrical anime film, hand-drawn anime lineart, dynamic glowing lighting';
+    } else if (stylePreset === 'manga_recap_anime') {
+      styleKeywordsTh = 'อนิเมะมังงะสไตล์สปอยล์/รีแคป Manga Realms MRE ลายเส้นอนิเมะญี่ปุ่นคุณภาพสูงระดับ Wit Studio & CloverWorks, เส้นสายคมชัด สไตล์เอาชีวิตรอดวันสิ้นโลกบนรถบัส, แสงเงาดรามาติกสมจริง, ฝนตกกระทบกระจกรถ, บรรยากาศซอมบี้ล้อมรอบ, สีหน้าตัวละครแสดงอารมณ์ชัดเจน คมชัดระดับ 8K อนิเมะมาสเตอร์พีซ';
+      styleKeywordsEn = 'high-end Japanese anime recap manga style Manga Realms aesthetic, Wit Studio and CloverWorks cinematic animation, crisp dynamic anime lines, survival horror inside passenger bus, rain running down bus glass windows, zombie silhouettes pounding outside, atmospheric neon-red brake lights and dim interior emergency lights, expressive anime faces, 8k anime masterpiece, single frame, unified composition';
     } else if (stylePreset === 'western_3d') {
       styleKeywordsTh = 'แอนิเมชัน 3D สไตล์ภาพยนตร์แอนิเมชันระดับโลก (สไตล์ Arcane และ Pixar), พื้นผิวมีเอกลักษณ์ทางศิลปะ, แสงเงาจัดวางอย่างมีมิติ, การแสดงอารมณ์ตัวละครลึกซึ้ง';
       styleKeywordsEn = '3D stylized cinematic animation, Arcane and Pixar studio aesthetic, stylized textures, rich cinematic lighting';
@@ -129,6 +132,10 @@ export function buildVisualPrompts(params: PromptGenerationParams): {
     case 'historical_war':
       genreFlavorTh = 'สมรภูมิรบโบราณอันยิ่งใหญ่, ธงศึกโบราณโบกสะบัดกลางสายลม, ฝุ่นควันจากกองทัพ, ขบวนทัพทหารโบราณสุดอลังการ';
       genreFlavorEn = 'ancient battlefield, banners fluttering in the wind, war dust, armors, cavalry in formation';
+      break;
+    case 'apocalypse_survival':
+      genreFlavorTh = 'บรรยากาศเอาชีวิตรอดวันสิ้นโลกบนรถบัสผู้โดยสาร (Manga Realms MRE Anime Recap), ภายนอกมืดสนิทมีฝูงซอมบี้คลั่งและตัวกลายพันธุ์อัลฟ่าทุบกระจกรถ, ภายในรถเปิดไฟฉุกเฉินสลัวสีแดงและเหลือง, กระจกหน้าต่างร้าวมีคราบเลือดและหยดน้ำฝนไหลผ่าน, เบาะนั่งรถบัสและทางเดินแคบๆ ที่ต้องจัดเวรยามป้องกัน';
+      genreFlavorEn = 'zombie apocalypse passenger bus survival atmosphere (Manga Realms anime recap style), dark misty highway outside swarming with mutated zombies banging on glass windows, dim red emergency lights and warm interior bus bulbs, cracked bus glass with raindrops and blood splatters, narrow bus aisle with barricaded seats';
       break;
     default:
       genreFlavorTh = 'บรรยากาศภาพยนตร์เปี่ยมมนต์ขลังและเรื่องราว';
@@ -196,6 +203,9 @@ Aspect Ratio: ${aspectRatio}`;
     } else if (stylePreset === 'anime_2d') {
       videoStyleLabelTh = 'อนิเมะญี่ปุ่น 2D ระดับโรงภาพยนตร์ สไตล์ Ufotable';
       videoStyleLabelEn = 'Cinematic 2D Japanese anime Ufotable style';
+    } else if (stylePreset === 'manga_recap_anime') {
+      videoStyleLabelTh = 'อนิเมะมังงะรีแคป Manga Realms MRE ลายเส้นญี่ปุ่นคมชัด 60fps ซีนต่อเนื่อง';
+      videoStyleLabelEn = 'Cinematic Manga Realms MRE anime recap continuous animation 60fps';
     } else if (stylePreset === 'western_3d') {
       videoStyleLabelTh = 'แอนิเมชัน 3D สไตล์สากล สไตล์ Arcane';
       videoStyleLabelEn = '3D stylized cinematic animation Arcane style';
@@ -207,7 +217,10 @@ Aspect Ratio: ${aspectRatio}`;
       videoStyleLabelEn = '3D animated movie cinematic render';
     }
   } else {
-    if (genre === 'horror_thriller') {
+    if (genre === 'apocalypse_survival' || stylePreset === 'manga_recap_anime') {
+      videoStyleLabelTh = 'ภาพยนตร์เซอร์ไววัลวันสิ้นโลก เอาชีวิตรอดบนรถบัสฝ่าฝูงซอมบี้';
+      videoStyleLabelEn = 'Apocalypse bus zombie survival cinematography';
+    } else if (genre === 'horror_thriller') {
       videoStyleLabelTh = 'ภาพยนตร์สยองขวัญลี้ลับไทย แสงเงาดาร์กหลอนสมจริง';
       videoStyleLabelEn = 'Cinematic Thai horror thriller film';
     } else if (stylePreset === 'military_combat') {

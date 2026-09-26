@@ -1,6 +1,7 @@
 import { MovieGenre, WorldCulture, CharacterBible } from './types';
 
 export type StoryThemeKey =
+  | 'manga_bus_survival'
   | 'horror_krasue'
   | 'horror_takhian'
   | 'horror_thai'
@@ -21,6 +22,7 @@ export interface StoryThemeAnalysis {
   effectiveSubGenre: string;
   themeNameTh: string;
   themeEmoji: string;
+  isMangaBusSurvival: boolean;
   isHorrorOrGhost: boolean;
   isSpecificKrasue: boolean;
   isSpecificTakhian: boolean;
@@ -59,24 +61,31 @@ export function analyzeStoryTheme(params: {
 
   const context = `${title} ${synopsis} ${genre} ${subGenre} ${worldCulture}`.toLowerCase();
 
+  // 0. ตรวจจับมังงะรีแคป / ชายคนเดียวบนรถบัสวันสิ้นโลก (Manga Realms MRE / Bus Apocalypse)
+  const isMangaBusSurvival =
+    /manga realms|manga realm|mre|manga recap|สปอยล์มังงะ|มังงะ.*รถบัส|รถบัส.*มังงะ|ชายคนเดียวบนรถบัส|ผมคือชายคนเดียวบนรถบัส|บนรถบัส|ผู้ชายคนเดียวบนรถบัส|รถบัส.*ซอมบี้|ซอมบี้.*รถบัส|harem bus|bus apocalypse|alone on the bus/i.test(
+      context
+    );
+
   // 1. ตรวจจับผีไทยเฉพาะเจาะจง (Specific Thai Ghost Folklore)
-  const isSpecificKrasue = /กระสือ|ถอดหัว|ไส้เรืองแสง|ดวงไฟกระสือ/i.test(context);
-  const isSpecificTakhian = /ตะเคียน|แม่ตะเคียน|นางไม้|ต้นตะเคียน|เจ้าแม่ตะเคียน/i.test(context);
-  const isSpecificPop = /ปอบ|ผีปอบ|กินตับ|หยิบตับ/i.test(context);
+  const isSpecificKrasue = !isMangaBusSurvival && /กระสือ|ถอดหัว|ไส้เรืองแสง|ดวงไฟกระสือ/i.test(context);
+  const isSpecificTakhian = !isMangaBusSurvival && /ตะเคียน|แม่ตะเคียน|นางไม้|ต้นตะเคียน|เจ้าแม่ตะเคียน/i.test(context);
+  const isSpecificPop = !isMangaBusSurvival && /ปอบ|ผีปอบ|กินตับ|หยิบตับ/i.test(context);
 
   const isHorrorOrGhost =
-    isSpecificKrasue ||
-    isSpecificTakhian ||
-    isSpecificPop ||
-    /ผี|อาถรรพ์|วิญญาณ|สยอง|หลอน|เจ้าแม่|ตานี|คุณไสย|หมอผี|มนต์ดำ|ศาลเพียงตา|คำสาป|ชวนหัวลุก|นางพราย|ป่าช้า|เรือนไทย|แม่นาค|หุ่นพยนต์|เหี้ยน|ผวา|ลี้ลับ|สัมภเวสี|เปรต|กุมาร|ตายโหง|วิญญาณแค้น|haunted|ghost|horror|spooky|creepy|demon|takhian|chilling|paranormal|supernatural/i.test(
-      context
-    ) ||
-    genre === 'horror_thriller' ||
-    genre === 'mystery_noir' ||
-    subGenre === 'ghosts_spirits_th' ||
-    subGenre === 'horror_chilling_th' ||
-    subGenre === 'occult_black_magic' ||
-    subGenre === 'horror_jp';
+    !isMangaBusSurvival &&
+    (isSpecificKrasue ||
+      isSpecificTakhian ||
+      isSpecificPop ||
+      /ผี|อาถรรพ์|วิญญาณ|สยอง|หลอน|เจ้าแม่|ตานี|คุณไสย|หมอผี|มนต์ดำ|ศาลเพียงตา|คำสาป|ชวนหัวลุก|นางพราย|ป่าช้า|เรือนไทย|แม่นาค|หุ่นพยนต์|เหี้ยน|ผวา|ลี้ลับ|สัมภเวสี|เปรต|กุมาร|ตายโหง|วิญญาณแค้น|haunted|ghost|horror|spooky|creepy|demon|takhian|chilling|paranormal|supernatural/i.test(
+        context
+      ) ||
+      genre === 'horror_thriller' ||
+      genre === 'mystery_noir' ||
+      subGenre === 'ghosts_spirits_th' ||
+      subGenre === 'horror_chilling_th' ||
+      subGenre === 'occult_black_magic' ||
+      subGenre === 'horror_jp');
 
   // 2. ตรวจจับตำนานไทย / พญานาค / หิมพานต์ (Thai Myth & Folklore)
   const isSpecificNaga = /นาค|พญานาค|นาคราช|วังบาดาล|บาดาล|บั้งไฟ|มณีนาคราช|แม่น้ำโขง|naga/i.test(context);
@@ -204,7 +213,23 @@ export function analyzeStoryTheme(params: {
   let themeEmoji = '🎭';
   let recommendedCastStructure: string[] = [];
 
-  if (isSpecificKrasue) {
+  if (isMangaBusSurvival) {
+    themeKey = 'manga_bus_survival';
+    effectiveGenre = 'apocalypse_survival';
+    effectiveCulture = 'japanese';
+    effectiveSubGenre = 'manga_recap_anime';
+    themeNameTh = 'มังงะรีแคปพากย์ไทย / ชายคนเดียวบนรถบัสวันสิ้นโลก (Manga Realms MRE)';
+    themeEmoji = '🚌';
+    recommendedCastStructure = [
+      'เร็น (ชายคนเดียวบนรถบัส / หัวหน้าจำเป็นผู้สุขุมและกล้าหาญ)',
+      'รินกะ (ดาวโรงเรียน / สาวมั่นซึนเดระ ปากร้ายแต่แอบพึ่งพาพระเอก)',
+      'อายาเนะ (สาวแว่นขี้อาย / หน่วยพยาบาลและเสบียง อ่อนโยนแต่เข้มแข็ง)',
+      'เรย์นะ (สาวเท่สายคูล / นักกีฬาเคนโด้ ถือท่อเหล็กระวังประตูรถ)',
+      'ยูนะ (สาวไอดอลน่ารัก / ผู้สร้างขวัญกำลังใจ กอดตุ๊กตาหมี)',
+      'มิยาบิ (หญิงสาวปริศนา / ผู้กุมความลับไวรัสและสัญญาณวิทยุ)',
+      'ราชาซอมบี้กลายพันธุ์อัลฟ่า (จ่าฝูงซอมบี้คลั่งภายนอกรถบัส)',
+    ];
+  } else if (isSpecificKrasue) {
     themeKey = 'horror_krasue';
     effectiveGenre = 'horror_thriller';
     effectiveCulture = 'thai';
@@ -381,6 +406,7 @@ export function analyzeStoryTheme(params: {
     effectiveSubGenre,
     themeNameTh,
     themeEmoji,
+    isMangaBusSurvival,
     isHorrorOrGhost,
     isSpecificKrasue,
     isSpecificTakhian,
@@ -416,6 +442,11 @@ export function isCastMismatched(characters: CharacterBible[], theme: StoryTheme
   const hasSciFiCast = /ไซเฟอร์|วัลแคน|อาธีน่า\s*คอร์|แฮกเกอร์ไซเบอร์เนติก|แอนดรอยด์|ดร\.โนวา|cybernetic|mecha|railgun/i.test(allNamesAndAnchors);
   const hasXianxiaCast = /เซียวหลิน|เซียวเฉิน|กระบี่บิน|ลมปราณ|ชุดคลุมเต๋า|ตานเถียน|cultivation prodigy/i.test(allNamesAndAnchors);
   const hasHorrorCast = /กระสือ|พรานบุญ|หมอผี|ตะเคียน|อาคม|ผ้าประเจียด|ดวงไฟ|spirit/i.test(allNamesAndAnchors);
+
+  // 0. ถ้าเป็นเรื่องมังงะรถบัสวันสิ้นโลก แต่ตัวละครไม่ใช่ทีมนักเรียน/รถบัส หรือเป็นโจรสลัด/เซียนจีน/ผีไทย
+  if (theme.isMangaBusSurvival && (hasPirateCast || hasSciFiCast || hasXianxiaCast || hasHorrorCast || !/เร็น|รถบัส|รินกะ|อายาเนะ|ซอมบี้/i.test(allNamesAndAnchors))) {
+    return true;
+  }
 
   // 1. ถ้าเป็นเรื่องผีไทย (ผีกระสือ, เจ้าแม่ตะเคียน, ผี) แต่ตัวละครเป็นโจรสลัด หรือ ไซไฟ
   if (theme.isHorrorOrGhost && (hasPirateCast || hasSciFiCast || hasXianxiaCast)) {

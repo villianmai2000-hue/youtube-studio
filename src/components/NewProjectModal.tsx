@@ -96,10 +96,13 @@ export default function NewProjectModal({ isOpen, onClose, onCreated }: NewProje
     }
 
     const theme = analyzeStoryTheme({ title, synopsis });
-    if (theme.themeKey !== 'general_fantasy' || theme.isHorrorOrGhost || theme.isThaiMyth || theme.isCultivation || theme.isPirateOrAdventure || theme.isSciFi || theme.isMilitary) {
+    if (theme.themeKey !== 'general_fantasy' || theme.isMangaBusSurvival || theme.isHorrorOrGhost || theme.isThaiMyth || theme.isCultivation || theme.isPirateOrAdventure || theme.isSciFi || theme.isMilitary) {
       setWorldCulture(theme.effectiveCulture);
       setSelectedSubGenre(theme.effectiveSubGenre);
-      if (theme.effectiveCulture === 'thai' || theme.isHorrorOrGhost) {
+      if (theme.isMangaBusSurvival) {
+        setVisualMedium('animation');
+        setStylePreset('manga_recap_anime');
+      } else if (theme.effectiveCulture === 'thai' || theme.isHorrorOrGhost) {
         setStylePreset('donghua_3d');
       } else if (theme.isAnimeOrJapan) {
         setStylePreset('anime_2d');
@@ -340,12 +343,88 @@ export default function NewProjectModal({ isOpen, onClose, onCreated }: NewProje
           </div>
         )}
 
-        {error && (
-          <div className="mt-4 p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs flex items-center gap-2">
-            <span>⚠️</span>
-            <span>{error}</span>
+        {/* Quick 1-Click Story Presets (เทมเพลตเรื่องยอดนิยม) */}
+        <div className="mt-3 p-3 rounded-2xl bg-gradient-to-r from-cyan-950/40 via-purple-950/30 to-amber-950/30 border border-studio-700">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[11px] font-bold text-cyan-300 flex items-center gap-1.5">
+              <Zap className="w-3.5 h-3.5 text-amber-400" /> เทมเพลตเรื่องยอดนิยม 1-คลิก (คลิกเพื่อโหลดชื่อเรื่อง พล็อต & สไตล์ทันที):
+            </span>
           </div>
-        )}
+          <div className="flex flex-wrap gap-1.5">
+            <button
+              type="button"
+              onClick={() => {
+                setManualCultureLock(false);
+                setTitle('[พากย์ไทย] ผมคือชายคนเดียวบนรถบัส (Manga Realms MRE)');
+                setSynopsis('ท่ามกลางการระบาดของไวรัสซอมบี้กลายพันธุ์ เร็น ชายหนุ่มเพียงคนเดียวบนรถบัสผู้โดยสาร ต้องนำทีมสาวๆ ทั้งดาวโรงเรียนซึนเดระ สาวแว่นพยาบาล สาวนักกีฬาเคนโด้ น้องสาวตัวเล็ก และนักวิจัยสาวปริศนา ร่วมมือกันจัดเวรยาม คุมสติ และเหยียบคันเร่งฝ่าดงซอมบี้คลั่งและจ่าฝูงอัลฟ่าอย่างต่อเนื่องไม่ตัดข้าม');
+                setWorldCulture('japanese');
+                setSelectedSubGenre('manga_recap_anime');
+                setVisualMedium('animation');
+                setStylePreset('manga_recap_anime');
+                setDurationMode('120');
+                setAspectRatio('16:9');
+              }}
+              className="px-2.5 py-1.5 rounded-xl bg-studio-900 hover:bg-cyan-500/20 text-cyan-300 hover:text-white border border-cyan-500/40 text-[11px] font-semibold transition-all flex items-center gap-1 shadow-sm"
+            >
+              <span>🚌</span>
+              <span>[พากย์ไทย] ผมคือชายคนเดียวบนรถบัส (MRE)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setManualCultureLock(false);
+                setTitle('ตำนานผีกระสือ & วิญญาณหลอนทุ่งบางขลุง');
+                setSynopsis('เรื่องราวอาถรรพ์ในหมู่บ้านทุ่งบางขลุง เมื่อหญิงสาวแรกรุ่นดาวิกาต้องคำสาปสืบทอดสายเลือดกระสือ ถอดหัวพร้อมไส้เรืองแสงออกหากินยามค่ำคืน ขณะที่มานพคนรักพยายามปกป้องเธอจากการล่าของหมอผีใจทมิฬและชาวบ้านที่ถือคบเพลิง');
+                setWorldCulture('thai');
+                setSelectedSubGenre('ghosts_spirits_th');
+                setVisualMedium('animation');
+                setStylePreset('donghua_3d');
+                setDurationMode('60');
+                setAspectRatio('16:9');
+              }}
+              className="px-2.5 py-1.5 rounded-xl bg-studio-900 hover:bg-emerald-500/20 text-emerald-300 hover:text-white border border-emerald-500/40 text-[11px] font-semibold transition-all flex items-center gap-1 shadow-sm"
+            >
+              <span>👻</span>
+              <span>ตำนานผีกระสือทุ่งบางขลุง</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setManualCultureLock(false);
+                setTitle('มหากาพย์นาคราช: สงครามทวงคืนบาดาล');
+                setSynopsis('ศึกมหากาพย์ใต้ลุ่มน้ำโขง เมื่อทายาทสายเลือดพญานาคราชต้องปลุกพลังตบะบารมีเพื่อปกป้องแก้วมุกดาหารและเมืองบาดาลจากจอมอสูรเพลิงที่หวังทำลายล้างความสมดุลแห่งสายน้ำ');
+                setWorldCulture('thai');
+                setSelectedSubGenre('naga');
+                setVisualMedium('animation');
+                setStylePreset('donghua_3d');
+                setDurationMode('60');
+                setAspectRatio('16:9');
+              }}
+              className="px-2.5 py-1.5 rounded-xl bg-studio-900 hover:bg-purple-500/20 text-purple-300 hover:text-white border border-purple-500/40 text-[11px] font-semibold transition-all flex items-center gap-1 shadow-sm"
+            >
+              <span>🐉</span>
+              <span>มหากาพย์นาคราชทวงคืนบาดาล</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setManualCultureLock(false);
+                setTitle('มหาเทพกระบี่ข้ามภพ: พลิกชะตาฟ้าประทาน');
+                setSynopsis('ศิษย์เอกสำนักกระบี่ถูกหักหลังและทำลายชีพจร แต่โชคชะตานำพาให้พบกระบี่บรรพกาลในหุบเหวลึก ฝึกฝนเคล็ดวิชาเซียนหวนคืนสู่ยุทธภพเพื่อล้างแค้นและก้าวสู่ความเป็นอมตะ');
+                setWorldCulture('chinese');
+                setSelectedSubGenre('xianxia');
+                setVisualMedium('animation');
+                setStylePreset('donghua_3d');
+                setDurationMode('60');
+                setAspectRatio('16:9');
+              }}
+              className="px-2.5 py-1.5 rounded-xl bg-studio-900 hover:bg-amber-500/20 text-amber-300 hover:text-white border border-amber-500/40 text-[11px] font-semibold transition-all flex items-center gap-1 shadow-sm"
+            >
+              <span>⚔️</span>
+              <span>มหาเทพกระบี่ข้ามภพ (เซียน 3D)</span>
+            </button>
+          </div>
+        </div>
 
         <form onSubmit={handleSubmit} className="mt-4 space-y-5">
           {/* Step 1 & Step 2: Medium and World Culture Selectors */}

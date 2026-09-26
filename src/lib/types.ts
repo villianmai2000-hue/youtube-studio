@@ -10,6 +10,7 @@ export type MovieGenre =
   | 'mystery_noir'        // สืบสวน ฟิล์มนัวร์
   | 'historical_war'      // ย้อนยุค สงครามประวัติศาสตร์
   | 'military_tactical'   // แนวทหาร & ยุทธการสงคราม (2-5 นาที สไตล์ Facebook Reels)
+  | 'apocalypse_survival' // เอาชีวิตรอดวันสิ้นโลก / ซอมบี้ (สไตล์ Manga Realms MRE / ชายคนเดียวบนรถบัส)
   | 'custom';             // กำหนดเอง
 
 export type AspectRatio = '16:9' | '9:16';
@@ -26,6 +27,7 @@ export type StylePreset =
   // การ์ตูนและแอนิเมชัน
   | 'donghua_3d'          // อนิเมะจีน 3D (Unreal Engine 5 / เพื่อนที่ดีที่สุด SAN1)
   | 'anime_2d'            // อนิเมะญี่ปุ่น 2D (Ufotable / Shinkai)
+  | 'manga_recap_anime'   // มังงะรีแคปอนิเมะพากย์ไทย (Manga Realms MRE / ชายคนเดียวบนรถบัส)
   | 'western_3d'          // แอนิเมชัน 3D ฮอลลีวูด (Arcane / Pixar)
   | 'manhwa_action'       // มันฮวาเกาหลี (Solo Leveling)
   // คนจริง

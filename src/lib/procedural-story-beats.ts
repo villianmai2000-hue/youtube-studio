@@ -5,6 +5,7 @@ import {
   generateThaiMythScene,
   generateWesternCinemaScene,
   generateAnimeJapanScene,
+  generateMangaBusSurvivalScene,
 } from './procedural-folklore-beats';
 
 export interface SceneBeatParams {
@@ -18,6 +19,7 @@ export interface SceneBeatParams {
   antagonist: CharacterBible;
   activeSquad: CharacterBible[];
   comrades: CharacterBible[];
+  isMangaBusSurvival?: boolean;
   isSpecificKrasue?: boolean;
   isSpecificTakhian?: boolean;
   isHorrorOrGhost?: boolean;
@@ -47,6 +49,9 @@ export interface SceneContentResult {
  * โดยไม่มีการซ้ำบทพูดเดิมในแต่ละฉาก แม้จะเป็นหนังยาว 900 ฉาก (2 ชั่วโมง 30 นาที)
  */
 export function generateProceduralSceneContent(params: SceneBeatParams): SceneContentResult {
+  if (params.isMangaBusSurvival) {
+    return generateMangaBusSurvivalScene(params);
+  }
   if (params.isSpecificKrasue) {
     return generateKrasueHorrorScene(params);
   }

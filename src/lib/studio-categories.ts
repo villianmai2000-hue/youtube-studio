@@ -39,6 +39,7 @@ export const ANIME_STYLES: CategoryOption[] = [
   { id: 'sketch', nameTh: 'ภาพสเก็ตช์ (Sketch)', nameEn: 'Sketch Art', emoji: '✏️', description: 'ลายเส้นดินสอดิบ เท่ เปี่ยมเสน่ห์คลาสสิก' },
   { id: 'painting', nameTh: 'ภาพวาดศิลปะ (Painting)', nameEn: 'Painting Art', emoji: '🖌️', description: 'ภาพวาดสีน้ำ สีน้ำมัน ศิลปะชั้นสูง' },
   { id: 'anime_classic', nameTh: 'ภาพอนิเมะ (Anime)', nameEn: 'Classic Anime', emoji: '🌸', description: 'ลายเส้นอนิเมะญี่ปุ่นระดับโรงภาพยนตร์ (Ufotable / Shinkai)' },
+  { id: 'manga_recap_anime', nameTh: 'มังงะรีแคปอนิเมะ (Manga Realms MRE)', nameEn: 'Manga Realms Anime Recap', emoji: '🚌', description: 'ลายเส้นอนิเมะญี่ปุ่นคุณภาพสูง สไตล์มังงะรีแคป เล่าเรื่องลื่นไหลไม่ตัดข้าม' },
   { id: 'manga', nameTh: 'ภาพมังงะ (Manga)', nameEn: 'Manga Tone', emoji: '🎭', description: 'ลายเส้นมังงะ สกรีนโทนขาวดำเข้มข้น ดุดัน' },
   { id: 'cartoon', nameTh: 'ภาพการ์ตูน (Cartoon)', nameEn: 'Cartoon', emoji: '🧸', description: 'ลายเส้นการ์ตูนสดใส อารมณ์ขัน เข้าถึงง่าย' },
   { id: '3d_cgi_donghua', nameTh: 'ภาพ 3D / CGI (Donghua 3D)', nameEn: '3D CGI Donghua', emoji: '🧊', description: 'อนิเมะจีน 3D ระดับพรีเมียม (Unreal Engine 5 สไตล์ SAN1)' },
@@ -125,6 +126,7 @@ export const CHINESE_SETTING_SUBGENRES: CategoryOption[] = [
 
 // 7. แนวหลักวัฒนธรรมญี่ปุ่น 🇯🇵 (Japanese Anime / Shonen Setting)
 export const JAPANESE_SETTING_SUBGENRES: CategoryOption[] = [
+  { id: 'manga_recap_anime', nameTh: 'มังงะรีแคปพากย์ไทย (Manga Realms MRE / วันสิ้นโลกบนรถบัส)', nameEn: 'Manga Recap Anime Dub', emoji: '🚌', description: 'มังงะรีแคปอนิเมะพากย์ไทย ชายคนเดียวบนรถบัส ซอมบี้วันสิ้นโลก ซีนต่อเนื่อง 2+ ชั่วโมง' },
   { id: 'fantasy_jp', nameTh: 'แฟนตาซี (Fantasy)', nameEn: 'Japanese Fantasy', emoji: '🧙', description: 'กิลด์นักผจญภัย ดันเจี้ยน จอมมารและผู้กล้า' },
   { id: 'isekai_jp', nameTh: 'ต่างโลก (Isekai)', nameEn: 'Isekai', emoji: '🌀', description: 'โดนรถบรรทุกชนแล้วไปเกิดใหม่พร้อมพลังโกง' },
   { id: 'adventure_jp', nameTh: 'ผจญภัย (Adventure)', nameEn: 'Adventure', emoji: '🗺️', description: 'ออกเรือสำรวจสมบัติ โลกกว้างขวาง' },

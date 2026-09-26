@@ -91,7 +91,17 @@ async function generateCharactersWithGemini(params: {
   const theme = analyzeStoryTheme({ title, synopsis, genre, subGenre, worldCulture });
 
   let roleGuidelines = '';
-  if (theme.isSpecificKrasue) {
+  if (theme.isMangaBusSurvival) {
+    roleGuidelines = `คำแนะนำโครงสร้างตัวละครสำหรับแนว "[พากย์ไทย] ผมคือชายคนเดียวบนรถบัส (Manga Realms MRE / Bus Apocalypse Survival)":
+1. เร็น / ชายหนุ่มคนเดียวบนรถบัส (Protagonist / Tactical Leader) - สุขุม กล้าหาญ พกชะแลงและแผนที่ เป็นผู้นำจำเป็นของสาวๆ
+2. รินกะ / ดาวโรงเรียนสาวมั่นซึนเดระ (School Idol / Tsundere) - สวย มั่น ปากร้ายแต่พึ่งพาพระเอก ไฟฉายช็อตไฟฟ้า
+3. อายาเนะ / สาวแว่นแพทย์สนามและพิทักษ์เสบียง (Medic / Gentle Healer) - อ่อนโยน เรียบร้อย สวมแว่นตา ดูแลกล่องยาฉุกเฉิน
+4. เรย์นะ / สาวเท่กัปตันชมรมเคนโด้ (Vanguard Fighter) - ทรงผมหางม้า เสื้อวอร์มกีฬา ถือท่อเหล็ก/ดาบไม้ สกัดซอมบี้ที่ประตู
+5. ยูนะ / ไอดอลสาวน้อยน่ารักผู้เยียวยาใจ (Junior Idol / Morale Booster) - น่ารัก ตัวเล็ก เสื้อฮู้ดโอเวอร์ไซส์ กอดตุ๊กตาหมี
+6. ดร. มิยาบิ / นักวิจัยสาวปริศนาผู้กุมข้อมูลไวรัส (Mysterious Virologist) - สุขุม ลึกลับ เสื้อกาวน์ขาว วิทยุสื่อสารและแท็บเล็ต
+7. ราชาซอมบี้กลายพันธุ์อัลฟ่า (Alpha Mutant Zombie King / Main Boss) - ซอมบี้ร่างยักษ์ 2.4 ม. มีเกราะกระดูก คลุ้มคลั่งบัญชาการฝูง
+8. ลุงเคนจิ / คนขับรถบัสผู้เสียสละ (Veteran Bus Driver) - วัย 52 ปี สุขุม คุมพวงมาลัยรถบัสพาผู้โดยสารฝ่าดงวิกฤต`;
+  } else if (theme.isSpecificKrasue) {
     roleGuidelines = `คำแนะนำโครงสร้างตัวละครสำหรับแนว "ตำนานผีกระสือ & อาถรรพ์หมู่บ้านไทย":
 1. ดาวิกา / หญิงสาวผู้ต้องคำสาปกระสือ (Protagonist / Cursed Maiden) - สวย อ่อนโยน ซ่อนความลับน่าสะพรึง
 2. มานพ / ชายหนุ่มคนรักผู้ตามหาความจริงและคอยปกป้อง (Co-Protagonist / Loyal Defender) - กล้าหาญ มั่นคงในรัก
