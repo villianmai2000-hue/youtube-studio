@@ -40,6 +40,7 @@ export const ANIME_STYLES: CategoryOption[] = [
   { id: 'painting', nameTh: 'ภาพวาดศิลปะ (Painting)', nameEn: 'Painting Art', emoji: '🖌️', description: 'ภาพวาดสีน้ำ สีน้ำมัน ศิลปะชั้นสูง' },
   { id: 'anime_classic', nameTh: 'ภาพอนิเมะ (Anime)', nameEn: 'Classic Anime', emoji: '🌸', description: 'ลายเส้นอนิเมะญี่ปุ่นระดับโรงภาพยนตร์ (Ufotable / Shinkai)' },
   { id: 'manga_recap_anime', nameTh: 'มังงะรีแคปอนิเมะ (Manga Realms MRE)', nameEn: 'Manga Realms Anime Recap', emoji: '🚌', description: 'ลายเส้นอนิเมะญี่ปุ่นคุณภาพสูง สไตล์มังงะรีแคป เล่าเรื่องลื่นไหลไม่ตัดข้าม' },
+  { id: 'judian_doomsday_anime', nameTh: 'อนิเมะมังฮวารีแคป (JUDIAN อะนิเมะ)', nameEn: 'JUDIAN Doomsday Anime', emoji: '🌧️', description: 'ลายเส้นอนิเมะมังฮวาคุณภาพสูง สไตล์ฝนตกโลกจม มิติเก็บของไม่จำกัด ป้อมปราการเซฟเฮาส์' },
   { id: 'manga', nameTh: 'ภาพมังงะ (Manga)', nameEn: 'Manga Tone', emoji: '🎭', description: 'ลายเส้นมังงะ สกรีนโทนขาวดำเข้มข้น ดุดัน' },
   { id: 'cartoon', nameTh: 'ภาพการ์ตูน (Cartoon)', nameEn: 'Cartoon', emoji: '🧸', description: 'ลายเส้นการ์ตูนสดใส อารมณ์ขัน เข้าถึงง่าย' },
   { id: '3d_cgi_donghua', nameTh: 'ภาพ 3D / CGI (Donghua 3D)', nameEn: '3D CGI Donghua', emoji: '🧊', description: 'อนิเมะจีน 3D ระดับพรีเมียม (Unreal Engine 5 สไตล์ SAN1)' },
@@ -102,6 +103,7 @@ export const MOVIE_STYLES: CategoryOption[] = [
 
 // 6. แนวหลักวัฒนธรรมจีน 🇨🇳 (Chinese Xianxia / Wuxia Setting)
 export const CHINESE_SETTING_SUBGENRES: CategoryOption[] = [
+  { id: 'judian_doomsday', nameTh: 'วันสิ้นโลกฝนตก / มิติเก็บของ (暴雨末日 / JUDIAN)', nameEn: 'Doomsday Torrential Rain', emoji: '🌧️', description: 'ฝนตกโลกจม มิติเก็บของพันล้าน กวาดซื้อเสบียง ป้อมปราการเซฟเฮาส์ ล้างแค้นสะใจ' },
   { id: 'wuxia', nameTh: 'กำลังภายใน (武侠 / Wuxia)', nameEn: 'Wuxia', emoji: '⚔️', description: 'จอมยุทธ์ คุณธรรม คัมภีร์ยุทธ์ สำนักใหญ่' },
   { id: 'xianxia', nameTh: 'เซียน / บำเพ็ญเพียร (修仙 / Xianxia)', nameEn: 'Xianxia', emoji: '🏔️', description: 'ทะลวงชีพจร สุสานกระบี่ แดนเซียน เก้าชั้นฟ้า' },
   { id: 'xuanhuan', nameTh: 'แฟนตาซีจีน (玄幻 / Xuanhuan)', nameEn: 'Xuanhuan', emoji: '🔮', description: 'ผสมผสานพลังปราณและเวทมนตร์ตะวันตกมหากาพย์' },

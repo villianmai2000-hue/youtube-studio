@@ -279,6 +279,7 @@ export function generateContinuousMovieScenes(options: GenerateScriptOptions): S
       antagonist,
       activeSquad,
       comrades,
+      isJudianDoomsday: theme.isJudianDoomsday,
       isMangaBusSurvival: theme.isMangaBusSurvival,
       isSpecificKrasue: theme.isSpecificKrasue,
       isSpecificTakhian: theme.isSpecificTakhian,

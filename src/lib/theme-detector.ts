@@ -1,6 +1,7 @@
 import { MovieGenre, WorldCulture, CharacterBible } from './types';
 
 export type StoryThemeKey =
+  | 'judian_doomsday'
   | 'manga_bus_survival'
   | 'horror_krasue'
   | 'horror_takhian'
@@ -22,6 +23,7 @@ export interface StoryThemeAnalysis {
   effectiveSubGenre: string;
   themeNameTh: string;
   themeEmoji: string;
+  isJudianDoomsday: boolean;
   isMangaBusSurvival: boolean;
   isHorrorOrGhost: boolean;
   isSpecificKrasue: boolean;
@@ -61,18 +63,26 @@ export function analyzeStoryTheme(params: {
 
   const context = `${title} ${synopsis} ${genre} ${subGenre} ${worldCulture}`.toLowerCase();
 
-  // 0. ตรวจจับมังงะรีแคป / ชายคนเดียวบนรถบัสวันสิ้นโลก (Manga Realms MRE / Bus Apocalypse)
+  // 0.0 ตรวจจับอนิเมะมังงะรีแคปวันสิ้นโลก / มิติเก็บของไม่จำกัด / ฝนตกโลกจม (JUDIAN อะนิเมะ / Doomsday Infinite Space)
+  const isJudianDoomsday =
+    /judian|จูเดียน|โลกจม|ฝนตก.*โลกจม|ฝนตกหนัก.*วันสิ้นโลก|ฝนตก.*49\s*วัน|ฝนตก.*มหาสมุทร|暴雨末日|ภูเขาทองในมิติ|มิติเก็บของ|มิติหยุดเวลา|กระเป๋าไร้ก้น|ปลดล็อก.*มิติ|ปลดล็อก.*กระเป๋า|infinite backpack|infinite space|doomsday rain|หูโยว่|เซ่าวานฉิว|อาหารสำรองที่แข็งแกร่งที่สุด|เจ็ดวันก่อนวันสิ้นโลก|ตุนเสบียง|เซฟเฮาส์.*วันสิ้นโลก|ป้อมปราการ.*วันสิ้นโลก|ย้อนเวลา.*วันสิ้นโลก/i.test(
+      context
+    );
+
+  // 0.1 ตรวจจับมังงะรีแคป / ชายคนเดียวบนรถบัสวันสิ้นโลก (Manga Realms MRE / Bus Apocalypse)
   const isMangaBusSurvival =
+    !isJudianDoomsday &&
     /manga realms|manga realm|mre|manga recap|สปอยล์มังงะ|มังงะ.*รถบัส|รถบัส.*มังงะ|ชายคนเดียวบนรถบัส|ผมคือชายคนเดียวบนรถบัส|บนรถบัส|ผู้ชายคนเดียวบนรถบัส|รถบัส.*ซอมบี้|ซอมบี้.*รถบัส|harem bus|bus apocalypse|alone on the bus/i.test(
       context
     );
 
   // 1. ตรวจจับผีไทยเฉพาะเจาะจง (Specific Thai Ghost Folklore)
-  const isSpecificKrasue = !isMangaBusSurvival && /กระสือ|ถอดหัว|ไส้เรืองแสง|ดวงไฟกระสือ/i.test(context);
-  const isSpecificTakhian = !isMangaBusSurvival && /ตะเคียน|แม่ตะเคียน|นางไม้|ต้นตะเคียน|เจ้าแม่ตะเคียน/i.test(context);
-  const isSpecificPop = !isMangaBusSurvival && /ปอบ|ผีปอบ|กินตับ|หยิบตับ/i.test(context);
+  const isSpecificKrasue = !isJudianDoomsday && !isMangaBusSurvival && /กระสือ|ถอดหัว|ไส้เรืองแสง|ดวงไฟกระสือ/i.test(context);
+  const isSpecificTakhian = !isJudianDoomsday && !isMangaBusSurvival && /ตะเคียน|แม่ตะเคียน|นางไม้|ต้นตะเคียน|เจ้าแม่ตะเคียน/i.test(context);
+  const isSpecificPop = !isJudianDoomsday && !isMangaBusSurvival && /ปอบ|ผีปอบ|กินตับ|หยิบตับ/i.test(context);
 
   const isHorrorOrGhost =
+    !isJudianDoomsday &&
     !isMangaBusSurvival &&
     (isSpecificKrasue ||
       isSpecificTakhian ||
@@ -213,7 +223,22 @@ export function analyzeStoryTheme(params: {
   let themeEmoji = '🎭';
   let recommendedCastStructure: string[] = [];
 
-  if (isMangaBusSurvival) {
+  if (isJudianDoomsday) {
+    themeKey = 'judian_doomsday';
+    effectiveGenre = 'apocalypse_survival';
+    effectiveCulture = 'japanese';
+    effectiveSubGenre = 'judian_doomsday_anime';
+    themeNameTh = 'อนิเมะวันสิ้นโลก / ฝนตกโลกจม มิติเก็บของพันล้าน ปืนในมือ (JUDIAN อะนิเมะ)';
+    themeEmoji = '🌧️';
+    recommendedCastStructure = [
+      'หูโยว่ (ตัวเอก / ผู้ย้อนเวลาปลดล็อกมิติเก็บของไม่จำกัด นิ่ง สุขุม เย็นชา ไม่ใจอ่อน)',
+      'เซ่าวานฉิว (อดีตแฟนสาวจอมหักหลัง / ตีสองหน้า ออดอ้อนขออาหาร พอถูกปฏิเสธก็เผยธาตุแท้)',
+      'หวังเฉียง (อันธพาลคุมตึก / หัวโจกกลุ่มแย่งชิงเสบียง โลภ บ้าอำนาจ)',
+      'หลี่ช่างเหล็ก (ยอดช่างดัดแปลงป้อมปราการเซฟเฮาส์ / ผู้สร้างประตูกันกระสุนและระบบไฟอิสระ)',
+      'ระบบ AI มิติ (เสียงแจ้งเตือนระบบมิติเก็บของ / Infinite Space AI)',
+      'เสี่ยวเหมย (พยาบาลสาวข้างห้องผู้มีคุณธรรม / พันธมิตรเพียงหนึ่งเดียวที่พระเอกคุ้มครอง)',
+    ];
+  } else if (isMangaBusSurvival) {
     themeKey = 'manga_bus_survival';
     effectiveGenre = 'apocalypse_survival';
     effectiveCulture = 'japanese';
@@ -406,6 +431,7 @@ export function analyzeStoryTheme(params: {
     effectiveSubGenre,
     themeNameTh,
     themeEmoji,
+    isJudianDoomsday,
     isMangaBusSurvival,
     isHorrorOrGhost,
     isSpecificKrasue,
@@ -443,7 +469,12 @@ export function isCastMismatched(characters: CharacterBible[], theme: StoryTheme
   const hasXianxiaCast = /เซียวหลิน|เซียวเฉิน|กระบี่บิน|ลมปราณ|ชุดคลุมเต๋า|ตานเถียน|cultivation prodigy/i.test(allNamesAndAnchors);
   const hasHorrorCast = /กระสือ|พรานบุญ|หมอผี|ตะเคียน|อาคม|ผ้าประเจียด|ดวงไฟ|spirit/i.test(allNamesAndAnchors);
 
-  // 0. ถ้าเป็นเรื่องมังงะรถบัสวันสิ้นโลก แต่ตัวละครไม่ใช่ทีมนักเรียน/รถบัส หรือเป็นโจรสลัด/เซียนจีน/ผีไทย
+  // 0.0 ถ้าเป็นเรื่องวันสิ้นโลกฝนตกโลกจม มิติเก็บของ (JUDIAN อะนิเมะ) แต่ตัวละครไม่ใช่ทีมหูโยว่/มิติ/ป้อมปราการ หรือเป็นโจรสลัด/เซียนจีน/ผีไทย
+  if (theme.isJudianDoomsday && (hasPirateCast || hasSciFiCast || hasXianxiaCast || hasHorrorCast || !/หูโยว่|มิติ|เซ่าวานฉิว|ป้อมปราการ|หวังเฉียง|วันสิ้นโลก/i.test(allNamesAndAnchors))) {
+    return true;
+  }
+
+  // 0.1 ถ้าเป็นเรื่องมังงะรถบัสวันสิ้นโลก แต่ตัวละครไม่ใช่ทีมนักเรียน/รถบัส หรือเป็นโจรสลัด/เซียนจีน/ผีไทย
   if (theme.isMangaBusSurvival && (hasPirateCast || hasSciFiCast || hasXianxiaCast || hasHorrorCast || !/เร็น|รถบัส|รินกะ|อายาเนะ|ซอมบี้/i.test(allNamesAndAnchors))) {
     return true;
   }

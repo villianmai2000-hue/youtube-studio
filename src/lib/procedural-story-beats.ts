@@ -6,6 +6,7 @@ import {
   generateWesternCinemaScene,
   generateAnimeJapanScene,
   generateMangaBusSurvivalScene,
+  generateJudianDoomsdayScene,
 } from './procedural-folklore-beats';
 import { buildDynamicSceneBeat } from './story-synopsis-analyzer';
 
@@ -20,6 +21,7 @@ export interface SceneBeatParams {
   antagonist: CharacterBible;
   activeSquad: CharacterBible[];
   comrades: CharacterBible[];
+  isJudianDoomsday?: boolean;
   isMangaBusSurvival?: boolean;
   isSpecificKrasue?: boolean;
   isSpecificTakhian?: boolean;
@@ -54,6 +56,11 @@ export interface SceneContentResult {
  */
 export function generateProceduralSceneContent(params: SceneBeatParams): SceneContentResult {
   const { primaryChar, secondaryChar, leadChar, antagonist } = normalizeActors(params);
+
+  // 0. วันสิ้นโลกฝนตกน้ำท่วม มิติเก็บของไม่จำกัด (JUDIAN อะนิเมะ / 暴雨末日：我解锁无限背包)
+  if (params.isJudianDoomsday) {
+    return generateJudianDoomsdayScene(params);
+  }
 
   // 1. มังงะรีแคป ชายคนเดียวบนรถบัส (Manga Realms MRE)
   if (params.isMangaBusSurvival) {

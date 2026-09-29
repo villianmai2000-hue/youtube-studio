@@ -77,7 +77,12 @@ export function generateIntelligentCharacters(params: {
   // ใช้ Theme Detector อัจฉริยะแบบรวมศูนย์ ป้องกันการตีความเป็นไซไฟหรือโจรสลัดผิดพลาด
   const theme = analyzeStoryTheme({ title, synopsis, genre, subGenre, worldCulture });
 
-  // 0. มังงะรีแคป ชายคนเดียวบนรถบัส / ไวรัสซอมบี้วันสิ้นโลก (Manga Realms MRE / Bus Apocalypse)
+  // 0.0 อนิเมะวันสิ้นโลก / ฝนตกโลกจม มิติเก็บของไม่จำกัด ป้อมปราการพันล้าน (JUDIAN อะนิเมะ)
+  if (theme.isJudianDoomsday) {
+    return buildJudianDoomsdayRoster(title, count);
+  }
+
+  // 0.1 มังงะรีแคป ชายคนเดียวบนรถบัส / ไวรัสซอมบี้วันสิ้นโลก (Manga Realms MRE / Bus Apocalypse)
   if (theme.isMangaBusSurvival) {
     return buildMangaBusApocalypseRoster(title, count);
   }
@@ -825,6 +830,149 @@ export function generateIntelligentCharacters(params: {
 // --------------------------------------------------------------------------
 // Specialized Ensemble Rosters by Culture & Genre
 // --------------------------------------------------------------------------
+
+function buildJudianDoomsdayRoster(title: string, count: number): CharacterBible[] {
+  const base: CharacterBible[] = [
+    {
+      id: `char-judian-${Date.now()}-1`,
+      name: 'หูโยว่ (ตัวเอก / ผู้ย้อนเวลาปลดล็อกมิติเก็บของไม่จำกัด)',
+      role: 'protagonist',
+      age: '22 ปี',
+      bodyBuild: 'รูปร่างสูงโปร่ง ไหล่กว้าง แข็งแรงและมีความคล่องตัวสูง ท่วงท่านั่งเอนหลังอย่างสุขุม',
+      facialFeatures: 'ใบหน้าหล่อเหลาคมคาย แววตาเย็นชาคมกริบดุจเหยี่ยว ผ่านความตายและกลียุคมาอย่างโชกโชน ไม่มีความลังเลในสายตา',
+      hairStyle: 'ผมซอยสั้นสีดำสนิท มีปอยผมปรกหน้าผากเล็กน้อย สไตล์พระเอกอนิเมะวันสิ้นโลก',
+      clothingStyle: 'เสื้อฮู้ดดี้โอเวอร์ไซส์สีเทาเข้ม/ดำ กางเกงคาร์โก้แทคติคอลสีดำ รองเท้าคอมแบท สวมแหวนมิติลวดลายโบราณที่นิ้วชี้',
+      colorTheme: 'สีดำ-เทาเข้ม-น้ำเงินนีออน (Cyber Dark & Neon Blue)',
+      weaponsOrProps: 'แท็บเล็ตสั่งการระบบมิติ / ปืนพกกล็อก 19 สีดำด้าน / ไรเฟิลเก็บเสียง / กุญแจและรีโมตคอนโทรลเซฟเฮาส์',
+      personality: 'เย็นชา สุขุม รอบคอบ เด็ดขาด ปราศจากความใจอ่อนต่อศัตรูและคนทรยศ ทันคน มีไหวพริบยอดเยี่ยมในการวางแผนเอาชีวิตรอด',
+      abilities: 'มิติเก็บของไร้ขีดจำกัด (Infinite Subspace) เวลาในมิติหยุดนิ่ง อาหารไม่เน่าเสีย, ทักษะแม่นปืนและการต่อสู้ระยะประชิด, การวางแผนยุทธวิธีและสร้างป้อมปราการ',
+      weaknesses: 'ไม่ไว้ใจใครในโลกาวินาศง่ายๆ ยึดมั่นในความอยู่รอดของตนเองเป็นอันดับหนึ่ง',
+      relationships: 'ในชาติก่อนถูกอดีตแฟนสาวและพวกคนชั่วหักหลังจนตาย ชาตินี้จึงกลับมาเพื่อล้างแค้นและเสพสุขในวันสิ้นโลกเพียงลำพัง',
+      appearanceAnchor: 'handsome 22yo anime male protagonist Hu You, dark messy hair, cold piercing amber eyes, wearing dark oversized grey hoodie and black tactical pants, leaning back comfortably in luxury bunker seat holding glowing holographic dimensional tablet, torrential rain pouring outside bulletproof window, Makoto Shinkai & Wit Studio anime aesthetic, 8k masterpiece',
+      voiceStyle: 'ทุ้มต่ำ เยือกเย็น หนักแน่น ไร้ความลังเล แฝงรอยยิ้มเย้ยหยันต่อพวกหน้าซื่อใจคด (สไตล์เสียงพากย์ JUDIAN อะนิเมะ)',
+      googleFlowSeed: '992001',
+    },
+    {
+      id: `char-judian-${Date.now()}-2`,
+      name: 'เซ่าวานฉิว (อดีตแฟนสาวจอมหักหลัง / อสรพิษตีสองหน้า)',
+      role: 'antagonist',
+      age: '21 ปี',
+      bodyBuild: 'รูปร่างเพรียวบาง ผิวขาวซีดเพราะความหนาวเหน็บ สภาพเนื้อตัวเปียกปอนจากสายฝน',
+      facialFeatures: 'ใบหน้าน่ารักคมคายสไตล์คุณหนู แต่แววตาเต็มไปด้วยความโลภและความเห็นแก่ตัว พอยามลำบากก็ทำหน้าตาออดอ้อนน่าสงสาร',
+      hairStyle: 'ผมยาวดัดลอนสีน้ำตาลอ่อน เปียกน้ำฝนลู่ลงมาแนบแก้ม',
+      clothingStyle: 'ชุดเดรสแบรนด์เนมที่เปรอะเปื้อนโคลนและเปียกชุ่ม สวมเสื้อโค้ตบางๆ ที่กันความหนาวไม่ได้',
+      colorTheme: 'สีชมพูหม่น-ขาวเปื้อนโคลน-เทา',
+      weaponsOrProps: 'สมาร์ตโฟนหน้าจอแตกที่แบตเตอรี่ใกล้หมด / ร่มหัก / กระเป๋าแบรนด์เนมที่ไร้ประโยชน์ในวันสิ้นโลก',
+      personality: 'ตีสองหน้า หน้าไหว้หลังหลอก รักความสบายและเกาะคนรวย พอพระเอกรวยก็วิ่งเข้าหา พอพระเอกปฏิเสธก็กรีดร้องด่าทออย่างบ้าคลั่ง',
+      abilities: 'การใช้มารยาหญิงบีบน้ำตาหลอกล่อให้ผู้อื่นสงสาร, ปลุกปั่นความขัดแย้ง',
+      weaknesses: 'ร่างกายอ่อนแอ ขี้ขลาด ทนความหนาวและความอดอยากไม่ได้แม้แต่วันเดียว',
+      relationships: 'อดีตแฟนสาวของหูโยว่ที่เคยร่วมมือกับชู้ฆ่าหูโยว่ในชาติก่อน ชาตินี้พยายามคลานมากราบกรานขออาหาร',
+      appearanceAnchor: 'desperate shivering anime female antagonist Shao Wanqiu, wet brown wavy hair, drenched luxury clothes covered in mud, pleading expression through glass window, rainstorm background, dramatic anime lighting, 8k',
+      voiceStyle: 'เสียงหวานใสเสแสร้งยามออดอ้อน และเปลี่ยนเป็นเสียงแหลมกรีดร้องยามคลุ้มคลั่งและสิ้นหวัง',
+      googleFlowSeed: '992002',
+    },
+    {
+      id: `char-judian-${Date.now()}-3`,
+      name: 'หวังเฉียง (อันธพาลคุมตึก / หัวโจกกลุ่มแย่งชิงเสบียง)',
+      role: 'antagonist',
+      age: '32 ปี',
+      bodyBuild: 'รูปร่างสูงใหญ่ กำยำ บึกบึน มีรอยแผลเป็นและรอยสักตามลำตัว ท่าทางกักขฬะ',
+      facialFeatures: 'ใบหน้าเหลี่ยม สันจมูกหัก ดวงตาดุดันหิวกระหายและบ้าอำนาจ',
+      hairStyle: 'ผมสกินเฮดไถข้าง',
+      clothingStyle: 'เสื้อกล้ามสีดำเปื้อนคราบน้ำมัน กางเกงยีนส์ขาดๆ รองเท้าบูททหาร',
+      colorTheme: 'สีแดงเลือดนก-ดำ-น้ำตาลไหม้',
+      weaponsOrProps: 'ชะแลงเหล็กข้ออ้อย / ขวานดับเพลิง / มีดพร้าด้ามยาว',
+      personality: 'ป่าเถื่อน โลภมาก บ้าอำนาจ อ้างศีลธรรมและ "เพื่อประโยชน์ส่วนรวม" เพื่อปล้นชิงเสบียงคนอื่น แต่จริงๆ คือคนขลาดตาขาวเมื่อเจออาวุธจริง',
+      abilities: 'พละกำลังร่างกายมหาศาล, การรวมกลุ่มอันธพาลบุกปล้น, ข่มขู่ผู้บริสุทธิ์',
+      weaknesses: 'ประมาท มั่นใจในจำนวนคน ไม่รู้ว่าพระเอกมีปืนและป้อมปราการไฟฟ้าแรงสูง',
+      relationships: 'ศัตรูคนสำคัญที่พยายามนำคนมาพังประตูเซฟเฮาส์ของหูโยว่เพื่อแย่งชิงอาหาร',
+      appearanceAnchor: 'imposing muscular thug leader Wang Qiang with buzz cut hair, angry scar face, holding heavy fire axe and crowbar outside fortified metal door, flooded corridor background, anime style, 8k',
+      voiceStyle: 'เสียงห้าว แหบ ทรงพลัง ข่มขู่ โวยวาย และสั่นเครือยามถูกปืนจ่อหน้าผาก',
+      googleFlowSeed: '992003',
+    },
+    {
+      id: `char-judian-${Date.now()}-4`,
+      name: 'หลี่ช่างเหล็ก (ยอดช่างดัดแปลงป้อมปราการเซฟเฮาส์)',
+      role: 'supporting',
+      age: '45 ปี',
+      bodyBuild: 'รูปร่างท้วมหนา แข็งแรง มือหนาหยาบกร้านจากการทำงานช่างมาทั้งชีวิต',
+      facialFeatures: 'ใบหน้าซื่อสัตย์ มีริ้วรอยแห่งประสบการณ์ แววตาจริงใจและมุ่งมั่น',
+      hairStyle: 'ผมสั้นสีดอกเลา สวมหมวกนิรภัยช่างสีเหลือง',
+      clothingStyle: 'ชุดเอี๊ยมช่างผ้าเดนิมหนา เสื้อยืดแขนสั้น รองเท้าเซฟตี้หัวเหล็ก เข็มขัดเครื่องมือช่างครบครัน',
+      colorTheme: 'สีส้มสะท้อนแสง-น้ำเงินยีนส์-เหลืองมัสตาร์ด',
+      weaponsOrProps: 'เครื่องเชื่อมโลหะอาร์กอน / สว่านกระแทกแรงสูง / พิมพ์เขียวโครงสร้างอาคาร',
+      personality: 'ซื่อสัตย์ ทำงานเนี้ยบ รักษาคำพูด รับเงินก้อนโตจากพระเอกแล้วทำงานสุดฝีมือโดยไม่ถามซอกแซก',
+      abilities: 'การติดตั้งเหล็กกล้ากันกระสุนเกรดทหาร, ระบบระบายอากาศปิดกันสารเคมี, ระบบไฟฟ้าพลังงานแสงอาทิตย์และเครื่องปั่นไฟสำรอง',
+      weaknesses: 'เป็นคนธรรมดา ไม่ใช่นักสู้',
+      relationships: 'ช่างรับเหมาที่หูโยว่จ้างมาสร้างเซฟเฮาส์ ได้รับเงินสดก้อนโตและคำเตือนให้อยู่ในที่ปลอดภัยก่อนวันสิ้นโลก',
+      appearanceAnchor: 'veteran honest mechanic Master Li in safety goggles and tool belt, welding heavy military steel door, sparks flying, anime workshop aesthetic, 8k',
+      voiceStyle: 'เสียงทุ้ม แหบ จริงใจ หนักแน่น พูดจาตรงไปตรงมา',
+      googleFlowSeed: '992004',
+    },
+    {
+      id: `char-judian-${Date.now()}-5`,
+      name: 'ระบบ AI มิติ (เสียงแจ้งเตือนระบบมิติเก็บของ / Infinite Space AI)',
+      role: 'supporting',
+      age: 'ไม่ระบุ',
+      bodyBuild: 'ดวงแสงโฮโลแกรมเรืองแสงสีฟ้าครามลอยเคว้ง (Avatar แสงระบบ)',
+      facialFeatures: 'หน้าต่างอินเตอร์เฟซดิจิทัลลอยในอากาศ ตัวเลขนับถอยหลังวันสิ้นโลกและรายการสต็อกเสบียง',
+      hairStyle: 'อนุภาคแสงดิจิทัล',
+      clothingStyle: 'ละอองพลังงานมิติม้วนตัวเป็นเกลียวแสง',
+      colorTheme: 'สีฟ้านีออน-ทองคำ-ม่วงคอสมิก',
+      weaponsOrProps: 'หน้าจอสเตตัสมิติ / ระบบขยายพื้นที่อัตโนมัติ / แผนที่เรดาร์ตรวจจับสิ่งมีชีวิต',
+      personality: 'เยือกเย็น แม่นยำ ไร้อารมณ์ แจ้งข้อมูลสต็อกและสถานะด้วยความแม่นยำระดับควอนตัม',
+      abilities: 'จัดเก็บสสารทุกชนิดเข้าสู่มิติหยุดเวลา, สแกนคุณภาพเสบียง, ขยายขนาดพื้นที่มิติไร้จำกัด',
+      weaknesses: 'ทำงานตามคำสั่งของหูโยว่เพียงคนเดียว',
+      relationships: 'ระบบมิติที่ผูกติดกับวิญญาณของหูโยว่ตั้งแต่ย้อนเวลากลับมา',
+      appearanceAnchor: 'glowing futuristic holographic blue UI interface with digital stats and countdown timer, ethereal particles, sci-fi anime dimension aesthetic, 8k',
+      voiceStyle: 'เสียงสังเคราะห์ดิจิทัลนุ่มนวล คมชัด ไพเราะน่าฟัง (สไตล์เสียงระบบอนิเมะ "ติ๊ง!")',
+      googleFlowSeed: '992005',
+    },
+    {
+      id: `char-judian-${Date.now()}-6`,
+      name: 'เสี่ยวเหมย (พยาบาลสาวข้างห้องผู้มีคุณธรรม / พันธมิตรเพียงหนึ่งเดียว)',
+      role: 'supporting',
+      age: '20 ปี',
+      bodyBuild: 'รูปร่างเล็กบอบบาง อ่อนหวาน ผิวขาวอมชมพู',
+      facialFeatures: 'ใบหน้ารูปไข่น่ารัก ดวงตากลมโตใสซื่อ แววตาเปี่ยมด้วยความเมตตาและกตัญญู',
+      hairStyle: 'ผมเปียคู่สีดำ สวมกิ๊บรูปดอกซากุระ',
+      clothingStyle: 'ชุดพยาบาลน่ารัก / เสื้อสเวตเตอร์ไหมพรมสีครีมตัวโคร่ง กางเกงขายาวอบอุ่น',
+      colorTheme: 'สีครีม-ชมพูอ่อน-ขาว',
+      weaponsOrProps: 'กล่องปฐมพยาบาลขนาดพกพา / เทอร์โมมิเตอร์วัดไข้ / สเตทโตสโคป',
+      personality: 'จิตใจดี กตัญญู มีมโนธรรม ในชาติก่อนเคยพยายามช่วยเหลือพระเอก ชาตินี้พระเอกจึงตอบแทนด้วยการแบ่งปันความปลอดภัยให้เธอ',
+      abilities: 'การปฐมพยาบาลและดูแลผู้ป่วย, ความซื่อสัตย์และภักดีต่อหูโยว่',
+      weaknesses: 'จิตใจอ่อนไหว สงสารผู้อื่นง่าย แต่ยอมเชื่อฟังคำสั่งของหูโยว่อย่างเคร่งครัด',
+      relationships: 'เพื่อนบ้านข้างห้องที่หูโยว่เลือกรับเข้ามาอยู่ในเซฟเฮาส์ กลายเป็นผู้ดูแลบ้านและคู่หูที่พระเอกไว้ใจ',
+      appearanceAnchor: 'cute kind-hearted anime nurse girl Xiao Mei in oversized cream sweater, black braided hair, holding warm medical supplies inside warm luxury bunker, soft gentle anime lighting, 8k',
+      voiceStyle: 'เสียงหวาน นุ่ม เรียบร้อย น่าทะนุถนอม',
+      googleFlowSeed: '992006',
+    },
+    {
+      id: `char-judian-${Date.now()}-7`,
+      name: 'เถ้าแก่เฉิน (เจ้าของซูเปอร์มาร์เก็ตค้าส่ง / ซัพพลายเออร์เสบียงพันล้าน)',
+      role: 'supporting',
+      age: '50 ปี',
+      bodyBuild: 'รูปร่างท้วม สมบูรณ์แบบ ท่าทางพ่อค้าใจดีกระตือรือร้น',
+      facialFeatures: 'ใบหน้ากลม ยิ้มแย้ม ดวงตาหยีเป็นสระอิ สวมแว่นตากรอบทอง',
+      hairStyle: 'ผมสั้นหวีเรียบใส่เจล',
+      clothingStyle: 'เสื้อโปโลสีกรมท่า สวมทับด้วยเสื้อกั๊กเก็บสมุดบิลเงินสด',
+      colorTheme: 'สีทอง-กรมท่า-ขาว',
+      weaponsOrProps: 'แท็บเล็ตตรวจนับสต็อกสินค้า / รถโฟล์กลิฟต์ / กุญแจโกดังเก็บความเย็น',
+      personality: 'พ่อค้ามืออาชีพ รวดเร็ว เห็นเงินสดแล้วตาโต จัดส่งสินค้าเนื้อวัวและอาหารกระป๋องล็อตยักษ์ให้ทันเวลา',
+      abilities: 'เครือข่ายโลจิสติกส์และการจัดหาเสบียงอาหารระดับหมื่นตันในเวลาอันสั้น',
+      weaknesses: 'ไม่รู้ว่าวันสิ้นโลกกำลังจะมาถึง คิดว่าพระเอกเป็นแค่เศรษฐีที่เปิดโกดังสต็อกอาหาร',
+      relationships: 'คู่ค้าสำคัญที่ช่วยพระเอกผันเงินสดเป็นอาหารระดับภูเขาเลากาเก็บเข้ามิติ',
+      appearanceAnchor: 'friendly chubby anime wholesale warehouse owner Boss Chen with round glasses holding inventory clipboard among towering food pallets, warm warehouse lighting, 8k',
+      voiceStyle: 'เสียงใหญ่ กังวาน ร่าเริง สไตล์เถ้าแก่ใจดีที่ตื่นเต้นกับยอดสั่งซื้อยักษ์',
+      googleFlowSeed: '992007',
+    },
+  ];
+
+  if (count <= base.length) {
+    return base.slice(0, count);
+  }
+  return base;
+}
 
 function buildMangaBusApocalypseRoster(title: string, count: number): CharacterBible[] {
   const base: CharacterBible[] = [

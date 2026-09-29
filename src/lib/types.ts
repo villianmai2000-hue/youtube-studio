@@ -28,6 +28,7 @@ export type StylePreset =
   | 'donghua_3d'          // อนิเมะจีน 3D (Unreal Engine 5 / เพื่อนที่ดีที่สุด SAN1)
   | 'anime_2d'            // อนิเมะญี่ปุ่น 2D (Ufotable / Shinkai)
   | 'manga_recap_anime'   // มังงะรีแคปอนิเมะพากย์ไทย (Manga Realms MRE / ชายคนเดียวบนรถบัส)
+  | 'judian_doomsday_anime' // อนิเมะมังงะรีแคปวันสิ้นโลก / มิติเก็บของ (JUDIAN อะนิเมะ / ฝนตกโลกจม)
   | 'western_3d'          // แอนิเมชัน 3D ฮอลลีวูด (Arcane / Pixar)
   | 'manhwa_action'       // มันฮวาเกาหลี (Solo Leveling)
   // คนจริง

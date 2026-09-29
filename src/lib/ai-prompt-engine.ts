@@ -78,6 +78,9 @@ export function buildVisualPrompts(params: PromptGenerationParams): {
     } else if (stylePreset === 'manga_recap_anime') {
       styleKeywordsTh = 'อนิเมะมังงะสไตล์สปอยล์/รีแคป Manga Realms MRE ลายเส้นอนิเมะญี่ปุ่นคุณภาพสูงระดับ Wit Studio & CloverWorks, เส้นสายคมชัด สไตล์เอาชีวิตรอดวันสิ้นโลกบนรถบัส, แสงเงาดรามาติกสมจริง, ฝนตกกระทบกระจกรถ, บรรยากาศซอมบี้ล้อมรอบ, สีหน้าตัวละครแสดงอารมณ์ชัดเจน คมชัดระดับ 8K อนิเมะมาสเตอร์พีซ';
       styleKeywordsEn = 'high-end Japanese anime recap manga style Manga Realms aesthetic, Wit Studio and CloverWorks cinematic animation, crisp dynamic anime lines, survival horror inside passenger bus, rain running down bus glass windows, zombie silhouettes pounding outside, atmospheric neon-red brake lights and dim interior emergency lights, expressive anime faces, 8k anime masterpiece, single frame, unified composition';
+    } else if (stylePreset === 'judian_doomsday_anime') {
+      styleKeywordsTh = 'อนิเมะมังฮวาสไตล์ช่อง JUDIAN อะนิเมะ (暴雨末日 / Doomsday Torrential Rain & Infinite Subspace), ลายเส้นอนิเมะมังฮวาคุณภาพสูงระดับ Wit Studio & A-1 Pictures, โทนวันสิ้นโลกฝนตกฟ้าร้องกระหน่ำไม่หยุด น้ำท่วมมิดเมือง, ห้องเซฟเฮาส์ติดเกราะเหล็กกล้าและกระจกกันกระสุนหนาพิเศษ, หน้าต่างโฮโลแกรมระบบมิติเก็บของสีฟ้าเรืองแสง (Subspace Storage UI), พระเอกสีหน้าสุขุมเยือกเย็นถืออาวุธปืน, บรรยากาศมืดหม่นตัดกับแสงสะท้อนของสายฝน คมชัดระดับ 8K อนิเมะมาสเตอร์พีซ';
+      styleKeywordsEn = 'high-end anime manhwa apocalypse recap style JUDIAN anime channel aesthetic, Wit Studio and A-1 Pictures quality, endless torrential apocalyptic rain pouring outside, flooded submerged megacity, fortified safehouse bunker with titanium steel blast doors and ballistic glass, floating glowing cyan holographic subspace inventory storage interface screen, cold calculating male protagonist holding tactical firearm, dark moody atmospheric lightning reflections on wet surfaces, 8k anime masterpiece, single frame, unified composition';
     } else if (stylePreset === 'western_3d') {
       styleKeywordsTh = 'แอนิเมชัน 3D สไตล์ภาพยนตร์แอนิเมชันระดับโลก (สไตล์ Arcane และ Pixar), พื้นผิวมีเอกลักษณ์ทางศิลปะ, แสงเงาจัดวางอย่างมีมิติ, การแสดงอารมณ์ตัวละครลึกซึ้ง';
       styleKeywordsEn = '3D stylized cinematic animation, Arcane and Pixar studio aesthetic, stylized textures, rich cinematic lighting';
@@ -134,8 +137,13 @@ export function buildVisualPrompts(params: PromptGenerationParams): {
       genreFlavorEn = 'ancient battlefield, banners fluttering in the wind, war dust, armors, cavalry in formation';
       break;
     case 'apocalypse_survival':
-      genreFlavorTh = 'บรรยากาศเอาชีวิตรอดวันสิ้นโลกบนรถบัสผู้โดยสาร (Manga Realms MRE Anime Recap), ภายนอกมืดสนิทมีฝูงซอมบี้คลั่งและตัวกลายพันธุ์อัลฟ่าทุบกระจกรถ, ภายในรถเปิดไฟฉุกเฉินสลัวสีแดงและเหลือง, กระจกหน้าต่างร้าวมีคราบเลือดและหยดน้ำฝนไหลผ่าน, เบาะนั่งรถบัสและทางเดินแคบๆ ที่ต้องจัดเวรยามป้องกัน';
-      genreFlavorEn = 'zombie apocalypse passenger bus survival atmosphere (Manga Realms anime recap style), dark misty highway outside swarming with mutated zombies banging on glass windows, dim red emergency lights and warm interior bus bulbs, cracked bus glass with raindrops and blood splatters, narrow bus aisle with barricaded seats';
+      if (stylePreset === 'judian_doomsday_anime') {
+        genreFlavorTh = 'บรรยากาศมหาพายุฝนกระหน่ำวันสิ้นโลกและน้ำท่วมเมืองจมบาดาล (JUDIAN อะนิเมะ 暴雨末日), ตึกระฟ้าจมน้ำ ฝนตกไม่หยุด ฟ้าร้องคำราม, ภายในห้องเซฟเฮาส์ติดเกราะเหล็กกล้าและกระจกกันกระสุน มีแอร์เย็นฉ่ำ แสงไฟวอร์มไวท์อบอุ่น และเสบียงกองเป็นภูเขา, หน้าจอโฮโลแกรมมิติสีฟ้าเรืองแสงลอยกลางอากาศ';
+        genreFlavorEn = 'apocalyptic endless torrential rain and flooded submerged megacity (JUDIAN anime style), skyscrapers underwater, violent rainstorm and thunder outside, inside warm fortified safehouse with titanium armor plates and bulletproof glass, air-conditioned luxury with mountain of stockpiled supplies, glowing cyan holographic subspace interface floating in air';
+      } else {
+        genreFlavorTh = 'บรรยากาศเอาชีวิตรอดวันสิ้นโลกบนรถบัสผู้โดยสาร (Manga Realms MRE Anime Recap), ภายนอกมืดสนิทมีฝูงซอมบี้คลั่งและตัวกลายพันธุ์อัลฟ่าทุบกระจกรถ, ภายในรถเปิดไฟฉุกเฉินสลัวสีแดงและเหลือง, กระจกหน้าต่างร้าวมีคราบเลือดและหยดน้ำฝนไหลผ่าน, เบาะนั่งรถบัสและทางเดินแคบๆ ที่ต้องจัดเวรยามป้องกัน';
+        genreFlavorEn = 'zombie apocalypse passenger bus survival atmosphere (Manga Realms anime recap style), dark misty highway outside swarming with mutated zombies banging on glass windows, dim red emergency lights and warm interior bus bulbs, cracked bus glass with raindrops and blood splatters, narrow bus aisle with barricaded seats';
+      }
       break;
     default:
       genreFlavorTh = 'บรรยากาศภาพยนตร์เปี่ยมมนต์ขลังและเรื่องราว';
@@ -206,6 +214,9 @@ Aspect Ratio: ${aspectRatio}`;
     } else if (stylePreset === 'manga_recap_anime') {
       videoStyleLabelTh = 'อนิเมะมังงะรีแคป Manga Realms MRE ลายเส้นญี่ปุ่นคมชัด 60fps ซีนต่อเนื่อง';
       videoStyleLabelEn = 'Cinematic Manga Realms MRE anime recap continuous animation 60fps';
+    } else if (stylePreset === 'judian_doomsday_anime') {
+      videoStyleLabelTh = 'อนิเมะมังฮวารีแคป สไตล์ JUDIAN อะนิเมะ ฝนตกโลกจม ป้อมปราการมิติ 60fps ซีนต่อเนื่อง';
+      videoStyleLabelEn = 'Cinematic JUDIAN anime recap continuous animation 60fps apocalyptic torrential rain and subspace vault';
     } else if (stylePreset === 'western_3d') {
       videoStyleLabelTh = 'แอนิเมชัน 3D สไตล์สากล สไตล์ Arcane';
       videoStyleLabelEn = '3D stylized cinematic animation Arcane style';
@@ -217,9 +228,9 @@ Aspect Ratio: ${aspectRatio}`;
       videoStyleLabelEn = '3D animated movie cinematic render';
     }
   } else {
-    if (genre === 'apocalypse_survival' || stylePreset === 'manga_recap_anime') {
-      videoStyleLabelTh = 'ภาพยนตร์เซอร์ไววัลวันสิ้นโลก เอาชีวิตรอดบนรถบัสฝ่าฝูงซอมบี้';
-      videoStyleLabelEn = 'Apocalypse bus zombie survival cinematography';
+    if (genre === 'apocalypse_survival' || stylePreset === 'manga_recap_anime' || stylePreset === 'judian_doomsday_anime') {
+      videoStyleLabelTh = 'ภาพยนตร์เซอร์ไววัลวันสิ้นโลก มหาพายุฝนตกโลกจมและเอาชีวิตรอด';
+      videoStyleLabelEn = 'Apocalypse torrential rain survival cinematography';
     } else if (genre === 'horror_thriller') {
       videoStyleLabelTh = 'ภาพยนตร์สยองขวัญลี้ลับไทย แสงเงาดาร์กหลอนสมจริง';
       videoStyleLabelEn = 'Cinematic Thai horror thriller film';

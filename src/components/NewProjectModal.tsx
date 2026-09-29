@@ -96,10 +96,13 @@ export default function NewProjectModal({ isOpen, onClose, onCreated }: NewProje
     }
 
     const theme = analyzeStoryTheme({ title, synopsis });
-    if (theme.themeKey !== 'general_fantasy' || theme.isMangaBusSurvival || theme.isHorrorOrGhost || theme.isThaiMyth || theme.isCultivation || theme.isPirateOrAdventure || theme.isSciFi || theme.isMilitary) {
+    if (theme.themeKey !== 'general_fantasy' || theme.isJudianDoomsday || theme.isMangaBusSurvival || theme.isHorrorOrGhost || theme.isThaiMyth || theme.isCultivation || theme.isPirateOrAdventure || theme.isSciFi || theme.isMilitary) {
       setWorldCulture(theme.effectiveCulture);
       setSelectedSubGenre(theme.effectiveSubGenre);
-      if (theme.isMangaBusSurvival) {
+      if (theme.isJudianDoomsday) {
+        setVisualMedium('animation');
+        setStylePreset('judian_doomsday_anime');
+      } else if (theme.isMangaBusSurvival) {
         setVisualMedium('animation');
         setStylePreset('manga_recap_anime');
       } else if (theme.effectiveCulture === 'thai' || theme.isHorrorOrGhost) {
@@ -352,6 +355,24 @@ export default function NewProjectModal({ isOpen, onClose, onCreated }: NewProje
             </span>
           </div>
           <div className="flex flex-wrap gap-1.5">
+            <button
+              type="button"
+              onClick={() => {
+                setManualCultureLock(false);
+                setTitle('วันที่สิบสามกรกฎาคมฝนตก โลกจม กูที่มีภูเขาทองในมิติ ปืนในมือ กลายเป็นคนที่ใครก็ไม่กล้าแตะ (JUDIAN อะนิเมะ)');
+                setSynopsis('หูโยว่ ชายหนุ่มที่เคยถูกอดีตแฟนสาวทรยศแย่งเสบียงและถูกผลักให้ตายในยุคน้ำท่วมโลก ได้ย้อนเวลากลับมา 7 วันก่อนวันที่ 13 กรกฎาคม พร้อมปลดล็อกมิติเก็บของไม่จำกัด เขาเทเงินพันล้านกวาดซื้อเสบียง คลังแสง ดัดแปลงห้องเป็นเซฟเฮาส์ป้อมปราการเหล็กกล้ากันกระสุน เมื่อมหาพายุฝนกระหน่ำโลกจมบาดาล เขานั่งกินสเต๊กในห้องแอร์เย็นฉ่ำ ขณะที่คนทรยศและอันธพาลต้องคุกเข่าอ้อนวอนขออาหาร');
+                setWorldCulture('chinese');
+                setSelectedSubGenre('judian_doomsday');
+                setVisualMedium('animation');
+                setStylePreset('judian_doomsday_anime');
+                setDurationMode('120');
+                setAspectRatio('16:9');
+              }}
+              className="px-2.5 py-1.5 rounded-xl bg-studio-900 hover:bg-blue-500/20 text-blue-300 hover:text-white border border-blue-500/40 text-[11px] font-semibold transition-all flex items-center gap-1 shadow-sm"
+            >
+              <span>🌧️</span>
+              <span>[พากย์ไทย] ฝนตกโลกจม มิติเก็บของ (JUDIAN)</span>
+            </button>
             <button
               type="button"
               onClick={() => {

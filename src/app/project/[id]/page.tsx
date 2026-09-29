@@ -477,8 +477,12 @@ export default function ProjectStudioPage() {
         title: project.title,
         synopsis: project.synopsis,
         genre: theme.effectiveGenre,
-        visualMedium: theme.isMangaBusSurvival ? 'animation' : project.visualMedium,
-        stylePreset: theme.isMangaBusSurvival ? 'manga_recap_anime' : project.stylePreset,
+        visualMedium: theme.isJudianDoomsday || theme.isMangaBusSurvival ? 'animation' : project.visualMedium,
+        stylePreset: theme.isJudianDoomsday
+          ? 'judian_doomsday_anime'
+          : theme.isMangaBusSurvival
+          ? 'manga_recap_anime'
+          : project.stylePreset,
         targetDurationMinutes: project.targetDurationMinutes,
         characters: freshCharacters,
         aspectRatio: project.aspectRatio,
@@ -491,8 +495,12 @@ export default function ProjectStudioPage() {
         genre: theme.effectiveGenre,
         worldCulture: theme.effectiveCulture,
         subGenre: theme.effectiveSubGenre,
-        visualMedium: theme.isMangaBusSurvival ? 'animation' : project.visualMedium,
-        stylePreset: theme.isMangaBusSurvival ? 'manga_recap_anime' : project.stylePreset,
+        visualMedium: theme.isJudianDoomsday || theme.isMangaBusSurvival ? 'animation' : project.visualMedium,
+        stylePreset: theme.isJudianDoomsday
+          ? 'judian_doomsday_anime'
+          : theme.isMangaBusSurvival
+          ? 'manga_recap_anime'
+          : project.stylePreset,
         characters: freshCharacters,
         scenes: freshScenes,
       };
@@ -549,12 +557,19 @@ export default function ProjectStudioPage() {
         });
       }
 
+      const effectiveVisualMedium = theme.isJudianDoomsday || theme.isMangaBusSurvival ? 'animation' : project.visualMedium;
+      const effectiveStylePreset = theme.isJudianDoomsday
+        ? 'judian_doomsday_anime'
+        : theme.isMangaBusSurvival
+        ? 'manga_recap_anime'
+        : project.stylePreset;
+
       const newScenes = generateContinuousMovieScenes({
         title: project.title,
         synopsis: project.synopsis,
         genre: theme.effectiveGenre,
-        visualMedium: project.visualMedium,
-        stylePreset: project.stylePreset,
+        visualMedium: effectiveVisualMedium,
+        stylePreset: effectiveStylePreset,
         targetDurationMinutes: project.targetDurationMinutes,
         characters: activeCharacters,
         aspectRatio: project.aspectRatio,
@@ -567,6 +582,8 @@ export default function ProjectStudioPage() {
         genre: theme.effectiveGenre,
         worldCulture: theme.effectiveCulture,
         subGenre: theme.effectiveSubGenre,
+        visualMedium: effectiveVisualMedium,
+        stylePreset: effectiveStylePreset,
         characters: activeCharacters,
         scenes: newScenes,
       };
