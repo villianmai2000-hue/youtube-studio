@@ -11,6 +11,7 @@ import VideoTimelinePlayer from '@/components/VideoTimelinePlayer';
 import LoginModal from '@/components/LoginModal';
 import MetaPackageModal from '@/components/MetaPackageModal';
 import CreateSequelModal from '@/components/CreateSequelModal';
+import NineEightNineStudioView from '@/components/NineEightNineStudioView';
 import {
   generateContinuousMovieScenes,
   calculateMovieScenesCount,
@@ -90,6 +91,9 @@ export default function ProjectStudioPage() {
   const [studioPageSize, setStudioPageSize] = useState<number | 'all'>(50);
   const [jumpToSceneNum, setJumpToSceneNum] = useState('');
 
+  // 989 Ai Prompt (v8 VIP Mode) View Switcher
+  const [studioMode, setStudioMode] = useState<'989_studio' | 'standard'>('989_studio');
+
   // Auth Gate
   const [currentUser, setCurrentUser] = useState<UserType | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
@@ -114,6 +118,11 @@ export default function ProjectStudioPage() {
     checkUser();
     const savedKey = localStorage.getItem('studio_gemini_api_key');
     if (savedKey) setApiKeyInput(savedKey);
+
+    const savedMode = localStorage.getItem('preferred_studio_mode');
+    if (savedMode === 'standard' || savedMode === '989_studio') {
+      setStudioMode(savedMode);
+    }
 
     window.addEventListener('auth_change', checkUser);
     window.addEventListener('storage', checkUser);
@@ -1027,6 +1036,20 @@ export default function ProjectStudioPage() {
     );
   }
 
+  if (studioMode === '989_studio' && project) {
+    return (
+      <NineEightNineStudioView
+        project={project}
+        onUpdateProject={(updated) => setProject(updated)}
+        onSave={() => handleSave()}
+        onSwitchToClassicView={() => {
+          setStudioMode('standard');
+          localStorage.setItem('preferred_studio_mode', 'standard');
+        }}
+      />
+    );
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
       {/* Top Header & Navigation Bar */}
@@ -1062,6 +1085,20 @@ export default function ProjectStudioPage() {
 
         {/* Action Controls */}
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          {/* Switch to 989 Studio View */}
+          <button
+            type="button"
+            onClick={() => {
+              setStudioMode('989_studio');
+              localStorage.setItem('preferred_studio_mode', '989_studio');
+            }}
+            className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-cyan-500 via-teal-400 to-amber-400 text-slate-950 font-black text-xs shadow-glow flex items-center gap-1.5 transition-all hover:brightness-110"
+            title="เปิดโหมด 989 Ai Prompt (v8 VIP Mode)"
+          >
+            <Film className="w-3.5 h-3.5 text-slate-950" />
+            <span>🎛️ โหมด 989 Ai Prompt (VIP)</span>
+          </button>
+
           {/* Visual Medium Switcher: Real vs Cartoon */}
           <div className="flex items-center bg-studio-900 border border-studio-700 rounded-xl p-1 text-xs">
             <button

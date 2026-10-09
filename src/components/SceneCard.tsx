@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { ScriptScene, CharacterBible, VisualMedium, StylePreset, CharacterDialogue } from '@/lib/types';
 import { cleanSceneTitle } from '@/lib/script-templates';
+import { FOCUS_OPTIONS, COMPOSITION_OPTIONS } from '@/lib/nine-eight-nine-engine';
 import {
   MessageSquare,
   Copy,
@@ -259,6 +260,66 @@ export default function SceneCard({
 
       {/* Main Content Sections */}
       <div className="space-y-4">
+        {/* 989 Ai Prompt Focus & Composition Bar */}
+        <div className="p-3 rounded-2xl bg-studio-950 border border-studio-800 space-y-2.5">
+          <div className="flex items-center justify-between text-xs pb-1 border-b border-studio-900">
+            <span className="font-bold text-cyan-400 flex items-center gap-1.5 text-[11px]">
+              <span>🎛️ 989 Ai Prompt: การกำกับภาพเฉพาะฉากนี้</span>
+            </span>
+            <span className="font-mono text-gray-400 text-[11px]">
+              ⏱️ เวลา: {scene.startTimeSec ?? (scene.sceneNumber - 1) * 10} - {scene.endTimeSec ?? scene.sceneNumber * 10} วิ
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 text-xs">
+            {/* Focus */}
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-cyan-300 uppercase block">🎯 FOCUS (ระยะชัด/โฟกัส)</label>
+              <select
+                value={scene.focusType || 'Deep Focus (ชัดลึก (ชัดทั้งภาพ))'}
+                onChange={(e) => onUpdate({ ...scene, focusType: e.target.value })}
+                className="w-full px-2.5 py-1.5 bg-studio-900 border border-studio-800 rounded-lg text-gray-200 text-xs focus:outline-none focus:border-cyan-500 font-semibold"
+              >
+                {FOCUS_OPTIONS.map((f) => (
+                  <option key={f.id} value={f.label}>
+                    {f.label}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="text"
+                placeholder="ขยายความโฟกัส... (เช่น ชัดลึกตั้งแต่โต๊ะถึงแผ่นกระดาษผนังหลัง)"
+                value={scene.focusDetail || ''}
+                onChange={(e) => onUpdate({ ...scene, focusDetail: e.target.value })}
+                className="w-full px-2.5 py-1.5 bg-studio-900/80 border border-studio-800 rounded-lg text-gray-300 text-[11px] focus:outline-none focus:border-cyan-500 placeholder-gray-600"
+              />
+            </div>
+
+            {/* Composition */}
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-teal-300 uppercase block">📐 COMPOSITION (การจัดองค์ประกอบภาพ)</label>
+              <select
+                value={scene.compositionType || 'Center Frame (กึ่งกลางภาพ)'}
+                onChange={(e) => onUpdate({ ...scene, compositionType: e.target.value })}
+                className="w-full px-2.5 py-1.5 bg-studio-900 border border-studio-800 rounded-lg text-gray-200 text-xs focus:outline-none focus:border-teal-500 font-semibold"
+              >
+                {COMPOSITION_OPTIONS.map((c) => (
+                  <option key={c.id} value={c.label}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="text"
+                placeholder="ระบุตำแหน่ง... (เช่น โต๊ะทำงานและตัวละครอยู่ที่กึ่งกลางเฟรม)"
+                value={scene.compositionDetail || ''}
+                onChange={(e) => onUpdate({ ...scene, compositionDetail: e.target.value })}
+                className="w-full px-2.5 py-1.5 bg-studio-900/80 border border-studio-800 rounded-lg text-gray-300 text-[11px] focus:outline-none focus:border-teal-500 placeholder-gray-600"
+              />
+            </div>
+          </div>
+        </div>
+
         {/* 1. บทเล่าเรื่อง / เสียงพากย์ (Story Narration) */}
         <div className="p-3.5 rounded-2xl bg-studio-950 border border-emerald-500/30 space-y-2">
           <div className="flex items-center justify-between">

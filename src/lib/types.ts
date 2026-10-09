@@ -84,9 +84,45 @@ export interface ScriptScene {
   mediaFileId?: string; // MongoDB GridFS ObjectId
   mediaUrl?: string; // URL สำหรับเรียกดู /api/media/[id]
   
+  // 989 Ai Prompt (v8 / VIP Mode) Directed Controls
+  locationId?: string; // e.g. "ROOM-01"
+  locationName?: string; // e.g. "ห้องพักเอก (ROOM-01)"
+  focusType?: string; // e.g. "Deep Focus (ชัดลึก (ชัดทั้งภาพ))"
+  focusDetail?: string; // e.g. "ชัดลึกเห็นตั้งแต่โต๊ะทำงานไปจนถึงแผ่นกระดาษบนผนังด้านหลัง"
+  compositionType?: string; // e.g. "Center Frame (กึ่งกลางภาพ)"
+  compositionDetail?: string; // e.g. "โต๊ะทำงานและ เอก (AEK-01) อยู่ที่กึ่งกลางเฟรม"
+  shotType?: string; // e.g. "Wide Shot (WS)", "Medium Shot (MS)", "Close-Up (CU)"
+  cameraAngle?: string; // e.g. "Eye-Level", "Low Angle", "High Angle"
+  startTimeSec?: number; // e.g. 0
+  endTimeSec?: number; // e.g. 10
+  propIds?: string[]; // e.g. ["PROP-01"]
+  
   estimatedDurationSec: number;
   notes?: string;
   createdAt: string;
+}
+
+// 989 Ai Prompt: จัดการ Props & ยานพาหนะ
+export interface PropItem {
+  id: string; // e.g. "PROP-01", "VEHICLE-01"
+  name: string; // e.g. "แล็ปท็อปเอกสารลับ", "ปืนพกกล็อก", "รถตู้สีดำทึบ"
+  category: 'prop' | 'vehicle' | 'weapon' | 'gadget';
+  description: string;
+  colorLock?: string; // e.g. "ดำด้าน มีแถบสะท้อนแสง"
+  imageUrl?: string;
+}
+
+// 989 Ai Prompt: จัดการสถานที่ (Locations)
+export interface LocationItem {
+  id: string; // e.g. "ROOM-01", "STREET-02"
+  name: string; // e.g. "ห้องพักเอก (ROOM-01)"
+  type?: string; // ภายในอาคาร / ภายนอก / ธรรมชาติ
+  timeOfDay?: string; // กลางวัน / พลบค่ำ / กลางคืน
+  weather?: string; // ฝนตก / หมอกลง / แดดจ้า
+  lighting?: string; // แสงไฟนีออนสลัว / โคมไฟอบอุ่น
+  description: string; // รายละเอียดสถานที่
+  imageUrl?: string;
+  referencePrompt?: string; // Prompt สำหรับสร้างฉากหลัง
 }
 
 // 11 มิติข้อมูลตัวละครสมบูรณ์แบบ (Character Bible 11 Dimensions)
@@ -172,6 +208,12 @@ export interface Project {
   previousPartTitle?: string; // ชื่อภาคก่อนหน้า
   previousEndingRecap?: string; // สรุปตอนจบภาคก่อนหน้าเพื่อส่งต่อ
   
+  // 989 Ai Prompt (v8 / VIP Mode) Assets & Constraints
+  props?: PropItem[];
+  locations?: LocationItem[];
+  aiRules?: string[];
+  viewMode?: 'standard' | '989_studio';
+
   // System Metadata
   youtubeChannelStyle: string; // เช่น "สไตล์เพื่อนที่ดีที่สุด SAN1" หรือ "แนวทหารยุทธวิธี Facebook Reels"
   createdAt: string;
