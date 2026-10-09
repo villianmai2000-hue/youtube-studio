@@ -1,6 +1,7 @@
 import { MovieGenre, WorldCulture, CharacterBible } from './types';
 
 export type StoryThemeKey =
+  | 'ink_sovereign'
   | 'judian_doomsday'
   | 'manga_bus_survival'
   | 'horror_krasue'
@@ -23,6 +24,7 @@ export interface StoryThemeAnalysis {
   effectiveSubGenre: string;
   themeNameTh: string;
   themeEmoji: string;
+  isInkSovereign: boolean;
   isJudianDoomsday: boolean;
   isMangaBusSurvival: boolean;
   isHorrorOrGhost: boolean;
@@ -63,25 +65,34 @@ export function analyzeStoryTheme(params: {
 
   const context = `${title} ${synopsis} ${genre} ${subGenre} ${worldCulture}`.toLowerCase();
 
-  // 0.0 ตรวจจับอนิเมะมังงะรีแคปวันสิ้นโลก / มิติเก็บของไม่จำกัด / ฝนตกโลกจม (JUDIAN อะนิเมะ / Doomsday Infinite Space)
+  // 0.0 ตรวจจับปรมาจารย์รอยสักสยบมาร / เข็มสักเทวะ / ดินแดนรอยสักสัตว์อสูร (The Ink Sovereign / Beast Tattoo Xianxia)
+  const isInkSovereign =
+    /ปรมาจารย์.*รอยสัก|ปรมาจารย์.*จอมสัก|the ink sovereign|เข็มสักเทวะ|รอยสัก.*สัตว์อสูร|รอยสัก.*สัตว์เทวะ|รอยสัก.*มีชีวิต|รอยสักนอกรีต|สัก.*อักขระยันต์ป้องกัน|ศิลปะบนเรือนร่าง.*บดขยี้สำนักมาร|ink sovereign/i.test(
+      context
+    );
+
+  // 0.1 ตรวจจับอนิเมะมังงะรีแคปวันสิ้นโลก / มิติเก็บของไม่จำกัด / ฝนตกโลกจม (JUDIAN อะนิเมะ / Doomsday Infinite Space)
   const isJudianDoomsday =
+    !isInkSovereign &&
     /judian|จูเดียน|โลกจม|ฝนตก.*โลกจม|ฝนตกหนัก.*วันสิ้นโลก|ฝนตก.*49\s*วัน|ฝนตก.*มหาสมุทร|暴雨末日|ภูเขาทองในมิติ|มิติเก็บของ|มิติหยุดเวลา|กระเป๋าไร้ก้น|ปลดล็อก.*มิติ|ปลดล็อก.*กระเป๋า|infinite backpack|infinite space|doomsday rain|หูโยว่|เซ่าวานฉิว|อาหารสำรองที่แข็งแกร่งที่สุด|เจ็ดวันก่อนวันสิ้นโลก|ตุนเสบียง|เซฟเฮาส์.*วันสิ้นโลก|ป้อมปราการ.*วันสิ้นโลก|ย้อนเวลา.*วันสิ้นโลก/i.test(
       context
     );
 
-  // 0.1 ตรวจจับมังงะรีแคป / ชายคนเดียวบนรถบัสวันสิ้นโลก (Manga Realms MRE / Bus Apocalypse)
+  // 0.2 ตรวจจับมังงะรีแคป / ชายคนเดียวบนรถบัสวันสิ้นโลก (Manga Realms MRE / Bus Apocalypse)
   const isMangaBusSurvival =
+    !isInkSovereign &&
     !isJudianDoomsday &&
     /manga realms|manga realm|mre|manga recap|สปอยล์มังงะ|มังงะ.*รถบัส|รถบัส.*มังงะ|ชายคนเดียวบนรถบัส|ผมคือชายคนเดียวบนรถบัส|บนรถบัส|ผู้ชายคนเดียวบนรถบัส|รถบัส.*ซอมบี้|ซอมบี้.*รถบัส|harem bus|bus apocalypse|alone on the bus/i.test(
       context
     );
 
   // 1. ตรวจจับผีไทยเฉพาะเจาะจง (Specific Thai Ghost Folklore)
-  const isSpecificKrasue = !isJudianDoomsday && !isMangaBusSurvival && /กระสือ|ถอดหัว|ไส้เรืองแสง|ดวงไฟกระสือ/i.test(context);
-  const isSpecificTakhian = !isJudianDoomsday && !isMangaBusSurvival && /ตะเคียน|แม่ตะเคียน|นางไม้|ต้นตะเคียน|เจ้าแม่ตะเคียน/i.test(context);
-  const isSpecificPop = !isJudianDoomsday && !isMangaBusSurvival && /ปอบ|ผีปอบ|กินตับ|หยิบตับ/i.test(context);
+  const isSpecificKrasue = !isInkSovereign && !isJudianDoomsday && !isMangaBusSurvival && /กระสือ|ถอดหัว|ไส้เรืองแสง|ดวงไฟกระสือ/i.test(context);
+  const isSpecificTakhian = !isInkSovereign && !isJudianDoomsday && !isMangaBusSurvival && /ตะเคียน|แม่ตะเคียน|นางไม้|ต้นตะเคียน|เจ้าแม่ตะเคียน/i.test(context);
+  const isSpecificPop = !isInkSovereign && !isJudianDoomsday && !isMangaBusSurvival && /ปอบ|ผีปอบ|กินตับ|หยิบตับ/i.test(context);
 
   const isHorrorOrGhost =
+    !isInkSovereign &&
     !isJudianDoomsday &&
     !isMangaBusSurvival &&
     (isSpecificKrasue ||
@@ -98,8 +109,9 @@ export function analyzeStoryTheme(params: {
       subGenre === 'horror_jp');
 
   // 2. ตรวจจับตำนานไทย / พญานาค / หิมพานต์ (Thai Myth & Folklore)
-  const isSpecificNaga = /นาค|พญานาค|นาคราช|วังบาดาล|บาดาล|บั้งไฟ|มณีนาคราช|แม่น้ำโขง|naga/i.test(context);
+  const isSpecificNaga = !isInkSovereign && /นาค|พญานาค|นาคราช|วังบาดาล|บาดาล|บั้งไฟ|มณีนาคราช|แม่น้ำโขง|naga/i.test(context);
   const isThaiMyth =
+    !isInkSovereign &&
     !isHorrorOrGhost &&
     (isSpecificNaga ||
       /หิมพานต์|ครุฑ|ยักษ์|ท้าวเวส|กุมารทอง|ขุนแผน|อยุธยา|ไกรทอง|บางระจัน|สยาม|มวยไทย|สุวรรณภูมิ|บุญบั้งไฟ|garuda|himmapan/i.test(
@@ -223,7 +235,21 @@ export function analyzeStoryTheme(params: {
   let themeEmoji = '🎭';
   let recommendedCastStructure: string[] = [];
 
-  if (isJudianDoomsday) {
+  if (isInkSovereign) {
+    themeKey = 'ink_sovereign';
+    effectiveGenre = 'xianxia_cultivation';
+    effectiveCulture = 'chinese';
+    effectiveSubGenre = 'xianxia_tattoo';
+    themeNameTh = 'ปรมาจารย์รอยสักสยบมาร (The Ink Sovereign)';
+    themeEmoji = '🐉';
+    recommendedCastStructure = [
+      'หลี่เฉิน (จอมสักเทวะผู้พลิกชะตา / ชายหนุ่มผู้ค้นพบเข็มสักเทวะบรรพชน)',
+      'ไป๋หลิง (ผู้พิทักษ์วิหคเพลิง / สหายสาวผู้สลักรอยสักสัตว์เทวะ)',
+      'จ้าวมารเก้าทมิฬ (เจ้าสำนักมาร / ผู้กว้านซื้อวิญญาณมนุษย์ทำรอยสักนอกรีต)',
+      'สัตว์เทวะมังกรคราม & พยัคฆ์ขาว (พลังรอยสักมีชีวิตที่พุ่งทะยานออกมาต่อสู้)',
+      'ศิษย์สำนักมารรอยสักนอกรีต',
+    ];
+  } else if (isJudianDoomsday) {
     themeKey = 'judian_doomsday';
     effectiveGenre = 'apocalypse_survival';
     effectiveCulture = 'japanese';
@@ -431,6 +457,7 @@ export function analyzeStoryTheme(params: {
     effectiveSubGenre,
     themeNameTh,
     themeEmoji,
+    isInkSovereign,
     isJudianDoomsday,
     isMangaBusSurvival,
     isHorrorOrGhost,
@@ -469,7 +496,12 @@ export function isCastMismatched(characters: CharacterBible[], theme: StoryTheme
   const hasXianxiaCast = /เซียวหลิน|เซียวเฉิน|กระบี่บิน|ลมปราณ|ชุดคลุมเต๋า|ตานเถียน|cultivation prodigy/i.test(allNamesAndAnchors);
   const hasHorrorCast = /กระสือ|พรานบุญ|หมอผี|ตะเคียน|อาคม|ผ้าประเจียด|ดวงไฟ|spirit/i.test(allNamesAndAnchors);
 
-  // 0.0 ถ้าเป็นเรื่องวันสิ้นโลกฝนตกโลกจม มิติเก็บของ (JUDIAN อะนิเมะ) แต่ตัวละครไม่ใช่ทีมหูโยว่/มิติ/ป้อมปราการ หรือเป็นโจรสลัด/เซียนจีน/ผีไทย
+  // 0.0 ถ้าเป็นเรื่องปรมาจารย์รอยสักสยบมาร (The Ink Sovereign) แต่ตัวละครเป็นพรานบุญ/ผีไทย/ไซไฟ/หูโยว่
+  if (theme.isInkSovereign && (hasHorrorCast || hasSciFiCast || hasPirateCast || allNamesAndAnchors.includes('พรานบุญ') || allNamesAndAnchors.includes('หูโยว่') || allNamesAndAnchors.includes('เร็น'))) {
+    return true;
+  }
+
+  // 0.1 ถ้าเป็นเรื่องวันสิ้นโลกฝนตกโลกจม มิติเก็บของ (JUDIAN อะนิเมะ) แต่ตัวละครไม่ใช่ทีมหูโยว่/มิติ/ป้อมปราการ หรือเป็นโจรสลัด/เซียนจีน/ผีไทย
   if (theme.isJudianDoomsday && (hasPirateCast || hasSciFiCast || hasXianxiaCast || hasHorrorCast || !/หูโยว่|มิติ|เซ่าวานฉิว|ป้อมปราการ|หวังเฉียง|วันสิ้นโลก/i.test(allNamesAndAnchors))) {
     return true;
   }

@@ -7,6 +7,7 @@ import {
   generateAnimeJapanScene,
   generateMangaBusSurvivalScene,
   generateJudianDoomsdayScene,
+  generateInkSovereignScene,
 } from './procedural-folklore-beats';
 import { buildDynamicSceneBeat } from './story-synopsis-analyzer';
 
@@ -21,6 +22,7 @@ export interface SceneBeatParams {
   antagonist: CharacterBible;
   activeSquad: CharacterBible[];
   comrades: CharacterBible[];
+  isInkSovereign?: boolean;
   isJudianDoomsday?: boolean;
   isMangaBusSurvival?: boolean;
   isSpecificKrasue?: boolean;
@@ -57,7 +59,12 @@ export interface SceneContentResult {
 export function generateProceduralSceneContent(params: SceneBeatParams): SceneContentResult {
   const { primaryChar, secondaryChar, leadChar, antagonist } = normalizeActors(params);
 
-  // 0. วันสิ้นโลกฝนตกน้ำท่วม มิติเก็บของไม่จำกัด (JUDIAN อะนิเมะ / 暴雨末日：我解锁无限背包)
+  // 0.0 ปรมาจารย์รอยสักสยบมาร (The Ink Sovereign / Beast Tattoo Xianxia)
+  if (params.isInkSovereign) {
+    return generateInkSovereignScene(params);
+  }
+
+  // 0.1 วันสิ้นโลกฝนตกน้ำท่วม มิติเก็บของไม่จำกัด (JUDIAN อะนิเมะ / 暴雨末日：我解锁无限背包)
   if (params.isJudianDoomsday) {
     return generateJudianDoomsdayScene(params);
   }

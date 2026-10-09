@@ -77,7 +77,12 @@ export function generateIntelligentCharacters(params: {
   // ใช้ Theme Detector อัจฉริยะแบบรวมศูนย์ ป้องกันการตีความเป็นไซไฟหรือโจรสลัดผิดพลาด
   const theme = analyzeStoryTheme({ title, synopsis, genre, subGenre, worldCulture });
 
-  // 0.0 อนิเมะวันสิ้นโลก / ฝนตกโลกจม มิติเก็บของไม่จำกัด ป้อมปราการพันล้าน (JUDIAN อะนิเมะ)
+  // 0.0 ปรมาจารย์รอยสักสยบมาร / เข็มสักเทวะ / สัตว์อสูรแผ่นหลัง (The Ink Sovereign)
+  if (theme.isInkSovereign) {
+    return buildInkSovereignRoster(title, count);
+  }
+
+  // 0.1 อนิเมะวันสิ้นโลก / ฝนตกโลกจม มิติเก็บของไม่จำกัด ป้อมปราการพันล้าน (JUDIAN อะนิเมะ)
   if (theme.isJudianDoomsday) {
     return buildJudianDoomsdayRoster(title, count);
   }
@@ -830,6 +835,127 @@ export function generateIntelligentCharacters(params: {
 // --------------------------------------------------------------------------
 // Specialized Ensemble Rosters by Culture & Genre
 // --------------------------------------------------------------------------
+
+function buildInkSovereignRoster(title: string, count: number): CharacterBible[] {
+  const base: CharacterBible[] = [
+    {
+      id: `char-ink-${Date.now()}-1`,
+      name: 'หลี่เฉิน (จอมสักเทวะผู้พลิกชะตา / ชายหนุ่มผู้ค้นพบเข็มสักเทวะบรรพชน)',
+      role: 'protagonist',
+      age: '20 ปี',
+      bodyBuild: 'สง่างาม กล้ามเนื้อคมชัด แผ่นหลังสลักรอยสักมังกรฟ้าและอักขระยันต์เทวะสีทองเรืองแสง แผ่ออร่าปราณบรรพกาล',
+      facialFeatures: 'ใบหน้าหล่อเหลาคมคาย แววตามุ่งมั่นเด็ดเดี่ยว แววตาสีอำพันทองเป็นประกายยามเปิดใช้เนตรอักขระ',
+      hairStyle: 'ผมยาวสีดำขลับมัดรวบสูงครึ่งศีรษะ ปล่อยปอยผมข้างแก้มพริ้วไหว',
+      clothingStyle: 'ชุดคลุมจอมยุทธ์ผ้าไหมสีขาวตัดขอบดำ เปิดแผ่นหลังและไหล่ขวาเพื่อให้รอยสักสำแดงพลัง สวมปลอกแขนหนังลงอักขระ',
+      colorTheme: 'ขาวพิสุทธิ์-ดำหมึก-ทองคำสวรรค์-ฟ้าคราม',
+      weaponsOrProps: 'เข็มสักเทวะบรรพชนทองคำโบราณ / พู่กันหมึกโลหิตสัตว์เทวะ / คัมภีร์ยันต์เก้าสวรรค์',
+      personality: 'สุขุม มุ่งมั่น ไม่ยอมแพ้ต่อโชคชะตา มีคุณธรรม รักความยุติธรรม พร้อมปกป้องคนอ่อนแอ',
+      abilities: 'เนตรอักขระเทวะมองทะลุจุดชีพจร, การสลักรอยสักสัตว์เทวะให้มีชีวิตพุ่งทะยานออกมาต่อสู้, ยันต์เกราะมังกรทองคุ้มกาย',
+      weaknesses: 'การปลุกสัตว์เทวะระดับสูงต้องใช้พลังสมาธิและพลังวิญญาณมหาศาล',
+      relationships: 'ชายหนุ่มผู้ไร้พลังปราณที่พลิกชะตาฟ้าด้วยศิลปะรอยสักเทวะบรรพชน',
+      appearanceAnchor: 'handsome young Chinese anime hero, shirtless back showing glowing golden dragon tattoo and divine sacred symbols, holding ancient glowing golden tattoo needle, flowing white and black martial robe, Unreal Engine 5 3D donghua aesthetic, 8k cinematic lighting',
+      voiceStyle: 'ทุ้ม นิ่ง สุขุม หนักแน่น ทรงพลังและเด็ดเดี่ยว',
+      googleFlowSeed: '772910',
+    },
+    {
+      id: `char-ink-${Date.now()}-2`,
+      name: 'ไป๋หลิง (ผู้พิทักษ์วิหคเพลิง / สหายร่วมรบผู้ภักดี)',
+      role: 'supporting',
+      age: '19 ปี',
+      bodyBuild: 'ทรวดทรงอรชร ปราดเปรียว แผ่นหลังและไหล่สลักรอยสักวิหคเพลิงสุริยัน เปล่งประกายเปลวเพลิงสีชาด',
+      facialFeatures: 'ใบหน้างงดงามสะกดสายตา นัยน์ตาสีทับทิมเปล่งประกาย แฝงความเด็ดเดี่ยวและอ่อนโยน',
+      hairStyle: 'ผมยาวสีดำขลับสลวยปักปิ่นหยกเพลิง ประดับพู่ห้อยสีแดง',
+      clothingStyle: 'ชุดจอมยุทธ์หญิงผ้าไหมสีแดงชาดสลับขาว ชายกระโปรงพริ้วไหว สะพายกระบี่สลักลายเพลิง',
+      colorTheme: 'แดงชาด-ทอง-ขาว-ส้มเพลิง',
+      weaponsOrProps: 'กระบี่เพลิงพิสุทธิ์ / ขนนกวิหคเพลิงศักดิ์สิทธิ์',
+      personality: 'กล้าหาญ จงรักภักดี เฉลียวฉลาด คอยระวังหลังและสนับสนุนหลี่เฉินในทุกศึก',
+      abilities: 'ระบำกระบี่วิหคเพลิง, คลื่นเปลวเพลิงสยบไอปีศาจ, รอยสักวิหคเพลิงกางปีกคุ้มภัย',
+      weaknesses: 'แพ้ทางไอพิษเยือกแข็งแดนมาร',
+      relationships: 'สหายคนแรกที่ยอมรับรอยสักเทวะของหลี่เฉินและต่อสู้เคียงบ่าเคียงไหล่',
+      appearanceAnchor: 'stunningly beautiful Chinese anime heroine, flowing red and white martial robe, fiery glowing phoenix tattoo on shoulder and back, holding elegant spirit sword, 3d donghua aesthetic, cinematic render',
+      voiceStyle: 'ไพเราะ กังวาน เด็ดเดี่ยว แฝงความอบอุ่น',
+      googleFlowSeed: '772911',
+    },
+    {
+      id: `char-ink-${Date.now()}-3`,
+      name: 'จ้าวมารเก้าทมิฬ (เจ้าสำนักมาร / ผู้กว้านซื้อวิญญาณมนุษย์ทำรอยสักนอกรีต)',
+      role: 'antagonist',
+      age: '45 ปี',
+      bodyBuild: 'สูงใหญ่ กำยำ แผ่นหลังและลำตัวเต็มไปด้วยรอยสักกะโหลกอสูรมารสีดำทมิฬ แผ่ไอสังหารและวิญญาณแค้น',
+      facialFeatures: 'ใบหน้าดุดัน คมเข้ม มีรอยสักอักขระมารสีดำที่แก้มซ้าย นัยน์ตาสีแดงเลือดอำมหิต',
+      hairStyle: 'ผมยาวสีดำแซมขาวสยายอย่างน่าเกรงขาม สวมรัดเกล้าเหล็กดำ',
+      clothingStyle: 'ชุดคลุมเกราะมารสีดำทมิฬปักดิ้นโลหิต ขอบคลุมด้วยขนสัตว์อสูรสีเทาเข้ม',
+      colorTheme: 'ดำทมิฬ-แดงเลือด-ม่วงมืด',
+      weaponsOrProps: 'กระบองกะโหลกมารกลืนวิญญาณ / ขวดน้ำเต้ากักขังวิญญาณมนุษย์นับหมื่น',
+      personality: 'โหดเหี้ยม ทะเยอทะยาน ไร้ความปรานี มองชีวิตมนุษย์เป็นเพียงเครื่องสังเวยเพื่อพลังรอยสัก',
+      abilities: 'หมอกมารกลืนวิญญาณ, รอยสักอสูรพุ่งขย้ำศัตรู, เกราะกระดูกวิญญาณแค้น',
+      weaknesses: 'แสงธรรมและอักขระเทวะพิสุทธิ์ของเข็มสักบรรพชน',
+      relationships: 'ศัตรูคู่อาฆาตที่หลี่เฉินต้องกำจัดเพื่อล้างมลทินและปลดปล่อยวิญญาณมนุษย์',
+      appearanceAnchor: 'formidable tyrannical Chinese evil cult lord, black sinister robes, glowing crimson demonic tattoos of skull beasts, dark smoke aura, imposing fierce warrior, 8k cinematic donghua lighting',
+      voiceStyle: 'ทุ้มต่ำ ดุดัน ก้องกังวาน เยือกเย็น น่าสะพรึงกลัว',
+      googleFlowSeed: '772912',
+    },
+    {
+      id: `char-ink-${Date.now()}-4`,
+      name: 'สัตว์เทวะมังกรคราม (วิญญาณรอยสักเทวะที่มีชีวิต)',
+      role: 'supporting',
+      age: 'บรรพกาล',
+      bodyBuild: 'มังกรจีนขนาดยักษ์ ลำตัวเกล็ดสีครามสลับทอง เปล่งประกายสายฟ้าและเมฆหมอกสวรรค์',
+      facialFeatures: 'แววตาสีทองคำศักดิ์สิทธิ์ หนวดมังกรพริ้วไหว เขายาวสง่างาม',
+      hairStyle: 'แผงคอมังกรสีขาวเงินพริ้วไหวในมิติ',
+      clothingStyle: 'เกล็ดมังกรสวรรค์และเปลวอัศนีบาตสีครามล้อมรอบกาย',
+      colorTheme: 'ฟ้าคราม-ทองคำ-ขาวเงิน',
+      weaponsOrProps: 'กรงเล็บมังกรสายฟ้า / มณีมังกรสวรรค์',
+      personality: 'ทรงอำนาจ ภักดีต่อผู้ครอบครองเข็มสักเทวะที่แท้จริง',
+      abilities: 'พุ่งทะยานออกจากแผ่นหลังหลี่เฉิน เข้าบดขยี้ฝูงมาร, คำรามสะเทือนฟ้าดินลบล้างมนต์ดำ',
+      weaknesses: 'เชื่อมโยงกับสมาธิและโลหิตของหลี่เฉิน',
+      relationships: 'สัตว์เทวะประจำรอยสักบนแผ่นหลังของหลี่เฉิน',
+      appearanceAnchor: 'majestic Chinese azure dragon rising from a glowing tattoo, ethereal lightning and golden qi mist, epic mythical beast, 8k Unreal Engine 5 render',
+      voiceStyle: 'เสียงคำรามกังวานดั่งฟ้าร้องสะท้านปฐพี',
+      googleFlowSeed: '772913',
+    },
+    {
+      id: `char-ink-${Date.now()}-5`,
+      name: 'เฒ่ากระบี่หมึก (ผู้อาวุโสแห่งหอบรรพชน)',
+      role: 'supporting',
+      age: '70 ปี',
+      bodyBuild: 'ผอมสูง สงบนิ่ง แฝงความแข็งแกร่งดั่งต้นสนบนหน้าผา',
+      facialFeatures: 'หนวดเคราสีขาวสะอ้าน ใบหน้าเปี่ยมเมตตาและรอยยิ้มรู้ทันโลก',
+      hairStyle: 'ผมขาวเกล้ามวย ปักปิ่นไม้ไผ่โบราณ',
+      clothingStyle: 'ชุดคลุมเต๋าสีเทาครามเรียบง่าย รองเท้าฟางโบราณ',
+      colorTheme: 'เทาคราม-ขาว-เขียวไผ่',
+      weaponsOrProps: 'กระบอกไม้ไผ่ใส่พู่กันโบราณ / จอกสุรายาบำรุงชีพจร',
+      personality: 'ปล่อยวาง อารมณ์ดี ฉลาดหลักแหลม มองเห็นศักยภาพในตัวหลี่เฉิน',
+      abilities: 'การผสมน้ำหมึกเทวะจากสมุนไพรหมื่นปี, วิชาเก้าเข็มสะกดชีพจรมาร',
+      weaknesses: 'เรี่ยวแรงทางกายลดถอยตามวัย',
+      relationships: 'อาจารย์ผู้ไขปริศนาเข็มสักเทวะและมอบคัมภีร์บรรพชนให้หลี่เฉิน',
+      appearanceAnchor: 'wise elderly Chinese martial arts master, long white beard, simple grey Taoist robe, holding ancient ink scroll, serene misty mountain temple, 8k cinematic art',
+      voiceStyle: 'ทุ้ม นุ่ม อบอุ่น มีเมตตา',
+      googleFlowSeed: '772914',
+    },
+    {
+      id: `char-ink-${Date.now()}-6`,
+      name: 'เย่เหริน (มือสังหารรอยสักพยัคฆ์เงาแห่งสำนักมาร)',
+      role: 'antagonist',
+      age: '28 ปี',
+      bodyBuild: 'ปราดเปรียว ว่องไว รอยสักพยัคฆ์ดำเต็มท่อนแขนทั้งสองข้าง',
+      facialFeatures: 'แววตาคมกริบดั่งเสือร้าย สวมผ้าคลุมปิดครึ่งหน้าล่าง',
+      hairStyle: 'ผมสั้นสีดำมัดจุกเล็ก',
+      clothingStyle: 'ชุดรัดรูปสีดำสนิท มีสนับแขนเหล็กใบมีดซ่อน',
+      colorTheme: 'ดำสนิท-ม่วงเข้ม-เงินคมกริบ',
+      weaponsOrProps: 'กรงเล็บเหล็กอาบยาพิษ / มีดสั้นซัดเงา',
+      personality: 'เย็นชา ปฏิบัติตามคำสั่งจ้าวมารอย่างไร้ความปรานี',
+      abilities: 'การก้าวข้ามเงา, กรงเล็บพยัคฆ์ฉีกกระชาก',
+      weaknesses: 'แพ้ทางอักขระยันต์แสงตะวัน',
+      relationships: 'หัวหน้าหน่วยล่าสังหารของสำนักมารนอกรีต',
+      appearanceAnchor: 'lethal Chinese shadow assassin, glowing black tiger tattoo on arms, wearing stealth combat gear, dark misty alley, dynamic combat pose, 3D donghua',
+      voiceStyle: 'เย็นชา เยือกเย็น กระซิบแฝงจิตสังหาร',
+      googleFlowSeed: '772915',
+    },
+  ];
+
+  return expandRosterToCount(base, count, 'xianxia');
+}
 
 function buildJudianDoomsdayRoster(title: string, count: number): CharacterBible[] {
   const base: CharacterBible[] = [

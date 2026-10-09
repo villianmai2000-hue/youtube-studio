@@ -454,7 +454,7 @@ export function import989ProjectJson(jsonStr: string, currentProject: Project): 
  * 3. 989 Ai Prompt VIP Mode: สร้างหนังสั้น 3,000 วินาที รวม 308 ฉาก (เอก AEK-01, ผู้พันเกรียง)
  */
 export interface StoryPresetConfig {
-  id: 'judian' | 'manga_bus' | 'aek_989';
+  id: 'judian' | 'manga_bus' | 'aek_989' | 'ink_sovereign';
   name: string;
   badge: string;
   title: string;
@@ -476,6 +476,249 @@ export interface StoryPresetConfig {
 }
 
 export const STORY_PRESETS_989: Record<string, StoryPresetConfig> = {
+  ink_sovereign: {
+    id: 'ink_sovereign',
+    name: '🐉 ปรมาจารย์รอยสักสยบมาร (The Ink Sovereign)',
+    badge: 'Donghua 3D สยบมาร',
+    title: 'ปรมาจารย์รอยสักสยบมาร (The Ink Sovereign)',
+    synopsis: 'ในดินแดนที่วัดระดับพลังจากรอยสักสัตว์อสูรบนแผ่นหลัง ชายหนุ่มผู้ไร้พลังปราณค้นพบเข็มสักเทวะที่สืบทอดมาจากบรรพชน เขาเริ่มสัก อักขระยันต์ป้องกัน และ สัตว์เทวะในตำนาน ลงบนร่างตนเองและพรรคพวก รอยสักเหล่านี้สามารถมีชีวิตและพุ่งทะยานออกมาต่อสู้ได้จริง เขาต้องใช้ศิลปะบนเรือนร่างนี้บดขยี้สำนักมารที่กว้านซื้อวิญญาณมนุษย์ไปทำรอยสักนอกรีต',
+    worldCulture: 'chinese',
+    subGenre: 'xianxia_tattoo',
+    visualMedium: 'animation',
+    stylePreset: 'donghua_3d',
+    characters: [
+      {
+        id: 'CHAR-01',
+        name: 'หลี่เฉิน (จอมสักเทวะผู้พลิกชะตา)',
+        role: 'protagonist',
+        gender: 'ชาย',
+        age: '20 ปี',
+        bodyBuild: 'สง่างาม แผ่นหลังสลักรอยสักมังกรฟ้าและอักขระยันต์เทวะสีทองเรืองแสง',
+        facialFeatures: 'ใบหน้าหล่อเหลาคมคาย แววตามุ่งมั่นเด็ดเดี่ยว เนตรอักขระสีอำพันทอง',
+        hairStyle: 'ผมยาวสีดำขลับมัดรวบสูงครึ่งศีรษะ ปอยผมข้างแก้มพริ้วไหว',
+        clothingStyle: 'ชุดคลุมจอมยุทธ์ผ้าไหมสีขาวขอบดำ เปิดแผ่นหลังและไหล่ขวา ปลอกแขนหนังลงอักขระ',
+        colorTheme: 'ขาวพิสุทธิ์-ดำหมึก-ทองคำ-ฟ้าคราม',
+        weaponsOrProps: 'เข็มสักเทวะบรรพชนทองคำโบราณ / พู่กันหมึกโลหิตสัตว์เทวะ / คัมภีร์ยันต์เก้าสวรรค์',
+        personality: 'สุขุม มุ่งมั่น มีคุณธรรม รักความยุติธรรม ไม่ยอมแพ้ต่อโชคชะตา',
+        abilities: 'การสลักรอยสักสัตว์เทวะให้มีชีวิตพุ่งทะยานออกมาต่อสู้, ยันต์เกราะมังกรทองคุ้มกาย',
+        weaknesses: 'ต้องใช้พลังสมาธิสูงในการควบคุมสัตว์เทวะขั้นสูง',
+        relationships: 'ชายหนุ่มผู้ไร้พลังปราณที่พลิกชะตาฟ้าด้วยเข็มสักเทวะบรรพชน',
+        appearanceAnchor: 'handsome young Chinese anime hero, shirtless back showing glowing golden dragon tattoo and divine sacred symbols, holding ancient glowing golden tattoo needle, flowing white and black martial robe, Unreal Engine 5 3D donghua aesthetic, 8k cinematic lighting',
+        voiceStyle: 'ทุ้ม นิ่ง สุขุม หนักแน่น ทรงพลังและเด็ดเดี่ยว',
+      },
+      {
+        id: 'CHAR-02',
+        name: 'ไป๋หลิง (ผู้พิทักษ์วิหคเพลิง)',
+        role: 'supporting',
+        gender: 'หญิง',
+        age: '19 ปี',
+        bodyBuild: 'ทรวดทรงอรชร ปราดเปรียว แผ่นหลังสลักรอยสักวิหคเพลิงสุริยัน',
+        facialFeatures: 'ใบหน้างดงามสะกดสายตา นัยน์ตาสีทับทิมเปล่งประกาย แฝงความเด็ดเดี่ยวและอ่อนโยน',
+        hairStyle: 'ผมยาวสีดำขลับสลวยปักปิ่นหยกเพลิง ประดับพู่ห้อยสีแดง',
+        clothingStyle: 'ชุดจอมยุทธ์หญิงผ้าไหมสีแดงชาดสลับขาว ชายกระโปรงพริ้วไหว สะพายกระบี่สลักลายเพลิง',
+        colorTheme: 'แดงชาด-ทอง-ขาว-ส้มเพลิง',
+        weaponsOrProps: 'กระบี่เพลิงพิสุทธิ์ / ขนนกวิหคเพลิงศักดิ์สิทธิ์',
+        personality: 'กล้าหาญ จงรักภักดี เฉลียวฉลาด คอยระวังหลังและสนับสนุนหลี่เฉินในทุกศึก',
+        abilities: 'ระบำกระบี่วิหคเพลิง, คลื่นเปลวเพลิงสยบไอปีศาจ, รอยสักวิหคเพลิงกางปีกคุ้มภัย',
+        weaknesses: 'แพ้ทางไอพิษเยือกแข็งแดนมาร',
+        relationships: 'สหายคนแรกที่ยอมรับรอยสักเทวะของหลี่เฉินและต่อสู้เคียงบ่าเคียงไหล่',
+        appearanceAnchor: 'stunningly beautiful Chinese anime heroine, flowing red and white martial robe, fiery glowing phoenix tattoo on shoulder and back, holding elegant spirit sword, 3d donghua aesthetic, cinematic render',
+        voiceStyle: 'ไพเราะ กังวาน เด็ดเดี่ยว แฝงความอบอุ่น',
+      },
+      {
+        id: 'CHAR-03',
+        name: 'จ้าวมารเก้าทมิฬ (เจ้าสำนักมาร)',
+        role: 'antagonist',
+        gender: 'ชาย',
+        age: '45 ปี',
+        bodyBuild: 'สูงใหญ่ กำยำ แผ่นหลังและลำตัวเต็มไปด้วยรอยสักกะโหลกอสูรมารสีดำทมิฬ แผ่ไอสังหาร',
+        facialFeatures: 'ใบหน้าดุดัน คมเข้ม มีรอยสักอักขระมารสีดำที่แก้มซ้าย นัยน์ตาสีแดงเลือดอำมหิต',
+        hairStyle: 'ผมยาวสีดำแซมขาวสยายอย่างน่าเกรงขาม สวมรัดเกล้าเหล็กดำ',
+        clothingStyle: 'ชุดคลุมเกราะมารสีดำทมิฬปักดิ้นโลหิต ขอบคลุมด้วยขนสัตว์อสูรสีเทาเข้ม',
+        colorTheme: 'ดำทมิฬ-แดงเลือด-ม่วงมืด',
+        weaponsOrProps: 'กระบองกะโหลกมารกลืนวิญญาณ / ขวดน้ำเต้ากักขังวิญญาณมนุษย์นับหมื่น',
+        personality: 'โหดเหี้ยม ทะเยอทะยาน ไร้ความปรานี มองชีวิตมนุษย์เป็นเพียงเครื่องสังเวยเพื่อพลังรอยสัก',
+        abilities: 'หมอกมารกลืนวิญญาณ, รอยสักอสูรพุ่งขย้ำศัตรู, เกราะกระดูกวิญญาณแค้น',
+        weaknesses: 'แสงธรรมและอักขระเทวะพิสุทธิ์ของเข็มสักบรรพชน',
+        relationships: 'ศัตรูคู่อาฆาตที่หลี่เฉินต้องกำจัดเพื่อล้างมลทินและปลดปล่อยวิญญาณมนุษย์',
+        appearanceAnchor: 'formidable tyrannical Chinese evil cult lord, black sinister robes, glowing crimson demonic tattoos of skull beasts, dark smoke aura, imposing fierce warrior, 8k cinematic donghua lighting',
+        voiceStyle: 'ทุ้มต่ำ ดุดัน ก้องกังวาน เยือกเย็น น่าสะพรึงกลัว',
+      },
+      {
+        id: 'CHAR-04',
+        name: 'สัตว์เทวะมังกรคราม (วิญญาณรอยสักมีชีวิต)',
+        role: 'supporting',
+        gender: 'บรรพกาล',
+        age: 'หมื่นปี',
+        bodyBuild: 'มังกรจีนขนาดยักษ์ เกล็ดสีครามสลับทอง เปล่งประกายสายฟ้าและเมฆหมอกสวรรค์',
+        facialFeatures: 'แววตาสีทองคำศักดิ์สิทธิ์ หนวดมังกรพริ้วไหว เขายาวสง่างาม',
+        hairStyle: 'แผงคอมังกรสีขาวเงินพริ้วไหวในมิติ',
+        clothingStyle: 'เกล็ดมังกรสวรรค์และเปลวอัศนีบาตสีครามล้อมรอบกาย',
+        colorTheme: 'ฟ้าคราม-ทองคำ-ขาวเงิน',
+        weaponsOrProps: 'กรงเล็บมังกรสายฟ้า / มณีมังกรสวรรค์',
+        personality: 'ทรงอำนาจ ภักดีต่อผู้ครอบครองเข็มสักเทวะที่แท้จริง',
+        abilities: 'พุ่งทะยานออกจากแผ่นหลังหลี่เฉิน เข้าบดขยี้ฝูงมาร, คำรามสะเทือนฟ้าดินลบล้างมนต์ดำ',
+        weaknesses: 'เชื่อมโยงกับสมาธิและโลหิตของหลี่เฉิน',
+        relationships: 'สัตว์เทวะประจำรอยสักบนแผ่นหลังของหลี่เฉิน',
+        appearanceAnchor: 'majestic Chinese azure dragon rising from a glowing tattoo, ethereal lightning and golden qi mist, epic mythical beast, 8k Unreal Engine 5 render',
+        voiceStyle: 'เสียงคำรามกังวานดั่งฟ้าร้องสะท้านปฐพี',
+      },
+    ],
+    locations: [
+      {
+        id: 'DIVINE-INK-01',
+        name: 'หอบรรพชนเข็มสักเทวะ (DIVINE-INK-01)',
+        type: 'ภายในซากวิหารศักดิ์สิทธิ์',
+        timeOfDay: 'ตลอด 24 ชั่วโมง',
+        weather: 'หมอกควันลมปราณสวรรค์',
+        lighting: 'แสงสีทองคำเรืองรองจากศิลาจารึกอักขระโบราณ ส่องประกายตัดกับเงามืดของวิหาร',
+        description: 'ห้องโถงศิลาโบราณพันปี มีแท่นหินจารึกอักขระยันต์เก้าสวรรค์ และที่สถิตของเข็มสักเทวะบรรพชน',
+      },
+      {
+        id: 'ARENA-02',
+        name: 'ลานประลองรอยสักสัตว์อสูร (ARENA-02)',
+        type: 'ภายนอกอาคาร ลานหินกว้างขวาง',
+        timeOfDay: 'กลางวัน แดดกล้า',
+        weather: 'ลมพัดแรง ฝุ่นทรายตลบ',
+        lighting: 'แสงอาทิตย์ส่องกระทบเกราะยันต์และรอยสักของเหล่าจอมยุทธ์ เกิดประกายแสงหลากสีสัน',
+        description: 'เวทีประลองศิลาทรงกลมขนาดยักษ์ ล้อมรอบด้วยเสาอักขระสะกดพลัง จุดที่จอมยุทธ์ทั่วแคว้นใช้ประลองรอยสักสัตว์อสูร',
+      },
+      {
+        id: 'DARK-SECT-03',
+        name: 'ถ้ำมืดสำนักมารนอกรีต (DARK-SECT-03)',
+        type: 'ภายในถ้ำใต้ดินลึกลับ',
+        timeOfDay: 'มืดมิดไร้แสงตะวัน',
+        weather: 'ไอพิษและหมอกควันสีม่วงดำ',
+        lighting: 'เปลวไฟมารสีเขียวอมม่วงจากกระถางหัวกะโหลก ส่องสะท้อนขวดแก้วกักขังวิญญาณมนุษย์นับหมื่น',
+        description: 'รังลับใต้ดินของสำนักมารนอกรีต เต็มไปด้วยแท่นพิธีสกัดน้ำหมึกมาร และกรงขังวิญญาณมนุษย์บริสุทธิ์',
+      },
+      {
+        id: 'SUMMIT-04',
+        name: 'ยอดเขาเทวะสยบมาร จุดแตกหัก (SUMMIT-04)',
+        type: 'ยอดเขาสูงเทียมเมฆ',
+        timeOfDay: 'ราตรี คืนจันทร์สีเลือด สู่ รุ่งอรุณ',
+        weather: 'พายุหมอกเมฆ ฟ้าผ่าสายฟ้าฟาด',
+        lighting: 'แสงสายฟ้าสีทองครามปะทะไอหมอกมารสีดำแดง สว่างวาบเป็นระยะดั่งวันโลกาวินาศ',
+        description: 'ยอดเขาสูงชันเสียดฟ้า ลานศิลาศักดิ์สิทธิ์จุดแตกหักระหว่างมังกรฟ้าของหลี่เฉินและอสูรมารของจ้าวมารเก้าทมิฬ',
+      },
+    ],
+    props: [
+      {
+        id: 'DIVINE-NEEDLE-01',
+        name: 'เข็มสักเทวะบรรพชนทองคำโบราณ',
+        category: 'weapon',
+        description: 'เข็มทองคำสลักลวดลายมังกรสวรรค์ ปลายเข็มเปล่งแสงอักขระเทวะ สลักรอยสักให้มีชีวิตและพุ่งทะยานออกมาได้จริง',
+        colorLock: 'ทองคำสวรรค์ เปล่งแสงออร่าสีคราม',
+      },
+      {
+        id: 'BEAST-INK-02',
+        name: 'น้ำหมึกโลหิตสัตว์เทวะในขวดหยก',
+        category: 'prop',
+        description: 'ขวดหยกโบราณบรรจุน้ำหมึกสกัดจากโลหิตสัตว์เทวะและสมุนไพรเก้าสวรรค์ เปล่งประกายมุกเรืองรอง',
+        colorLock: 'ขวดหยกเขียวมรกต น้ำหมึกสีครามทอง',
+      },
+      {
+        id: 'SCROLL-03',
+        name: 'คัมภีร์ยันต์เก้าสวรรค์และสัตว์เทวะสี่ทิศ',
+        category: 'prop',
+        description: 'ม้วนผ้าไหมโบราณบันทึกตำรายันต์ป้องกัน เคล็ดลับการควบคุมสัตว์เทวะ และการประสานพลังหยินหยาง',
+        colorLock: 'ผ้าไหมสีทองอร่าม ขอบไม้จันทน์หอม',
+      },
+    ],
+    blocks: [
+      {
+        name: 'บล็อก 1: กำเนิดชะตาฟ้าและการค้นพบเข็มสักเทวะบรรพชน',
+        locId: 'DIVINE-INK-01',
+        actionSummary: 'หลี่เฉินค้นพบเข็มสักเทวะในซากวิหารศิลาและทำพันธะสัญญาเลือด',
+        narrationBeat: 'ในวินาทีนั้นเอง... ภายในซากวิหารศิลาบรรพกาล หลี่เฉิน ชายหนุ่มผู้ไร้พลังปราณ ได้เอื้อมมือสัมผัสเข็มสักเทวะทองคำ แสงสีทองระเบิดวาบขึ้น อักขระยันต์โบราณไหลเวียนเข้าสู่จุดชีพจร พลิกชะตาชีวิตของเขาสู่เส้นทางแห่งจอมสักเทวะผู้ยิ่งใหญ่!',
+        dialogueList: [
+          { speaker: 'หลี่เฉิน (จอมสักเทวะผู้พลิกชะตา)', emotion: 'มุ่งมั่น', text: 'แม้ข้าจะไม่มีตันเถียนฝึกปราณ... แต่ข้าจะใช้ศิลปะแห่งรอยสักเทวะนี้ สลักชะตาฟ้าขึ้นมาใหม่!' },
+        ],
+      },
+      {
+        name: 'บล็อก 2: การสลักอักขระแรกและการตื่นขึ้นของมังกรฟ้าบนแผ่นหลัง',
+        locId: 'DIVINE-INK-01',
+        actionSummary: 'หลี่เฉินจรดเข็มสลักรอยสักมังกรฟ้า เกิดเกราะยันต์ป้องกันไร้เทียมทาน',
+        narrationBeat: 'วินาทีถัดมา... ปลายเข็มสักเทวะจรดลงบนแผ่นหลังของหลี่เฉิน ลวดลายมังกรฟ้าและอักขระยันต์ป้องกันส่องสว่างเจิดจรัส เกราะทองคำคุ้มกายแผ่ขยายออกมารอบตัว กระบี่เหล็กกล้าฟันไม่เข้า คมอาวุธหักสะบั้นในพริบตา!',
+        dialogueList: [
+          { speaker: 'หลี่เฉิน (จอมสักเทวะผู้พลิกชะตา)', emotion: 'ทรงพลัง', text: 'เกราะยันต์มังกรทองคุ้มกาย... ไม่มีสิ่งใดในใต้หล้าทำลายการป้องกันของข้าได้!' },
+        ],
+      },
+      {
+        name: 'บล็อก 3: รอยสักมีชีวิตและมังกรฟ้าพุ่งทะยานสยบสัตว์อสูร',
+        locId: 'ARENA-02',
+        actionSummary: 'หลี่เฉินปลดปล่อยมังกรฟ้าออกจากแผ่นหลัง สยบสัตว์อสูรป่าคลั่งในกระบวนท่าเดียว',
+        narrationBeat: 'ทันใดนั้นเอง! แผ่นหลังของหลี่เฉินเปล่งแสงคำราม มังกรฟ้าครามพุ่งทะยานหลุดออกจากรอยสัก กลายร่างเป็นมังกรพลังงานขนาดยักษ์ ฟาดกรงเล็บสายฟ้าสยบสัตว์อสูรคลั่งในกระบวนท่าเดียว ก่อนจะม้วนตัวบินกลับเข้าสู่เรือนร่างอย่างน่าอัศจรรย์!',
+        dialogueList: [
+          { speaker: 'หลี่เฉิน (จอมสักเทวะผู้พลิกชะตา)', emotion: 'เด็ดเดี่ยว', text: 'จงพุ่งทะยาน มังกรฟ้าคราม... สยบความชั่วร้ายให้สิ้นซาก!' },
+        ],
+      },
+      {
+        name: 'บล็อก 4: การสลักรอยสักวิหคเพลิงให้ไป๋หลิงและการผสานพลังสองขั้ว',
+        locId: 'DIVINE-INK-01',
+        actionSummary: 'หลี่เฉินสลักรอยสักวิหคเพลิงให้ไป๋หลิง เกิดพลังผสานมังกรฟ้าและหงส์เพลิง',
+        narrationBeat: 'ต่อมา... หลี่เฉินใช้เข็มเทวะสลักรอยสักวิหคเพลิงสุริยันลงบนแผ่นหลังของไป๋หลิง เปลวเพลิงสีชาดกางปีกคุ้มภัย เมื่อทั้งสองยืนเคียงบ่าเคียงไหล่ รอยสักมังกรฟ้าและวิหคเพลิงผสานพลังเป็นวงแหวนหยินหยางอันไร้พ่าย!',
+        dialogueList: [
+          { speaker: 'ไป๋หลิง (ผู้พิทักษ์วิหคเพลิง)', emotion: 'ซาบซึ้งใจ', text: 'ข้าจะปกป้องแผ่นหลังของเจ้า และเราจะทำลายสำนักมารไปด้วยกัน!' },
+        ],
+      },
+      {
+        name: 'บล็อก 5: เปิดโปงแผนการสำนักมารนอกรีตและการกว้านซื้อวิญญาณมนุษย์',
+        locId: 'DARK-SECT-03',
+        actionSummary: 'ทั้งสองลักลอบเข้าถ้ำมืดสำนักมาร พบแท่นพิธีสูบวิญญาณมนุษย์นับหมื่น',
+        narrationBeat: 'ในเงามืดของถ้ำสำนักมาร หลี่เฉินและไป๋หลิงได้พบกับแท่นพิธีสุดสยอง กรงขังวิญญาณมนุษย์บริสุทธิ์นับหมื่นดวงกำลังถูกสูบไปทำน้ำหมึกสักอสูรเถื่อน ความโหดเหี้ยมของจ้าวมารเก้าทมิฬจุดเพลิงโทสะในใจของทั้งสองให้ลุกโชน!',
+        dialogueList: [
+          { speaker: 'หลี่เฉิน (จอมสักเทวะผู้พลิกชะตา)', emotion: 'โกรธเกรี้ยว', text: 'เอาวิญญาณมนุษย์มาทำรอยสักนอกรีต... ข้าจะบดขยี้สำนักมารของพวกเจ้าให้แหลกคามือ!' },
+        ],
+      },
+      {
+        name: 'บล็อก 6: ยันต์ป้องกันต้านกรงเล็บพิษและมือสังหารพยัคฆ์เงา',
+        locId: 'DARK-SECT-03',
+        actionSummary: 'มือสังหารลอบโจมตีแผ่นหลัง แต่เกราะยันต์สะท้อนกลับทำลายกรงเล็บมาร',
+        narrationBeat: 'ทันใดนั้น กรงเล็บพิษของมือสังหารพยัคฆ์เงาพุ่งลอบกัดจากด้านหลัง ทว่าเกราะยันต์มังกรทองบนแผ่นหลังของหลี่เฉินระเบิดพลังสะท้อนกลับ ทำลายกรงเล็บมารจนแหลกเป็นผง บีบให้มือสังหารต้องคายที่ซ่อนของจ้าวมารบนยอดเขาเทวะ!',
+        dialogueList: [
+          { speaker: 'ไป๋หลิง (ผู้พิทักษ์วิหคเพลิง)', emotion: 'เฉียบคม', text: 'รอยสักนอกรีตของพวกเจ้า ไม่มีวันเทียบชั้นกับรอยสักเทวะที่แท้จริงได้!' },
+        ],
+      },
+      {
+        name: 'บล็อก 7: บุกยอดเขาเทวะสยบมารและกองทัพรอยสักอสูร',
+        locId: 'SUMMIT-04',
+        actionSummary: 'ทั้งสองบุกยอดเขาเทวะ ระบำกระบี่วิหคเพลิงและเข็มสักเทวะกวาดล้างศิษย์มาร',
+        narrationBeat: 'บนยอดเขาเทวะสยบมาร ท่ามกลางคืนจันทร์สีเลือด ศิษย์สำนักมารนับร้อยเข้าปิดล้อม ทว่าระบำกระบี่วิหคเพลิงของไป๋หลิงและเข็มสักเทวะทะลวงชีพจรของหลี่เฉิน ได้กวาดล้างแนวรับ ลบล้างรอยสักมารของศัตรูจนหมดสภาพ!',
+        dialogueList: [
+          { speaker: 'หลี่เฉิน (จอมสักเทวะผู้พลิกชะตา)', emotion: 'เด็ดขาด', text: 'จุดที่หนึ่ง... สลายรอยสักมาร! จงคืนความสงบสุขให้แผ่นดิน!' },
+        ],
+      },
+      {
+        name: 'บล็อก 8: เผชิญหน้าจ้าวมารเก้าทมิฬและการปะทะอสูรกะโหลกกลืนวิญญาณ',
+        locId: 'SUMMIT-04',
+        actionSummary: 'จ้าวมารเก้าทมิฬปล่อยอสูรกะโหลกสามหัว มังกรครามและวิหคเพลิงพุ่งเข้าประจัญบาน',
+        narrationBeat: 'จ้าวมารเก้าทมิฬปลดปล่อยอสูรกะโหลกกลืนวิญญาณสามหัวเข้าถล่ม หลี่เฉินและไป๋หลิงประสานจิต มังกรฟ้าครามและวิหคเพลิงสุริยันบินวนเป็นเกลียวแสงครามเพลิง พุ่งทะลวงฉีกกระชากอสูรมารจนแหลกละเอียดกลางเวหา!',
+        dialogueList: [
+          { speaker: 'จ้าวมารเก้าทมิฬ (เจ้าสำนักมาร)', emotion: 'เกรี้ยวกราด', text: 'รอยสักวิญญาณหมื่นดวงของข้า... เป็นไปไม่ได้ที่เจ้าเด็กไร้ปราณจะทำลายมันได้!' },
+        ],
+      },
+      {
+        name: 'บล็อก 9: ค่ายกลยันต์เก้าสวรรค์ชำระล้างและปลดปล่อยวิญญาณมนุษย์',
+        locId: 'SUMMIT-04',
+        actionSummary: 'หลี่เฉินสลักอักขระเทวะกลางเวหา ปลดปล่อยวิญญาณมนุษย์หมื่นดวงสู่สรวงสวรรค์',
+        narrationBeat: 'หลี่เฉินทะยานสู่เวหา ตวัดเข็มสักเทวะวาดค่ายกลยันต์เก้าสวรรค์กลางอากาศ สายฟ้าชำระล้างผ่าลงมา รอยสักนอกรีตบนร่างจ้าวมารมอดไหม้เป็นเถ้าถ่าน ดวงวิญญาณมนุษย์นับหมื่นดวงหลุดพ้นจากคำสาป ลอยขึ้นสู่สวรรค์ด้วยความสงบสุข!',
+        dialogueList: [
+          { speaker: 'หลี่เฉิน (จอมสักเทวะผู้พลิกชะตา)', emotion: 'เปี่ยมบารมี', text: 'ด้วยอำนาจแห่งเข็มสักเทวะบรรพชน... จงปลดปล่อยวิญญาณทั้งปวง และทำลายล้างรอยสักนอกรีต!' },
+        ],
+      },
+      {
+        name: 'บล็อก 10: สถาปนาปรมาจารย์รอยสักสยบมารและรุ่งอรุณแห่งยุคใหม่',
+        locId: 'SUMMIT-04',
+        actionSummary: 'สำนักมารล่มสลาย หลี่เฉินสถาปนาสำนักรอยสักเทวะคุ้มครองใต้หล้าตลอดกาล',
+        narrationBeat: 'แสงตะวันแรกแห่งรุ่งอรุณสาดส่องทั่วแผ่นดิน สำนักมารนอกรีตล่มสลายลง หลี่เฉินและไป๋หลิงสถาปนาสำนักรอยสักเทวะขึ้นใหม่ มังกรฟ้าและวิหคเพลิงสยายปีกคุ้มครองใต้หล้า จารึกตำนานแห่ง ปรมาจารย์รอยสักสยบมาร (The Ink Sovereign) ตราบนานเท่านาน!',
+        dialogueList: [
+          { speaker: 'หลี่เฉิน (จอมสักเทวะผู้พลิกชะตา)', emotion: 'สง่างาม ยิ้มรับวันใหม่', text: 'ศิลปะบนเรือนร่าง... คือพลังที่มีไว้เพื่อคุ้มครองผู้อื่น และตำนานนี้จะคงอยู่ตลอดไป!' },
+          { speaker: 'ไป๋หลิง (ผู้พิทักษ์วิหคเพลิง)', emotion: 'ยืนเคียงคู่', text: 'พวกเราจะคอยเฝ้ามองและปกป้องผืนดินนี้ไปด้วยกัน!' },
+        ],
+      },
+    ],
+  },
   judian: {
     id: 'judian',
     name: '🌧️ [JUDIAN] วันที่ 13 กรกฎาคม ฝนตก โลกจม มิติเก็บของ ปืนในมือ',
@@ -1223,35 +1466,47 @@ export function generateScenesForPreset(
  */
 export function applyStoryPresetToProject(
   project: Project,
-  presetKey: 'judian' | 'manga_bus' | 'aek_989' | 'custom',
+  presetKey: 'ink_sovereign' | 'judian' | 'manga_bus' | 'aek_989' | 'custom',
   customData?: { title?: string; synopsis?: string }
 ): Project {
   let preset: StoryPresetConfig;
 
   if (presetKey === 'custom' && customData?.title) {
-    const theme = analyzeStoryTheme({
-      title: customData.title,
-      synopsis: customData.synopsis || '',
-    });
-    // ใช้ JUDIAN เป็นแม่แบบหากเป็นแนววันสิ้นโลก หรือ Manga หากเป็นแนวรถบัส หรือ 989
-    const base = theme.isJudianDoomsday
-      ? STORY_PRESETS_989.judian
-      : theme.isMangaBusSurvival
-      ? STORY_PRESETS_989.manga_bus
-      : STORY_PRESETS_989.judian;
+    const combined = `${customData.title} ${customData.synopsis || ''}`.toLowerCase();
+    const isInk = /รอยสัก|เข็มสัก|ink sovereign|ปรมาจารย์|สักอักขระ/i.test(combined);
 
-    preset = {
-      ...base,
-      id: base.id,
-      name: customData.title,
-      badge: theme.themeNameTh,
-      title: customData.title,
-      synopsis: customData.synopsis || base.synopsis,
-      worldCulture: theme.effectiveCulture as any,
-      subGenre: theme.effectiveSubGenre,
-    };
+    if (isInk) {
+      preset = {
+        ...STORY_PRESETS_989.ink_sovereign,
+        title: customData.title,
+        synopsis: customData.synopsis || STORY_PRESETS_989.ink_sovereign.synopsis,
+      };
+    } else {
+      const theme = analyzeStoryTheme({
+        title: customData.title,
+        synopsis: customData.synopsis || '',
+      });
+      const base = theme.isInkSovereign
+        ? STORY_PRESETS_989.ink_sovereign
+        : theme.isJudianDoomsday
+        ? STORY_PRESETS_989.judian
+        : theme.isMangaBusSurvival
+        ? STORY_PRESETS_989.manga_bus
+        : STORY_PRESETS_989.ink_sovereign;
+
+      preset = {
+        ...base,
+        id: base.id,
+        name: customData.title,
+        badge: theme.themeNameTh,
+        title: customData.title,
+        synopsis: customData.synopsis || base.synopsis,
+        worldCulture: theme.effectiveCulture as any,
+        subGenre: theme.effectiveSubGenre,
+      };
+    }
   } else {
-    preset = STORY_PRESETS_989[presetKey] || STORY_PRESETS_989.judian;
+    preset = STORY_PRESETS_989[presetKey] || STORY_PRESETS_989.ink_sovereign;
   }
 
   const updatedProject: Project = {
@@ -1279,11 +1534,15 @@ export function applyStoryPresetToProject(
  */
 export function generateStandardScenes989(project: Project, count: number = 40): ScriptScene[] {
   const theme = analyzeStoryTheme({ title: project.title, synopsis: project.synopsis });
-  let preset = STORY_PRESETS_989.judian;
-  if (theme.isMangaBusSurvival) {
+  let preset = STORY_PRESETS_989.ink_sovereign;
+  if (theme.isJudianDoomsday) {
+    preset = STORY_PRESETS_989.judian;
+  } else if (theme.isMangaBusSurvival) {
     preset = STORY_PRESETS_989.manga_bus;
-  } else if (!theme.isJudianDoomsday && project.locations?.some((l) => l.name.includes('ห้องพักเอก'))) {
+  } else if (project.locations?.some((l) => l.name.includes('ห้องพักเอก'))) {
     preset = STORY_PRESETS_989.aek_989;
+  } else if (theme.isInkSovereign || project.title.includes('รอยสัก') || project.title.includes('Sovereign')) {
+    preset = STORY_PRESETS_989.ink_sovereign;
   }
 
   return generateScenesForPreset(project, preset, count);
@@ -1296,20 +1555,30 @@ export function generateStandardScenes989(project: Project, count: number = 40):
  */
 export function generateVip3000SecondsMovie(project: Project): Project {
   const theme = analyzeStoryTheme({ title: project.title, synopsis: project.synopsis });
-  let preset = STORY_PRESETS_989.judian;
-  if (theme.isMangaBusSurvival) {
+  let preset = STORY_PRESETS_989.ink_sovereign;
+  if (theme.isJudianDoomsday) {
+    preset = STORY_PRESETS_989.judian;
+  } else if (theme.isMangaBusSurvival) {
     preset = STORY_PRESETS_989.manga_bus;
-  } else if (!theme.isJudianDoomsday && project.locations?.some((l) => l.name.includes('ห้องพักเอก'))) {
+  } else if (project.locations?.some((l) => l.name.includes('ห้องพักเอก'))) {
     preset = STORY_PRESETS_989.aek_989;
+  } else if (theme.isInkSovereign || project.title.includes('รอยสัก') || project.title.includes('Sovereign')) {
+    preset = STORY_PRESETS_989.ink_sovereign;
   }
+
+  // ป้องกันการค้างตัวละครผีไทย พรานบุญ หากชื่อเรื่องเป็น ปรมาจารย์รอยสักสยบมาร
+  const isFolkloreMismatched = project.characters?.some(
+    (c) => c.name.includes('พรานบุญ') || c.name.includes('นางพราย') || c.name.includes('ตะเคียน')
+  );
+  const hasExistingValidCharacters = project.characters && project.characters.length > 0 && !isFolkloreMismatched;
 
   const updatedProject: Project = {
     ...project,
-    title: project.title.includes('ปรมาจารย์จอมสัก') ? preset.title : project.title,
+    title: project.title.includes('ปรมาจารย์จอมสัก') || isFolkloreMismatched ? preset.title : project.title,
     synopsis: project.synopsis || preset.synopsis,
-    characters: project.characters && project.characters.length > 0 && !project.title.includes('ปรมาจารย์จอมสัก') ? project.characters : preset.characters,
-    locations: project.locations && project.locations.length > 0 && !project.title.includes('ปรมาจารย์จอมสัก') ? project.locations : preset.locations,
-    props: project.props && project.props.length > 0 && !project.title.includes('ปรมาจารย์จอมสัก') ? project.props : preset.props,
+    characters: hasExistingValidCharacters ? project.characters : preset.characters,
+    locations: (!project.locations || project.locations.length === 0 || isFolkloreMismatched) ? preset.locations : project.locations,
+    props: (!project.props || project.props.length === 0 || isFolkloreMismatched) ? preset.props : project.props,
     targetDurationMinutes: 51.3,
     updatedAt: new Date().toISOString(),
   };

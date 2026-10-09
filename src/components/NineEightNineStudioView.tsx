@@ -28,6 +28,7 @@ import {
   STORY_PRESETS_989,
 } from '@/lib/nine-eight-nine-engine';
 import { cleanSceneTitle } from '@/lib/script-templates';
+import { analyzeStoryTheme } from '@/lib/theme-detector';
 import {
   Sparkles,
   Camera,
@@ -107,6 +108,21 @@ export default function NineEightNineStudioView({
   const [customStoryTitle, setCustomStoryTitle] = useState(project.title);
   const [customStorySynopsis, setCustomStorySynopsis] = useState(project.synopsis || '');
   const [isEditTitleModalOpen, setIsEditTitleModalOpen] = useState(false);
+
+  // Check if project is Ink Sovereign and if scenes/characters still have old folklore/ghost content
+  const isInkStory = useMemo(() => {
+    const analysis = analyzeStoryTheme({ title: project.title, synopsis: project.synopsis || '' });
+    return analysis.isInkSovereign;
+  }, [project.title, project.synopsis]);
+
+  const hasInkMismatch = useMemo(() => {
+    if (!isInkStory) return false;
+    const hasFolkloreChars = (project.characters || []).some((c) => /พรานบุญ|นางพราย|ตานี|สมิง|ผี/i.test(c.name));
+    const hasFolkloreScenes = (project.scenes || []).some((s) =>
+      /พรานบุญ|ดงพญาเย็น|ก้าวแรกสู่ดงพญาเย็น|บอกขมาเจ้าที่/i.test(`${s.title} ${s.narration || ''} ${s.imagePrompt || ''}`)
+    );
+    return hasFolkloreChars || hasFolkloreScenes;
+  }, [isInkStory, project.characters, project.scenes]);
 
   // Get current active scene safely
   const scenes = useMemo(() => project.scenes || [], [project.scenes]);
@@ -418,6 +434,57 @@ export default function NineEightNineStudioView({
           </button>
         </div>
       </header>
+
+      {/* Auto-repair banner if project is Ink Sovereign but contains folklore horror/ghost content */}
+      {hasInkMismatch && (
+        <div className="max-w-[1780px] mx-auto px-2 sm:px-4 pt-3">
+          <div className="p-4 bg-gradient-to-r from-red-600 via-amber-600 to-indigo-700 rounded-2xl text-white shadow-xl flex flex-wrap items-center justify-between gap-3 border border-amber-300/40 animate-pulse">
+            <div className="flex items-center gap-3">
+              <span className="text-3xl">🐉</span>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[10px] font-black uppercase">
+                    ตรวจพบพล็อตไม่ตรงกับฉาก
+                  </span>
+                  <h4 className="font-extrabold text-sm sm:text-base">
+                    พล็อตคือ "ปรมาจารย์รอยสักสยบมาร" แต่ฉากปัจจุบันยังค้างเป็นป่าดงพญาเย็น / พรานบุญ!
+                  </h4>
+                </div>
+                <p className="text-xs text-amber-100 mt-0.5">
+                  กดปุ่มซ่อมแซมทันที เพื่อเปลี่ยนตัวละครเป็น หลี่เฉิน (Li Chen), ไป๋หลิง, เข็มสักเทวะ, มังกรฟ้า และสร้างฉาก 3D Donghua ให้ตรงกับพล็อต 100%
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const updated = applyStoryPresetToProject(project, 'ink_sovereign');
+                  onUpdateProject(updated);
+                  alert('🎉 ซ่อมแซมและปรับเป็นฉากปรมาจารย์รอยสักสยบมาร (40 ฉาก) สำเร็จเรียบร้อย!');
+                }}
+                className="px-4 py-2 rounded-xl bg-white text-slate-900 hover:bg-amber-100 text-xs font-black shadow-md transition-all cursor-pointer flex items-center gap-1.5"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                <span>⚡ แปลงเป็น 40 ฉากทันที</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const updated = applyStoryPresetToProject(project, 'ink_sovereign');
+                  const vip = generateVip3000SecondsMovie(updated);
+                  onUpdateProject(vip);
+                  alert('🎬 ซ่อมแซมและสร้างปรมาจารย์รอยสักสยบมาร 3,000 วินาที / 308 ฉาก (VIP Mode) สำเร็จเรียบร้อย!');
+                }}
+                className="px-4 py-2 rounded-xl bg-slate-950 text-amber-300 hover:bg-slate-900 border border-amber-400 text-xs font-black shadow-md transition-all cursor-pointer flex items-center gap-1.5"
+              >
+                <Zap className="w-3.5 h-3.5 text-amber-400" />
+                <span>🎬 แปลงเป็น VIP 308 ฉาก</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main 3-Column Studio Layout */}
       <div className="max-w-[1780px] mx-auto px-2 sm:px-4 py-4 grid grid-cols-1 lg:grid-cols-12 gap-4">
@@ -1665,6 +1732,71 @@ export default function NineEightNineStudioView({
 
             {/* Presets Grid */}
             <div className="space-y-3.5">
+              {/* Option 0: ปรมาจารย์รอยสักสยบมาร (The Ink Sovereign) */}
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-500/15 via-red-500/10 to-indigo-500/15 border-2 border-amber-400 hover:border-amber-500 transition-all shadow-md space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">🐉</span>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 text-[10px] font-black uppercase tracking-wider">
+                          ⭐ พล็อตแนะนำตรงตามที่คุณส่งมา
+                        </span>
+                        <span className="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 text-[10px] font-bold">
+                          3D Donghua / ยุทธภพแฟนตาซี
+                        </span>
+                      </div>
+                      <h4 className="font-extrabold text-sm sm:text-base text-slate-900 mt-1">
+                        ปรมาจารย์รอยสักสยบมาร (The Ink Sovereign)
+                      </h4>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-xs text-slate-700 leading-relaxed">
+                  ในดินแดนที่วัดระดับพลังจากรอยสักสัตว์อสูรบนแผ่นหลัง ชายหนุ่มผู้ไร้พลังปราณค้นพบเข็มสักเทวะที่สืบทอดมาจากบรรพชน เขาเริ่มสัก อักขระยันต์ป้องกัน และ สัตว์เทวะในตำนาน ลงบนร่างตนเองและพรรคพวก รอยสักเหล่านี้สามารถมีชีวิตและพุ่งทะยานออกมาต่อสู้ได้จริง เขาต้องใช้ศิลปะบนเรือนร่างนี้บดขยี้สำนักมารที่กว้านซื้อวิญญาณมนุษย์ไปทำรอยสักนอกรีต
+                </p>
+                <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px] text-slate-600">
+                  <span className="bg-white/90 px-2 py-0.5 rounded-md border border-amber-200 font-semibold text-slate-800">
+                    👤 ตัวละคร: หลี่เฉิน (Li Chen), ไป๋หลิง (Bai Ling), จ้าวมารเก้าทมิฬ, สัตว์เทวะมังกรคราม
+                  </span>
+                  <span className="bg-white/90 px-2 py-0.5 rounded-md border border-amber-200 font-semibold text-slate-800">
+                    📍 สถานที่: ตำหนักสักเทวะ, หุบเขาสัตว์อสูรหมื่นวิญญาณ, แท่นบูชาสำนักมาร
+                  </span>
+                  <span className="bg-white/90 px-2 py-0.5 rounded-md border border-amber-200 font-semibold text-slate-800">
+                    🗡️ ของวิเศษ: เข็มสักเทวะทองคำ, หมึกสกัดโลหิตสัตว์เทวะ, รอยสักมังกรฟ้าเรืองแสง
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-amber-200">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const updated = applyStoryPresetToProject(project, 'ink_sovereign');
+                      onUpdateProject(updated);
+                      setIsStoryModalOpen(false);
+                      alert('🎉 ปรับเป็นพล็อต ปรมาจารย์รอยสักสยบมาร (40 ฉาก) สำเร็จเรียบร้อย!');
+                    }}
+                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-red-600 hover:from-amber-500 hover:to-red-500 text-white text-xs font-black flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>⚡ โหลดพล็อต ปรมาจารย์รอยสัก (40 ฉาก)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const updated = applyStoryPresetToProject(project, 'ink_sovereign');
+                      const vip = generateVip3000SecondsMovie(updated);
+                      onUpdateProject(vip);
+                      setIsStoryModalOpen(false);
+                      alert('🎬 สร้างหนังสั้น ปรมาจารย์รอยสักสยบมาร 3,000 วินาที / 308 ฉาก (VIP Mode) สำเร็จเรียบร้อย!');
+                    }}
+                    className="px-4 py-2 rounded-xl bg-slate-950 hover:bg-slate-900 border-2 border-amber-400 text-amber-300 text-xs font-black flex items-center gap-1.5 shadow-lg transition-all cursor-pointer"
+                  >
+                    <Zap className="w-3.5 h-3.5 fill-amber-300" />
+                    <span>🎬 สร้าง ปรมาจารย์รอยสัก 308 ฉาก (VIP Mode)</span>
+                  </button>
+                </div>
+              </div>
+
               {/* Option 1: JUDIAN อะนิเมะ */}
               <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-50/80 to-cyan-50/50 border border-blue-200/80 hover:border-blue-400 transition-all shadow-sm space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -1919,7 +2051,7 @@ export default function NineEightNineStudioView({
                 />
               </div>
             </div>
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+            <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-slate-100">
               <button
                 type="button"
                 onClick={() => setIsEditTitleModalOpen(false)}
@@ -1939,9 +2071,28 @@ export default function NineEightNineStudioView({
                   setIsEditTitleModalOpen(false);
                   alert('💾 บันทึกการแก้ไขชื่อเรื่องและเรื่องย่อสำเร็จ!');
                 }}
-                className="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold shadow-sm"
+                className="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-bold shadow-sm"
               >
-                บันทึกการแก้ไข
+                บันทึกเฉพาะชื่อเรื่อง
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const isInk = /ปรมาจารย์.*รอยสัก|ปรมาจารย์.*จอมสัก|the ink sovereign|เข็มสักเทวะ|รอยสัก.*สัตว์อสูร|รอยสัก.*สัตว์เทวะ|รอยสัก.*มีชีวิต|รอยสักนอกรีต|สัก.*อักขระยันต์ป้องกัน|ศิลปะบนเรือนร่าง.*บดขยี้สำนักมาร|ink sovereign/i.test(
+                    `${customStoryTitle} ${customStorySynopsis}`
+                  );
+                  const updated = applyStoryPresetToProject(project, isInk ? 'ink_sovereign' : 'custom', {
+                    title: customStoryTitle,
+                    synopsis: customStorySynopsis,
+                  });
+                  onUpdateProject(updated);
+                  setIsEditTitleModalOpen(false);
+                  alert('🎉 บันทึกและสร้างฉากใหม่ทั้งหมดตามพล็อตนี้สำเร็จเรียบร้อย!');
+                }}
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-cyan-600 hover:from-amber-400 hover:to-cyan-500 text-white text-xs font-black shadow-md flex items-center gap-1.5"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>⚡ บันทึก & สร้างฉากใหม่ตามพล็อตนี้</span>
               </button>
             </div>
           </div>

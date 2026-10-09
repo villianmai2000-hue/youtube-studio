@@ -359,6 +359,26 @@ export default function NewProjectModal({ isOpen, onClose, onCreated }: NewProje
               type="button"
               onClick={() => {
                 setManualCultureLock(false);
+                setTitle('ปรมาจารย์รอยสักสยบมาร (The Ink Sovereign)');
+                setSynopsis(
+                  'ในดินแดนที่วัดระดับพลังจากรอยสักสัตว์อสูรบนแผ่นหลัง ชายหนุ่มผู้ไร้พลังปราณค้นพบเข็มสักเทวะที่สืบทอดมาจากบรรพชน เขาเริ่มสัก อักขระยันต์ป้องกัน และ สัตว์เทวะในตำนาน ลงบนร่างตนเองและพรรคพวก รอยสักเหล่านี้สามารถมีชีวิตและพุ่งทะยานออกมาต่อสู้ได้จริง เขาต้องใช้ศิลปะบนเรือนร่างนี้บดขยี้สำนักมารที่กว้านซื้อวิญญาณมนุษย์ไปทำรอยสักนอกรีต'
+                );
+                setWorldCulture('chinese');
+                setSelectedSubGenre('xianxia');
+                setVisualMedium('animation');
+                setStylePreset('donghua_3d');
+                setDurationMode('120');
+                setAspectRatio('16:9');
+              }}
+              className="px-2.5 py-1.5 rounded-xl bg-studio-900 hover:bg-amber-500/20 text-amber-300 hover:text-white border border-amber-500/40 text-[11px] font-semibold transition-all flex items-center gap-1 shadow-sm"
+            >
+              <span>🐉</span>
+              <span>ปรมาจารย์รอยสักสยบมาร (The Ink Sovereign)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setManualCultureLock(false);
                 setTitle('วันที่สิบสามกรกฎาคมฝนตก โลกจม กูที่มีภูเขาทองในมิติ ปืนในมือ กลายเป็นคนที่ใครก็ไม่กล้าแตะ (JUDIAN อะนิเมะ)');
                 setSynopsis('หูโยว่ ชายหนุ่มที่เคยถูกอดีตแฟนสาวทรยศแย่งเสบียงและถูกผลักให้ตายในยุคน้ำท่วมโลก ได้ย้อนเวลากลับมา 7 วันก่อนวันที่ 13 กรกฎาคม พร้อมปลดล็อกมิติเก็บของไม่จำกัด เขาเทเงินพันล้านกวาดซื้อเสบียง คลังแสง ดัดแปลงห้องเป็นเซฟเฮาส์ป้อมปราการเหล็กกล้ากันกระสุน เมื่อมหาพายุฝนกระหน่ำโลกจมบาดาล เขานั่งกินสเต๊กในห้องแอร์เย็นฉ่ำ ขณะที่คนทรยศและอันธพาลต้องคุกเข่าอ้อนวอนขออาหาร');
                 setWorldCulture('chinese');
