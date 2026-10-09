@@ -19,6 +19,8 @@ import {
   generateProductionPrompt989,
   autoReTimeScenes,
   export989ProjectJson,
+  export989ScenesRangeJson,
+  exportSingleSceneJson,
   import989ProjectJson,
   generateVip3000SecondsMovie,
 } from '@/lib/nine-eight-nine-engine';
@@ -37,6 +39,7 @@ import {
   EyeOff,
   Download,
   Upload,
+  FileJson,
   Layers,
   MapPin,
   Briefcase,
@@ -92,6 +95,9 @@ export default function NineEightNineStudioView({
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [importJsonText, setImportJsonText] = useState('');
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isExportJsonModalOpen, setIsExportJsonModalOpen] = useState(false);
+  const [exportJsonPreview, setExportJsonPreview] = useState('');
+  const [exportJsonTitle, setExportJsonTitle] = useState('ส่งกลับไปเป็น JSON (989 Format)');
 
   // Get current active scene safely
   const scenes = useMemo(() => project.scenes || [], [project.scenes]);
@@ -212,16 +218,60 @@ export default function NineEightNineStudioView({
   };
 
   // Export JSON file download
-  const handleDownloadJson = () => {
-    const jsonStr = export989ProjectJson(project);
+  const handleDownloadJson = (customJson?: string, filenameSuffix?: string) => {
+    const jsonStr = customJson || export989ProjectJson(project);
     const blob = new Blob([jsonStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${project.title.replace(/\s+/g, '_')}_989AiPrompt_v8.json`;
+    a.download = `${project.title.replace(/\s+/g, '_')}_989AiPrompt_${filenameSuffix || 'v8'}.json`;
     a.click();
     URL.revokeObjectURL(url);
     handleCopy('', 'exported');
+  };
+
+  // Open Export JSON Modal (Preview & Copy)
+  const handleOpenExportJsonModal = (type: 'full' | 'range' | 'single') => {
+    let jsonStr = '';
+    let title = '';
+    if (type === 'full') {
+      jsonStr = export989ProjectJson(project);
+      title = `📦 ข้อมูล JSON ทั้งโปรเจกต์ (${project.scenes?.length || 0} ฉาก)`;
+    } else if (type === 'range') {
+      const start = Math.max(1, parseInt(rangeStart, 10) || 1);
+      const end = Math.min(scenes.length, parseInt(rangeEnd, 10) || scenes.length);
+      jsonStr = export989ScenesRangeJson(project, start, end);
+      title = `📑 ข้อมูล JSON เฉพาะช่วงฉากที่ ${start} ถึง ${end} (${end - start + 1} ฉาก)`;
+    } else {
+      if (!activeScene) return;
+      jsonStr = exportSingleSceneJson(activeScene, project);
+      title = `🎬 ข้อมูล JSON เฉพาะฉากที่ ${activeScene.sceneNumber}`;
+    }
+    setExportJsonPreview(jsonStr);
+    setExportJsonTitle(title);
+    setIsExportJsonModalOpen(true);
+  };
+
+  // Quick Copy JSON to Clipboard
+  const handleQuickCopyJson = (type: 'full' | 'range' | 'single') => {
+    let jsonStr = '';
+    let label = '';
+    if (type === 'full') {
+      jsonStr = export989ProjectJson(project);
+      label = 'json_full';
+    } else if (type === 'range') {
+      const start = Math.max(1, parseInt(rangeStart, 10) || 1);
+      const end = Math.min(scenes.length, parseInt(rangeEnd, 10) || scenes.length);
+      jsonStr = export989ScenesRangeJson(project, start, end);
+      label = 'json_range';
+    } else {
+      if (!activeScene) return;
+      jsonStr = exportSingleSceneJson(activeScene, project);
+      label = 'json_single';
+    }
+    navigator.clipboard.writeText(jsonStr);
+    setCopyFeedback(label);
+    setTimeout(() => setCopyFeedback(null), 2500);
   };
 
   // Import JSON
@@ -603,6 +653,15 @@ export default function NineEightNineStudioView({
                     >
                       {isRangeActive ? '✓ ใช้ฉาก' : 'ใช้ฉาก'}
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenExportJsonModal('range')}
+                      className="px-2.5 py-1 rounded-lg font-bold text-[11px] bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 transition-colors flex items-center gap-1 shadow-sm"
+                      title="ส่งช่วงฉากที่เลือกนี้กลับไปเป็นไฟล์หรือข้อความ JSON สำหรับนำไปใช้งานต่อตามคลิป"
+                    >
+                      <FileJson className="w-3.5 h-3.5 text-amber-600" />
+                      <span>ส่งกลับ JSON ช่วงนี้</span>
+                    </button>
                   </div>
                 </div>
 
@@ -702,10 +761,33 @@ export default function NineEightNineStudioView({
                           </span>
                         </div>
 
-                        <div className="flex items-center gap-2 text-xs">
+                        <div className="flex items-center gap-1.5 text-xs">
                           <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-semibold font-mono text-[11px]">
                             ⏱️ {scene.startTimeSec ?? (scene.sceneNumber - 1) * 10} - {scene.endTimeSec ?? scene.sceneNumber * 10} วินาที
                           </span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const singleJson = exportSingleSceneJson(scene, project);
+                              navigator.clipboard.writeText(singleJson);
+                              handleCopy(singleJson, `scene_json_${scene.id}`);
+                            }}
+                            className="px-2 py-0.5 rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 text-[10px] font-bold flex items-center gap-1 transition shadow-xs"
+                            title="คัดลอก JSON ของฉากนี้เพื่อส่งต่อไปใช้งาน"
+                          >
+                            {copyFeedback === `scene_json_${scene.id}` ? (
+                              <>
+                                <Check className="w-3 h-3 text-emerald-600" />
+                                <span className="text-emerald-700">คัดลอกแล้ว</span>
+                              </>
+                            ) : (
+                              <>
+                                <FileJson className="w-3 h-3 text-amber-600" />
+                                <span>JSON</span>
+                              </>
+                            )}
+                          </button>
                         </div>
                       </div>
 
@@ -1120,24 +1202,104 @@ export default function NineEightNineStudioView({
                     <span>🎨 คัดลอก Image Prompt</span>
                   </button>
 
-                  {/* JSON Export / Import Buttons */}
-                  <div className="grid grid-cols-2 gap-2 pt-2">
+                  {/* Send Back to JSON Master Section */}
+                  <div className="pt-2 border-t border-slate-200 space-y-1.5">
+                    <div className="flex items-center justify-between pb-1">
+                      <span className="font-extrabold text-[11px] text-slate-800 flex items-center gap-1.5">
+                        <FileJson className="w-3.5 h-3.5 text-amber-500" />
+                        <span>ส่งกลับไปเป็น JSON (ตามคลิป)</span>
+                      </span>
+                    </div>
+
+                    {/* Quick Copy Full Project JSON */}
                     <button
                       type="button"
-                      onClick={handleDownloadJson}
-                      className="py-2 px-3 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold flex items-center justify-center gap-1 transition-colors"
+                      onClick={() => handleQuickCopyJson('full')}
+                      className="w-full py-2 px-3 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-sm"
+                      title="คัดลอก JSON ทั้งโปรเจกต์ลงคลิปบอร์ดทันที เพื่อนำไปส่งให้ AI หรือบันทึกต่อ"
                     >
-                      <Download className="w-3.5 h-3.5 text-cyan-600" />
-                      <span>ส่งออก JSON</span>
+                      {copyFeedback === 'json_full' ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-600 font-black" />
+                          <span className="text-emerald-700">คัดลอก JSON ทั้งหมดแล้ว!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5 text-amber-700" />
+                          <span>📋 คัดลอก JSON ทั้งหมด (Send to JSON)</span>
+                        </>
+                      )}
                     </button>
+
+                    {/* Quick Copy Range JSON */}
                     <button
                       type="button"
-                      onClick={() => setIsImportModalOpen(true)}
-                      className="py-2 px-3 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold flex items-center justify-center gap-1 transition-colors"
+                      onClick={() => handleQuickCopyJson('range')}
+                      className="w-full py-1.5 px-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 font-semibold text-[11px] flex items-center justify-center gap-1.5 transition-all"
+                      title="คัดลอก JSON เฉพาะช่วงฉากที่เลือก (ตามเทคนิคแบ่ง 10 บล็อกในคลิป)"
                     >
-                      <Upload className="w-3.5 h-3.5 text-amber-600" />
-                      <span>นำเข้า JSON</span>
+                      {copyFeedback === 'json_range' ? (
+                        <>
+                          <Check className="w-3 h-3 text-emerald-600" />
+                          <span className="text-emerald-700">คัดลอก JSON ช่วงนี้แล้ว!</span>
+                        </>
+                      ) : (
+                        <>
+                          <FileJson className="w-3 h-3 text-cyan-600" />
+                          <span>📑 คัดลอก JSON ช่วงฉาก {rangeStart}-{rangeEnd}</span>
+                        </>
+                      )}
                     </button>
+
+                    {/* Quick Copy Single Scene JSON */}
+                    <button
+                      type="button"
+                      onClick={() => handleQuickCopyJson('single')}
+                      className="w-full py-1.5 px-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 font-semibold text-[11px] flex items-center justify-center gap-1.5 transition-all"
+                    >
+                      {copyFeedback === 'json_single' ? (
+                        <>
+                          <Check className="w-3 h-3 text-emerald-600" />
+                          <span className="text-emerald-700">คัดลอก JSON ฉากนี้แล้ว!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3 h-3 text-slate-500" />
+                          <span>🎬 คัดลอก JSON เฉพาะฉากที่ {activeScene.sceneNumber}</span>
+                        </>
+                      )}
+                    </button>
+
+                    {/* Preview / Modal & File Downloads */}
+                    <div className="grid grid-cols-3 gap-1.5 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenExportJsonModal('full')}
+                        className="py-1.5 px-2 rounded-lg bg-cyan-50 hover:bg-cyan-100 border border-cyan-200 text-cyan-800 text-[10px] font-bold flex items-center justify-center gap-1 transition-colors"
+                        title="เปิดหน้าต่างพรีวิวและแก้ไขโค้ด JSON ก่อนส่งออก"
+                      >
+                        <Eye className="w-3 h-3 text-cyan-600" />
+                        <span>พรีวิว JSON</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDownloadJson()}
+                        className="py-1.5 px-2 rounded-lg bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-[10px] font-bold flex items-center justify-center gap-1 transition-colors"
+                        title="ดาวน์โหลดเป็นไฟล์ .json ลงเครื่อง"
+                      >
+                        <Download className="w-3 h-3 text-slate-600" />
+                        <span>โหลด JSON</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsImportModalOpen(true)}
+                        className="py-1.5 px-2 rounded-lg bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-[10px] font-bold flex items-center justify-center gap-1 transition-colors"
+                        title="นำเข้าไฟล์ .json"
+                      >
+                        <Upload className="w-3 h-3 text-amber-600" />
+                        <span>นำเข้า JSON</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1347,6 +1509,75 @@ export default function NineEightNineStudioView({
               >
                 นำเข้าข้อมูล
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Export / Send Back to JSON */}
+      {isExportJsonModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100 shrink-0">
+              <h3 className="font-extrabold text-base text-slate-900 flex items-center gap-2">
+                <FileJson className="w-5 h-5 text-amber-500" />
+                <span>{exportJsonTitle}</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsExportJsonModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 text-sm font-bold p-1 rounded"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-500 shrink-0">
+              ข้อมูล JSON โครงสร้างมาตรฐาน 989 Ai Prompt v8 (VIP Mode) พร้อม Production Prompt และข้อมูลกำกับครบถ้วน สามารถคัดลอกส่งต่อไปยัง AI หรือบันทึกเก็บไว้ได้ทันที
+            </p>
+
+            <div className="flex-1 overflow-hidden min-h-[300px]">
+              <textarea
+                readOnly
+                rows={16}
+                value={exportJsonPreview}
+                className="w-full h-full p-3 bg-slate-900 text-cyan-300 border border-slate-800 rounded-2xl text-xs font-mono resize-none focus:outline-none"
+              />
+            </div>
+
+            <div className="flex items-center justify-between gap-2 pt-3 border-t border-slate-100 shrink-0">
+              <div className="text-[11px] text-slate-400">
+                ขนาดข้อมูล: {exportJsonPreview.length.toLocaleString()} ตัวอักษร
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsExportJsonModalOpen(false)}
+                  className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 text-xs font-bold"
+                >
+                  ปิด
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDownloadJson(exportJsonPreview, 'exported')}
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold flex items-center gap-1.5 shadow-sm"
+                >
+                  <Download className="w-4 h-4 text-slate-600" />
+                  <span>ดาวน์โหลด .json</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(exportJsonPreview);
+                    handleCopy(exportJsonPreview, 'modal_json');
+                    alert('📋 คัดลอก JSON ลงคลิปบอร์ดเรียบร้อยแล้ว!');
+                  }}
+                  className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black flex items-center gap-1.5 shadow-sm"
+                >
+                  <Copy className="w-4 h-4 text-slate-950" />
+                  <span>คัดลอก JSON ทั้งหมด</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>

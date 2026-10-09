@@ -266,6 +266,123 @@ export function export989ProjectJson(project: Project): string {
 }
 
 /**
+ * ส่งออกเฉพาะช่วงฉากที่เลือก (Selected Range) หรือทั้งช่วง 1-10 บล็อก เป็น JSON
+ */
+export function export989ScenesRangeJson(
+  project: Project,
+  startSceneNum?: number,
+  endSceneNum?: number
+): string {
+  const allScenes = project.scenes || [];
+  const start = startSceneNum ? Math.max(1, startSceneNum) : 1;
+  const end = endSceneNum ? Math.min(allScenes.length, endSceneNum) : allScenes.length;
+
+  const targetScenes = allScenes.filter(
+    (s) => s.sceneNumber >= start && s.sceneNumber <= end
+  );
+
+  const exportData = {
+    app: '989 Ai Prompt',
+    version: '8.0 (VIP Mode)',
+    exportedAt: new Date().toISOString(),
+    projectTitle: project.title,
+    sceneRange: `ฉากที่ ${start} ถึง ${end}`,
+    totalExportedScenes: targetScenes.length,
+    propsUsed: (project.props || []).filter((p) =>
+      targetScenes.some((s) => (s.propIds || []).includes(p.id))
+    ),
+    locationsUsed: (project.locations || []).filter((l) =>
+      targetScenes.some((s) => s.locationId === l.id || s.locationName === l.name)
+    ),
+    scenes: targetScenes.map((s) => {
+      const loc = (project.locations || []).find(
+        (l) => l.id === s.locationId || l.name === s.locationName
+      );
+      const props = (project.props || []).filter((p) => (s.propIds || []).includes(p.id));
+      const promptObj = generateProductionPrompt989({
+        scene: s,
+        project,
+        location: loc,
+        propsInScene: props,
+      });
+
+      return {
+        sceneNumber: s.sceneNumber,
+        actNumber: s.actNumber,
+        title: cleanSceneTitle(s.title),
+        timeRange: `${s.startTimeSec ?? (s.sceneNumber - 1) * 10} - ${s.endTimeSec ?? s.sceneNumber * 10}s`,
+        locationId: s.locationId || '',
+        locationName: s.locationName || '',
+        focus: {
+          type: s.focusType || 'Deep Focus (ชัดลึก (ชัดทั้งภาพ))',
+          detail: s.focusDetail || '',
+        },
+        composition: {
+          type: s.compositionType || 'Center Frame (กึ่งกลางภาพ)',
+          detail: s.compositionDetail || '',
+        },
+        shotType: s.shotType || 'Wide Shot (WS)',
+        cameraAngle: s.cameraAngle || 'Eye-Level',
+        cameraMovement: s.cameraMovement || 'Push In',
+        narration: s.narration,
+        dialogues: s.dialogues || [],
+        productionPrompt: promptObj.fullPrompt,
+        cameraLensText: promptObj.cameraLensText,
+        subjectsStagingText: promptObj.subjectsStagingText,
+        lightingStyleText: promptObj.lightingStyleText,
+        constraintsNegativeText: promptObj.constraintsNegativeText,
+        videoMotionPrompt: s.videoMotionPrompt || '',
+        imagePrompt: s.imagePrompt || '',
+      };
+    }),
+  };
+
+  return JSON.stringify(exportData, null, 2);
+}
+
+/**
+ * ส่งออกฉากเดี่ยวเป็น JSON
+ */
+export function exportSingleSceneJson(scene: ScriptScene, project: Project): string {
+  const loc = (project.locations || []).find(
+    (l) => l.id === scene.locationId || l.name === scene.locationName
+  );
+  const props = (project.props || []).filter((p) => (scene.propIds || []).includes(p.id));
+  const promptObj = generateProductionPrompt989({
+    scene,
+    project,
+    location: loc,
+    propsInScene: props,
+  });
+
+  const sceneData = {
+    app: '989 Ai Prompt (Single Scene)',
+    sceneNumber: scene.sceneNumber,
+    title: cleanSceneTitle(scene.title),
+    timeRange: `${scene.startTimeSec ?? (scene.sceneNumber - 1) * 10} - ${scene.endTimeSec ?? scene.sceneNumber * 10}s`,
+    locationName: scene.locationName || loc?.name || '',
+    focus: {
+      type: scene.focusType || 'Deep Focus (ชัดลึก (ชัดทั้งภาพ))',
+      detail: scene.focusDetail || '',
+    },
+    composition: {
+      type: scene.compositionType || 'Center Frame (กึ่งกลางภาพ)',
+      detail: scene.compositionDetail || '',
+    },
+    shotType: scene.shotType || 'Wide Shot (WS)',
+    cameraAngle: scene.cameraAngle || 'Eye-Level',
+    cameraMovement: scene.cameraMovement || 'Push In',
+    narration: scene.narration,
+    dialogues: scene.dialogues || [],
+    productionPrompt: promptObj.fullPrompt,
+    videoMotionPrompt: scene.videoMotionPrompt || '',
+    imagePrompt: scene.imagePrompt || '',
+  };
+
+  return JSON.stringify(sceneData, null, 2);
+}
+
+/**
  * นำเข้าโปรเจกต์จากไฟล์ JSON ของ 989 Ai Prompt
  */
 export function import989ProjectJson(jsonStr: string, currentProject: Project): Project {
