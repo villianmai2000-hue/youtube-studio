@@ -23,6 +23,9 @@ import {
   exportSingleSceneJson,
   import989ProjectJson,
   generateVip3000SecondsMovie,
+  applyStoryPresetToProject,
+  generateStandardScenes989,
+  STORY_PRESETS_989,
 } from '@/lib/nine-eight-nine-engine';
 import { cleanSceneTitle } from '@/lib/script-templates';
 import {
@@ -98,6 +101,12 @@ export default function NineEightNineStudioView({
   const [isExportJsonModalOpen, setIsExportJsonModalOpen] = useState(false);
   const [exportJsonPreview, setExportJsonPreview] = useState('');
   const [exportJsonTitle, setExportJsonTitle] = useState('ส่งกลับไปเป็น JSON (989 Format)');
+
+  // Story Preset Switcher & Title Editing
+  const [isStoryModalOpen, setIsStoryModalOpen] = useState(false);
+  const [customStoryTitle, setCustomStoryTitle] = useState(project.title);
+  const [customStorySynopsis, setCustomStorySynopsis] = useState(project.synopsis || '');
+  const [isEditTitleModalOpen, setIsEditTitleModalOpen] = useState(false);
 
   // Get current active scene safely
   const scenes = useMemo(() => project.scenes || [], [project.scenes]);
@@ -349,9 +358,21 @@ export default function NineEightNineStudioView({
           </div>
 
           <div className="hidden md:flex items-center gap-2 pl-4 border-l border-slate-200 text-xs">
-            <span className="font-bold text-slate-600 truncate max-w-[260px]">
+            <span className="font-bold text-slate-700 truncate max-w-[280px]" title={project.title}>
               {project.title}
             </span>
+            <button
+              type="button"
+              onClick={() => {
+                setCustomStoryTitle(project.title);
+                setCustomStorySynopsis(project.synopsis || '');
+                setIsEditTitleModalOpen(true);
+              }}
+              className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded transition-colors"
+              title="แก้ไขชื่อเรื่องและเรื่องย่อ"
+            >
+              <Edit2 className="w-3.5 h-3.5" />
+            </button>
             <span className="text-slate-400">•</span>
             <span className="text-cyan-700 font-semibold bg-cyan-50 px-2 py-0.5 rounded-md border border-cyan-100">
               {project.scenes?.length || 0} ฉาก (~{(project.scenes?.length || 0) * 10} วินาที)
@@ -361,6 +382,20 @@ export default function NineEightNineStudioView({
 
         {/* Right Tools & Mode Toggle */}
         <div className="flex items-center gap-2">
+          {/* Switch Story Plot button */}
+          <button
+            type="button"
+            onClick={() => {
+              setCustomStoryTitle(project.title);
+              setCustomStorySynopsis(project.synopsis || '');
+              setIsStoryModalOpen(true);
+            }}
+            className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 via-rose-500 to-cyan-500 hover:from-amber-600 hover:to-cyan-600 text-white text-xs font-black flex items-center gap-1.5 shadow-md transition-all cursor-pointer transform hover:scale-[1.02]"
+            title="เปลี่ยนพล็อตเรื่องให้ตรงกับคลิปที่คุณต้องการทันที (JUDIAN / Manga Realms / 989 VIP)"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-yellow-200 animate-spin" />
+            <span>🔄 เปลี่ยนพล็อตเรื่องตามคลิป</span>
+          </button>
           {/* Save button */}
           <button
             type="button"
@@ -698,26 +733,43 @@ export default function NineEightNineStudioView({
                     </button>
                   </div>
 
-                  {/* VIP 308 Scenes Generator Button */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (
-                        confirm(
-                          `⚡ ยืนยันการสร้างหนังสั้น 3,000 วินาที รวม 308 ฉาก (989 VIP Mode)?\n\nระบบจะแบ่งเป็น 10 บล็อกเนื้อเรื่อง พร้อมกำหนด Props, Locations, Focus, และ Composition ให้ครบทั้ง 308 ฉากทันที!`
-                        )
-                      ) {
-                        const vipProject = generateVip3000SecondsMovie(project);
-                        onUpdateProject(vipProject);
-                        alert('🎉 สร้างหนังสั้น 3,000 วินาที รวม 308 ฉาก (VIP Mode 10 บล็อก) สำเร็จเรียบร้อย!');
-                      }
-                    }}
-                    className="text-[11px] font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 px-3 py-1.5 rounded-xl border border-amber-300 flex items-center gap-1.5 transition-colors shadow-sm cursor-pointer"
-                    title="สร้างหนังสั้น 3,000 วินาที รวม 308 ฉาก 10 บล็อกเนื้อเรื่อง"
-                  >
-                    <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-                    <span>⚡ สร้างหนังสั้น 3,000s / 308 ฉาก (VIP Mode)</span>
-                  </button>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {/* Standard 40 Scenes (Batch 1) Button */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newScenes = generateStandardScenes989(project, 40);
+                        onUpdateProject({ ...project, scenes: newScenes });
+                        alert(`🎉 สั่ง AI ผลิตบทฉากชุดที่ 1 สำเร็จครบ 40 ฉาก! ตรงกับพล็อตเรื่อง ${project.title}`);
+                      }}
+                      className="text-[11px] font-bold text-cyan-700 bg-cyan-50 hover:bg-cyan-100 px-3 py-1.5 rounded-xl border border-cyan-300 flex items-center gap-1.5 transition-colors shadow-sm cursor-pointer"
+                      title="สั่ง AI ผลิตบทฉากชุดที่ 1 จำนวน 40 ฉาก ตามโครงสร้าง 989 Ai Prompt"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-cyan-600" />
+                      <span>✨ สั่ง AI ผลิตบท 40 ฉาก (ชุดที่ 1)</span>
+                    </button>
+
+                    {/* VIP 308 Scenes Generator Button */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (
+                          confirm(
+                            `⚡ ยืนยันการสร้างหนังสั้น 3,000 วินาที รวม 308 ฉาก (989 VIP Mode)?\n\nระบบจะแบ่งเป็น 10 บล็อกเนื้อเรื่อง พร้อมตัวละคร, สถานที่, และอุปกรณ์ที่ตรงกับเนื้อเรื่อง:\n"${project.title}"\n\nครบทั้ง 308 ฉากทันที!`
+                          )
+                        ) {
+                          const vipProject = generateVip3000SecondsMovie(project);
+                          onUpdateProject(vipProject);
+                          alert(`🎉 สร้างหนังสั้น 3,000 วินาที รวม 308 ฉาก (VIP Mode 10 บล็อก) ตรงกับพล็อตเรื่องเรียบร้อย!`);
+                        }
+                      }}
+                      className="text-[11px] font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 px-3 py-1.5 rounded-xl border border-amber-300 flex items-center gap-1.5 transition-colors shadow-sm cursor-pointer"
+                      title="สร้างหนังสั้น 3,000 วินาที รวม 308 ฉาก 10 บล็อกเนื้อเรื่อง"
+                    >
+                      <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                      <span>⚡ สร้างหนังสั้น 3,000s / 308 ฉาก (VIP Mode)</span>
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -1578,6 +1630,319 @@ export default function NineEightNineStudioView({
                   <span>คัดลอก JSON ทั้งหมด</span>
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Modal: Switch Story Plot (สลับพล็อตเรื่องตามคลิป) */}
+      {isStoryModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-3xl w-full p-5 sm:p-7 shadow-2xl space-y-5 my-auto max-h-[95vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 via-rose-500 to-cyan-500 p-0.5 flex items-center justify-center shadow-sm">
+                  <div className="w-full h-full bg-white rounded-[14px] flex items-center justify-center">
+                    <Sparkles className="w-5 h-5 text-amber-500" />
+                  </div>
+                </div>
+                <div>
+                  <h3 className="font-black text-base sm:text-lg text-slate-900 flex items-center gap-2">
+                    <span>🎯 เลือกพล็อตเรื่องตามคลิปวิดีโอ (1-Click Switch)</span>
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    คลิกเพื่อเปลี่ยนชื่อเรื่อง เรื่องย่อ ตัวละคร สถานที่ อุปกรณ์ และสร้างบทฉากใหม่ที่ตรงกับคลิป 100%
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsStoryModalOpen(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center text-sm font-bold transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Presets Grid */}
+            <div className="space-y-3.5">
+              {/* Option 1: JUDIAN อะนิเมะ */}
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-50/80 to-cyan-50/50 border border-blue-200/80 hover:border-blue-400 transition-all shadow-sm space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">🌧️</span>
+                    <div>
+                      <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-black uppercase tracking-wider">
+                        คลิป JUDIAN อะนิเมะ (km8BoFk9fvg)
+                      </span>
+                      <h4 className="font-extrabold text-sm text-slate-900 mt-0.5">
+                        วันที่สิบสามกรกฎาคมฝนตก โลกจม กูที่มีภูเขาทองในมิติ ปืนในมือ กลายเป็นคนที่ใครก็ไม่กล้าแตะ
+                      </h4>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-xs text-slate-600 line-clamp-2">
+                  หูโยว่ ชายหนุ่มที่เคยถูกอดีตแฟนสาวทรยศแย่งเสบียงและถูกผลักให้ตายในยุคน้ำท่วมโลก ได้ย้อนเวลากลับมา 7 วันก่อนวันที่ 13 กรกฎาคม พร้อมมิติเก็บของไม่จำกัด เทเงินพันล้านกวาดซื้อเสบียง คลังแสง ดัดแปลงห้องเป็นเซฟเฮาส์ป้อมปราการเหล็กกล้ากันกระสุน ปืนลูกซองเรมิงตัน นั่งกินสเต๊กในห้องแอร์เย็นฉ่ำ
+                </p>
+                <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px] text-slate-500">
+                  <span className="bg-white/80 px-2 py-0.5 rounded-md border border-slate-200 font-semibold">
+                    👤 ตัวละคร: หูโยว่ (ปืนลูกซอง), เย่ว่านฉิว, จางเปียว
+                  </span>
+                  <span className="bg-white/80 px-2 py-0.5 rounded-md border border-slate-200 font-semibold">
+                    📍 สถานที่: เซฟเฮาส์เหล็กกล้า, หน้าต่างน้ำท่วมโลก, มิติเก็บของ
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-blue-100">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const updated = applyStoryPresetToProject(project, 'judian');
+                      onUpdateProject(updated);
+                      setIsStoryModalOpen(false);
+                      alert('🎉 ปรับเป็นพล็อต JUDIAN อะนิเมะ (40 ฉาก) สำเร็จเรียบร้อย!');
+                    }}
+                    className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all"
+                  >
+                    <span>⚡ โหลดพล็อต JUDIAN (40 ฉาก)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const updated = applyStoryPresetToProject(project, 'judian');
+                      const vip = generateVip3000SecondsMovie(updated);
+                      onUpdateProject(vip);
+                      setIsStoryModalOpen(false);
+                      alert('🎬 สร้างหนังสั้น JUDIAN 3,000 วินาที / 308 ฉาก (VIP Mode) สำเร็จเรียบร้อย!');
+                    }}
+                    className="px-4 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 text-xs font-black flex items-center gap-1.5 shadow-sm transition-all"
+                  >
+                    <Zap className="w-3.5 h-3.5 fill-slate-950" />
+                    <span>🎬 สร้าง JUDIAN 308 ฉาก (VIP Mode)</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Option 2: Manga Realms MRE รถบัส */}
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-50/80 to-teal-50/50 border border-emerald-200/80 hover:border-emerald-400 transition-all shadow-sm space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">🚌</span>
+                    <div>
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-black uppercase tracking-wider">
+                        คลิป Manga Realms MRE (C_b0g0YBGt4)
+                      </span>
+                      <h4 className="font-extrabold text-sm text-slate-900 mt-0.5">
+                        [พากย์ไทย] ผมคือชายคนเดียวบนรถบัส (Manga Realms MRE)
+                      </h4>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-xs text-slate-600 line-clamp-2">
+                  ท่ามกลางการระบาดของไวรัสซอมบี้กลายพันธุ์ เร็น ชายหนุ่มเพียงคนเดียวบนรถบัสผู้โดยสาร ต้องนำทีมสาวๆ ทั้งดาวโรงเรียนซึนเดระ สาวแว่นพยาบาล สาวนักกีฬาเคนโด้ ร่วมมือกันจัดเวรยาม คุมสติ และเหยียบคันเร่งฝ่าดงซอมบี้คลั่งและจ่าฝูงอัลฟ่าอย่างต่อเนื่องไม่ตัดข้าม
+                </p>
+                <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px] text-slate-500">
+                  <span className="bg-white/80 px-2 py-0.5 rounded-md border border-slate-200 font-semibold">
+                    👤 ตัวละคร: เร็น (Ren), ซากุระ, อาโออิ, ยูมิ
+                  </span>
+                  <span className="bg-white/80 px-2 py-0.5 rounded-md border border-slate-200 font-semibold">
+                    📍 สถานที่: ภายในรถบัส, ค็อกพิทคนขับ, ไฮเวย์ซากรถ, หลังคารถบัส
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-emerald-100">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const updated = applyStoryPresetToProject(project, 'manga_bus');
+                      onUpdateProject(updated);
+                      setIsStoryModalOpen(false);
+                      alert('🎉 ปรับเป็นพล็อต Manga Realms รถบัส (40 ฉาก) สำเร็จเรียบร้อย!');
+                    }}
+                    className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all"
+                  >
+                    <span>⚡ โหลดพล็อต Manga รถบัส (40 ฉาก)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const updated = applyStoryPresetToProject(project, 'manga_bus');
+                      const vip = generateVip3000SecondsMovie(updated);
+                      onUpdateProject(vip);
+                      setIsStoryModalOpen(false);
+                      alert('🎬 สร้างหนังสั้น Manga รถบัส 3,000 วินาที / 308 ฉาก (VIP Mode) สำเร็จเรียบร้อย!');
+                    }}
+                    className="px-4 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 text-xs font-black flex items-center gap-1.5 shadow-sm transition-all"
+                  >
+                    <Zap className="w-3.5 h-3.5 fill-slate-950" />
+                    <span>🎬 สร้าง Manga รถบัส 308 ฉาก (VIP Mode)</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Option 3: 989 Ai Prompt VIP Mode (ตามคลิปสอน 308 ฉาก) */}
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-50/80 to-purple-50/50 border border-amber-200/80 hover:border-amber-400 transition-all shadow-sm space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">🎬</span>
+                    <div>
+                      <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-black uppercase tracking-wider">
+                        คลิปต้นฉบับ 989 VIP Mode (hdxRMa1Wx9Q)
+                      </span>
+                      <h4 className="font-extrabold text-sm text-slate-900 mt-0.5">
+                        สร้างหนังสั้น 3,000 วินาที รวม 308 ฉาก ด้วย 989 Ai Prompt (เอก AEK-01)
+                      </h4>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-xs text-slate-600 line-clamp-2">
+                  โครงสร้างต้นแบบ 10 บล็อกเนื้อเรื่องตามคลิปสอน 989 Ai Prompt ควบคุมตัวละคร เอก (AEK-01), ผู้พันเกรียง, ห้องพักเอก (ROOM-01), แล็ปท็อปเอกสารลับ และรถตู้ยุทธการ
+                </p>
+                <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px] text-slate-500">
+                  <span className="bg-white/80 px-2 py-0.5 rounded-md border border-slate-200 font-semibold">
+                    👤 ตัวละคร: เอก (AEK-01), ผู้พันเกรียง
+                  </span>
+                  <span className="bg-white/80 px-2 py-0.5 rounded-md border border-slate-200 font-semibold">
+                    📍 สถานที่: ห้องพักเอก (ROOM-01), ถนนสายเปลี่ยว, ศูนย์บัญชาการลับ
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-amber-100">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const updated = applyStoryPresetToProject(project, 'aek_989');
+                      onUpdateProject(updated);
+                      setIsStoryModalOpen(false);
+                      alert('🎉 ปรับเป็นพล็อต 989 เอก (40 ฉาก) สำเร็จเรียบร้อย!');
+                    }}
+                    className="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all"
+                  >
+                    <span>⚡ โหลดพล็อต 989 เอก (40 ฉาก)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const updated = applyStoryPresetToProject(project, 'aek_989');
+                      const vip = generateVip3000SecondsMovie(updated);
+                      onUpdateProject(vip);
+                      setIsStoryModalOpen(false);
+                      alert('🎬 สร้างหนังสั้น 989 เอก 3,000 วินาที / 308 ฉาก (VIP Mode) สำเร็จเรียบร้อย!');
+                    }}
+                    className="px-4 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 text-xs font-black flex items-center gap-1.5 shadow-sm transition-all"
+                  >
+                    <Zap className="w-3.5 h-3.5 fill-slate-950" />
+                    <span>🎬 สร้าง 989 เอก 308 ฉาก (VIP Mode)</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Option 4: พิมพ์พล็อตเรื่องเอง (Custom Plot) */}
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                <h4 className="font-extrabold text-sm text-slate-900 flex items-center gap-2">
+                  <Edit2 className="w-4 h-4 text-slate-600" />
+                  <span>✏️ หรือ พิมพ์พล็อตเรื่องและเรื่องย่อที่ต้องการเอง:</span>
+                </h4>
+                <div className="space-y-2">
+                  <input
+                    type="text"
+                    value={customStoryTitle}
+                    onChange={(e) => setCustomStoryTitle(e.target.value)}
+                    placeholder="พิมพ์ชื่อเรื่องที่ต้องการ เช่น วันที่ 13 กรกฎาคม ฝนตก โลกจม..."
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-cyan-500"
+                  />
+                  <textarea
+                    rows={3}
+                    value={customStorySynopsis}
+                    onChange={(e) => setCustomStorySynopsis(e.target.value)}
+                    placeholder="พิมพ์เรื่องย่อ พล็อต หรือรายละเอียดตัวละครที่ต้องการ..."
+                    className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!customStoryTitle.trim()) {
+                        alert('กรุณากรอกชื่อเรื่องก่อนครับ');
+                        return;
+                      }
+                      const updated = applyStoryPresetToProject(project, 'custom', {
+                        title: customStoryTitle,
+                        synopsis: customStorySynopsis,
+                      });
+                      onUpdateProject(updated);
+                      setIsStoryModalOpen(false);
+                      alert('🎉 ปรับเป็นพล็อตเรื่องที่คุณกำหนดและสร้างฉากเรียบร้อย!');
+                    }}
+                    className="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold shadow-sm"
+                  >
+                    🚀 อัปเดตและสร้างฉากตามพล็อตนี้ทันที
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Edit Project Title & Synopsis Directly */}
+      {isEditTitleModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <h3 className="font-extrabold text-base text-slate-900 flex items-center gap-2">
+                <Edit2 className="w-4 h-4 text-cyan-600" />
+                <span>แก้ไขชื่อเรื่อง & เรื่องย่อโปรเจกต์</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsEditTitleModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 text-sm font-bold p-1 rounded"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">ชื่อโปรเจกต์ / ภาพยนตร์:</label>
+                <input
+                  type="text"
+                  value={customStoryTitle}
+                  onChange={(e) => setCustomStoryTitle(e.target.value)}
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-cyan-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">เรื่องย่อ (Synopsis):</label>
+                <textarea
+                  rows={4}
+                  value={customStorySynopsis}
+                  onChange={(e) => setCustomStorySynopsis(e.target.value)}
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-cyan-500"
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setIsEditTitleModalOpen(false)}
+                className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 text-xs font-bold"
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onUpdateProject({
+                    ...project,
+                    title: customStoryTitle,
+                    synopsis: customStorySynopsis,
+                    updatedAt: new Date().toISOString(),
+                  });
+                  setIsEditTitleModalOpen(false);
+                  alert('💾 บันทึกการแก้ไขชื่อเรื่องและเรื่องย่อสำเร็จ!');
+                }}
+                className="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold shadow-sm"
+              >
+                บันทึกการแก้ไข
+              </button>
             </div>
           </div>
         </div>

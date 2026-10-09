@@ -11,7 +11,12 @@ declare global {
 }
 
 export function isMongoConfigured(): boolean {
-  return Boolean(process.env.MONGODB_URI && process.env.MONGODB_URI.trim().length > 0);
+  const uri = (process.env.MONGODB_URI || '').trim();
+  return Boolean(
+    uri.length > 0 &&
+    !uri.includes('<db_password>') &&
+    !uri.includes('<password>')
+  );
 }
 
 export async function getMongoClient(): Promise<MongoClient> {
