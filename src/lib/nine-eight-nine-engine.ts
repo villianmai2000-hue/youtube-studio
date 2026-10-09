@@ -507,22 +507,27 @@ export function cleanJsonTextForDisplay(rawInput: string): string {
   }
 }
 
+export type ImportJsonMode = 'replace' | 'append' | 'merge';
+
 /**
  * นำเข้าโปรเจกต์จากไฟล์ JSON ของ 989 Ai Prompt
  * ฉลาดพิเศษ: รองรับข้อความแชท AI, บล็อก markdown, array ตรงๆ, และอ็อบเจกต์ทุกรูปแบบ
+ * รองรับ 3 โหมด:
+ * 1. 'replace': แทนที่ฉากเดิมทั้งหมดด้วยชุดใหม่
+ * 2. 'append': นำฉากใหม่ไปต่อท้ายฉากเดิม (รันเลขฉากและไทม์ไลน์ต่อจากฉากสุดท้าย เช่น ฉาก 41, 42...)
+ * 3. 'merge': อัปเดตทับเฉพาะเลขฉากที่ตรงกัน ฉากอื่นคงเดิม
  */
-export function import989ProjectJson(rawInput: string, currentProject: Project): Project {
+export function import989ProjectJson(
+  rawInput: string,
+  currentProject: Project,
+  mode: ImportJsonMode = 'replace'
+): Project {
   const data = extractAndParseJson(rawInput);
   if (!data || (typeof data !== 'object' && !Array.isArray(data))) {
     throw new Error('รูปแบบข้อมูล JSON ไม่ถูกต้อง');
   }
 
-  // รองรับหลายโครงสร้าง:
-  // 1. Full Project Object: { project: { ... }, scenes: [...], props: [...], locations: [...] }
-  // 2. Scenes Object: { scenes: [...] } หรือ { data: [...] } หรือ { items: [...] }
-  // 3. Array ของฉากโดยตรง: [ { sceneNumber: 1, ... }, { sceneNumber: 2, ... } ]
-  // 4. Single Scene Object: { sceneNumber: 1, imagePrompt: ... }
-
+  // ดึงรายการฉากจากโครงสร้างต่างๆ
   let rawScenesList: any[] = [];
   if (Array.isArray(data)) {
     rawScenesList = data;
@@ -545,64 +550,119 @@ export function import989ProjectJson(rawInput: string, currentProject: Project):
     }
   }
 
-  const newProps: PropItem[] = Array.isArray(data.props) ? data.props : currentProject.props || [];
-  const newLocations: LocationItem[] = Array.isArray(data.locations) ? data.locations : currentProject.locations || [];
+  // 1. จัดการ Props, Locations, Characters
+  let newProps: PropItem[];
+  let newLocations: LocationItem[];
+  let newCharacters: CharacterBible[];
+
+  if (mode === 'replace') {
+    newProps = Array.isArray(data.props) ? data.props : currentProject.props || [];
+    newLocations = Array.isArray(data.locations) ? data.locations : currentProject.locations || [];
+    newCharacters = Array.isArray(data.characters) ? data.characters : currentProject.characters || [];
+  } else {
+    // โหมด append หรือ merge: ผสานของเดิม + ของใหม่ ไม่ซ้ำ id/name
+    const existingPropIds = new Set((currentProject.props || []).map((p) => p.id));
+    const addedProps = (Array.isArray(data.props) ? data.props : []).filter(
+      (p: PropItem) => !existingPropIds.has(p.id)
+    );
+    newProps = [...(currentProject.props || []), ...addedProps];
+
+    const existingLocIds = new Set((currentProject.locations || []).map((l) => l.id));
+    const addedLocs = (Array.isArray(data.locations) ? data.locations : []).filter(
+      (l: LocationItem) => !existingLocIds.has(l.id)
+    );
+    newLocations = [...(currentProject.locations || []), ...addedLocs];
+
+    const existingCharIds = new Set((currentProject.characters || []).map((c) => c.id));
+    const addedChars = (Array.isArray(data.characters) ? data.characters : []).filter(
+      (c: CharacterBible) => !existingCharIds.has(c.id)
+    );
+    newCharacters = [...(currentProject.characters || []), ...addedChars];
+  }
+
   const newRules: string[] = Array.isArray(data.aiRules) ? data.aiRules : currentProject.aiRules || DEFAULT_989_AI_RULES;
-  const newCharacters: CharacterBible[] = Array.isArray(data.characters) ? data.characters : currentProject.characters || [];
 
-  let newScenes: ScriptScene[] = currentProject.scenes || [];
-  if (rawScenesList.length > 0) {
-    newScenes = rawScenesList.map((s: any, idx: number) => {
-      const sceneNum = typeof s.sceneNumber === 'number'
-        ? s.sceneNumber
-        : (parseInt(String(s.sceneNumber || s.scene || s.id || idx + 1).replace(/\D/g, ''), 10) || idx + 1);
+  // 2. แปลง rawScenesList เป็น ScriptScene[]
+  const mappedIncomingScenes: ScriptScene[] = rawScenesList.map((s: any, idx: number) => {
+    const rawNum = typeof s.sceneNumber === 'number'
+      ? s.sceneNumber
+      : (parseInt(String(s.sceneNumber || s.scene || s.id || idx + 1).replace(/\D/g, ''), 10) || idx + 1);
 
+    return {
+      id: s.id || `scene-989-${Date.now()}-${rawNum}-${idx}`,
+      sceneNumber: rawNum,
+      actNumber: (s.actNumber || Math.min(4, Math.ceil((rawNum / Math.max(1, rawScenesList.length)) * 4))) as 1 | 2 | 3 | 4,
+      title: s.title || `ฉากที่ ${rawNum}`,
+      narration: s.narration || s.script || s.voiceover || '',
+      dialogues: Array.isArray(s.dialogues) ? s.dialogues : [],
+      sfxBgm: s.sfxBgm || s.sfx || s.bgm || '',
+      characterIds: Array.isArray(s.characterIds) ? s.characterIds : [],
+      visualMedium: currentProject.visualMedium || 'animation',
+      stylePreset: currentProject.stylePreset || 'donghua_3d',
+      cameraMovement: s.cameraMovement || s.camera_movement || s.movement || 'Push In',
+      lighting: s.lighting || 'Cinematic Lighting',
+      imagePrompt: s.imagePrompt || s.image_prompt || s.prompt || '',
+      videoMotionPrompt: s.videoMotionPrompt || s.video_motion_prompt || s.motionPrompt || '',
+      googleFlowPrompt: s.googleFlowPrompt || s.google_flow_prompt || '',
+      negativePrompt: s.negativePrompt || s.negative_prompt || '',
+      aspectRatio: currentProject.aspectRatio || '16:9',
+      estimatedDurationSec: s.estimatedDurationSec || 10,
+      createdAt: s.createdAt || new Date().toISOString(),
+      locationId: s.locationId,
+      locationName: s.locationName || s.location,
+      focusType: s.focus?.type || s.focusType || 'Deep Focus (ชัดลึก (ชัดทั้งภาพ))',
+      focusDetail: s.focus?.detail || s.focusDetail || '',
+      compositionType: s.composition?.type || s.compositionType || 'Center Frame (กึ่งกลางภาพ)',
+      compositionDetail: s.composition?.detail || s.compositionDetail || '',
+      shotType: s.shotType || s.shot_type || 'Wide Shot (WS)',
+      cameraAngle: s.cameraAngle || s.camera_angle || 'Eye-Level',
+      startTimeSec: s.startTimeSec ?? (rawNum - 1) * 10,
+      endTimeSec: s.endTimeSec ?? rawNum * 10,
+      propIds: Array.isArray(s.propIds) ? s.propIds : (s.props ? s.props : []),
+    };
+  });
+
+  // 3. รวมฉากตามโหมดที่เลือก (replace / append / merge)
+  let finalScenes: ScriptScene[] = [];
+  const currentScenes = currentProject.scenes || [];
+
+  if (mode === 'replace') {
+    finalScenes = mappedIncomingScenes.length > 0 ? mappedIncomingScenes : currentScenes;
+  } else if (mode === 'append') {
+    const currentMaxScene = currentScenes.reduce((max, s) => Math.max(max, s.sceneNumber), 0);
+    // รันเลขฉากและคำนวณเวลาต่อจากฉากสุดท้าย
+    const appended = mappedIncomingScenes.map((s, idx) => {
+      const newNum = currentMaxScene + idx + 1;
       return {
-        id: s.id || `scene-989-${Date.now()}-${sceneNum}-${idx}`,
-        sceneNumber: sceneNum,
-        actNumber: (s.actNumber || Math.min(4, Math.ceil((sceneNum / Math.max(1, rawScenesList.length)) * 4))) as 1 | 2 | 3 | 4,
-        title: s.title || `ฉากที่ ${sceneNum}`,
-        narration: s.narration || s.script || s.voiceover || '',
-        dialogues: Array.isArray(s.dialogues) ? s.dialogues : [],
-        sfxBgm: s.sfxBgm || s.sfx || s.bgm || '',
-        characterIds: Array.isArray(s.characterIds) ? s.characterIds : [],
-        visualMedium: currentProject.visualMedium || 'animation',
-        stylePreset: currentProject.stylePreset || 'donghua_3d',
-        cameraMovement: s.cameraMovement || s.camera_movement || s.movement || 'Push In',
-        lighting: s.lighting || 'Cinematic Lighting',
-        imagePrompt: s.imagePrompt || s.image_prompt || s.prompt || '',
-        videoMotionPrompt: s.videoMotionPrompt || s.video_motion_prompt || s.motionPrompt || '',
-        googleFlowPrompt: s.googleFlowPrompt || s.google_flow_prompt || '',
-        negativePrompt: s.negativePrompt || s.negative_prompt || '',
-        aspectRatio: currentProject.aspectRatio || '16:9',
-        estimatedDurationSec: s.estimatedDurationSec || 10,
-        createdAt: s.createdAt || new Date().toISOString(),
-        locationId: s.locationId,
-        locationName: s.locationName || s.location,
-        focusType: s.focus?.type || s.focusType || 'Deep Focus (ชัดลึก (ชัดทั้งภาพ))',
-        focusDetail: s.focus?.detail || s.focusDetail || '',
-        compositionType: s.composition?.type || s.compositionType || 'Center Frame (กึ่งกลางภาพ)',
-        compositionDetail: s.composition?.detail || s.compositionDetail || '',
-        shotType: s.shotType || s.shot_type || 'Wide Shot (WS)',
-        cameraAngle: s.cameraAngle || s.camera_angle || 'Eye-Level',
-        startTimeSec: s.startTimeSec ?? (sceneNum - 1) * 10,
-        endTimeSec: s.endTimeSec ?? sceneNum * 10,
-        propIds: Array.isArray(s.propIds) ? s.propIds : (s.props ? s.props : []),
+        ...s,
+        id: `scene-989-${Date.now()}-${newNum}`,
+        sceneNumber: newNum,
+        title: s.title ? s.title.replace(/ฉากที่\s*\d+/g, `ฉากที่ ${newNum}`) : `ฉากที่ ${newNum}`,
+        startTimeSec: (newNum - 1) * 10,
+        endTimeSec: newNum * 10,
       };
     });
-
-    newScenes.sort((a, b) => a.sceneNumber - b.sceneNumber);
+    finalScenes = [...currentScenes, ...appended];
+  } else if (mode === 'merge') {
+    // ทับเฉพาะฉากที่ sceneNumber ตรงกัน ส่วนฉากใหม่ที่ไม่มีก็เพิ่มเข้าไป
+    const sceneMap = new Map<number, ScriptScene>();
+    currentScenes.forEach((s) => sceneMap.set(s.sceneNumber, s));
+    mappedIncomingScenes.forEach((s) => sceneMap.set(s.sceneNumber, s));
+    finalScenes = Array.from(sceneMap.values());
   }
+
+  finalScenes.sort((a, b) => a.sceneNumber - b.sceneNumber);
+  finalScenes = autoReTimeScenes(finalScenes);
 
   return {
     ...currentProject,
-    title: data.project?.title || data.title || currentProject.title,
-    synopsis: data.project?.synopsis || data.synopsis || currentProject.synopsis,
+    title: mode === 'replace' ? (data.project?.title || data.title || currentProject.title) : currentProject.title,
+    synopsis: mode === 'replace' ? (data.project?.synopsis || data.synopsis || currentProject.synopsis) : currentProject.synopsis,
     characters: newCharacters,
     props: newProps,
     locations: newLocations,
     aiRules: newRules,
-    scenes: newScenes,
+    scenes: finalScenes,
     updatedAt: new Date().toISOString(),
   };
 }

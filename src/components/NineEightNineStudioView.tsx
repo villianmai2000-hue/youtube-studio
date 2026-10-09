@@ -24,6 +24,7 @@ import {
   import989ProjectJson,
   extractAndParseJson,
   cleanJsonTextForDisplay,
+  ImportJsonMode,
   generateVip3000SecondsMovie,
   applyStoryPresetToProject,
   generateStandardScenes989,
@@ -100,6 +101,7 @@ export default function NineEightNineStudioView({
   const [editingLocation, setEditingLocation] = useState<LocationItem | null>(null);
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [importJsonText, setImportJsonText] = useState('');
+  const [importMode, setImportMode] = useState<ImportJsonMode>('replace');
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isExportJsonModalOpen, setIsExportJsonModalOpen] = useState(false);
   const [exportJsonPreview, setExportJsonPreview] = useState('');
@@ -304,12 +306,26 @@ export default function NineEightNineStudioView({
   // Import JSON
   const handleImportJson = () => {
     try {
-      const imported = import989ProjectJson(importJsonText, project);
-      const count = imported.scenes?.length || 0;
+      const prevCount = project.scenes?.length || 0;
+      const imported = import989ProjectJson(importJsonText, project, importMode);
+      const newCount = imported.scenes?.length || 0;
       onUpdateProject(imported);
       setIsImportModalOpen(false);
       setImportJsonText('');
-      alert(`🎉 นำเข้าข้อมูลสำเร็จเรียบร้อย!\nอัปเดตทั้งหมด ${count} ฉาก และองค์ประกอบของโปรเจกต์`);
+
+      if (importMode === 'append') {
+        alert(
+          `🎉 นำเข้าและต่อท้ายฉากสำเร็จเรียบร้อย!\nจากเดิม ${prevCount} ฉาก เพิ่มฉากใหม่เข้าไป กลายเป็นทั้งหมด ${newCount} ฉาก (รันเลขฉากและไทม์ไลน์ต่อเนื่องให้อัตโนมัติ)`
+        );
+      } else if (importMode === 'merge') {
+        alert(
+          `🎉 อัปเดตทับเฉพาะเลขฉากสำเร็จเรียบร้อย!\nฉากทั้งหมดในโปรเจกต์: ${newCount} ฉาก`
+        );
+      } else {
+        alert(
+          `🎉 แทนที่ข้อมูลฉากเดิมทั้งหมดสำเร็จเรียบร้อย!\nอัปเดตชุดใหม่ทั้งหมด ${newCount} ฉาก`
+        );
+      }
     } catch (err: any) {
       alert('เกิดข้อผิดพลาดในการนำเข้า:\n' + err.message);
     }
@@ -1640,12 +1656,76 @@ export default function NineEightNineStudioView({
                 )}
               </div>
               <textarea
-                rows={10}
+                rows={9}
                 value={importJsonText}
                 onChange={(e) => setImportJsonText(e.target.value)}
                 placeholder="วางข้อมูล JSON ที่นี่... (สามารถคัดลอกคำตอบจาก ChatGPT, Claude, Gemini ที่มีข้อความเกริ่นนำมาวางได้เลยครับ)"
                 className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-900 focus:outline-none focus:border-cyan-500 leading-relaxed"
               />
+            </div>
+
+            {/* โหมดการนำเข้า: แทนที่ (ทับ) หรือ ต่อท้าย (ต่อกัน) หรือ ทับเฉพาะเลขฉาก */}
+            <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 space-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-1">
+                <label className="text-[11px] font-black text-slate-700 flex items-center gap-1.5">
+                  <span>⚙️ เลือกวิธีการนำเข้า (จะทับหรือต่อกัน):</span>
+                </label>
+                <span className="text-[10px] text-slate-500 font-semibold bg-white px-2 py-0.5 rounded-md border border-slate-200">
+                  ฉากปัจจุบันมี {project.scenes?.length || 0} ฉาก
+                </span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setImportMode('replace')}
+                  className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                    importMode === 'replace'
+                      ? 'bg-amber-500 text-slate-950 border-amber-600 font-black shadow-md'
+                      : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100 font-medium'
+                  }`}
+                >
+                  <div className="text-xs font-black flex items-center gap-1">
+                    <span>🔄 แทนที่ทั้งหมด (ทับ)</span>
+                  </div>
+                  <div className="text-[10px] opacity-80 mt-0.5 leading-snug">
+                    ลบฉากเดิมทิ้งทั้งหมด แล้วใส่ฉากชุดใหม่แทน
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setImportMode('append')}
+                  className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                    importMode === 'append'
+                      ? 'bg-amber-500 text-slate-950 border-amber-600 font-black shadow-md'
+                      : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100 font-medium'
+                  }`}
+                >
+                  <div className="text-xs font-black flex items-center gap-1">
+                    <span>➕ ต่อท้ายฉากเดิม (ต่อกัน)</span>
+                  </div>
+                  <div className="text-[10px] opacity-80 mt-0.5 leading-snug">
+                    ฉากเดิมอยู่ครบ นำฉากใหม่ไปต่อท้าย (รันฉาก {(project.scenes?.length || 0) + 1}...)
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setImportMode('merge')}
+                  className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                    importMode === 'merge'
+                      ? 'bg-amber-500 text-slate-950 border-amber-600 font-black shadow-md'
+                      : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100 font-medium'
+                  }`}
+                >
+                  <div className="text-xs font-black flex items-center gap-1">
+                    <span>🔀 ทับเฉพาะเลขฉาก</span>
+                  </div>
+                  <div className="text-[10px] opacity-80 mt-0.5 leading-snug">
+                    อัปเดตทับเฉพาะฉากที่เลขตรงกัน ฉากอื่นคงเดิม
+                  </div>
+                </button>
+              </div>
             </div>
 
             <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
