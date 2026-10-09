@@ -22,6 +22,8 @@ import {
   export989ScenesRangeJson,
   exportSingleSceneJson,
   import989ProjectJson,
+  extractAndParseJson,
+  cleanJsonTextForDisplay,
   generateVip3000SecondsMovie,
   applyStoryPresetToProject,
   generateStandardScenes989,
@@ -303,12 +305,13 @@ export default function NineEightNineStudioView({
   const handleImportJson = () => {
     try {
       const imported = import989ProjectJson(importJsonText, project);
+      const count = imported.scenes?.length || 0;
       onUpdateProject(imported);
       setIsImportModalOpen(false);
       setImportJsonText('');
-      alert('🎉 นำเข้าโปรเจกต์ 989 Ai Prompt สำเร็จเรียบร้อย!');
+      alert(`🎉 นำเข้าข้อมูลสำเร็จเรียบร้อย!\nอัปเดตทั้งหมด ${count} ฉาก และองค์ประกอบของโปรเจกต์`);
     } catch (err: any) {
-      alert('เกิดข้อผิดพลาดในการนำเข้า: ' + err.message);
+      alert('เกิดข้อผิดพลาดในการนำเข้า:\n' + err.message);
     }
   };
 
@@ -1597,21 +1600,54 @@ export default function NineEightNineStudioView({
 
       {/* Modal: Import 989 JSON */}
       {isImportModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4">
-            <h3 className="font-extrabold text-base text-slate-900">
-              📂 นำเข้าข้อมูลไฟล์ 989 Ai Prompt JSON
-            </h3>
-            <p className="text-xs text-slate-500">
-              วางข้อความ JSON ที่ส่งออกจาก 989 Ai Prompt v8 เพื่ออัปเดตฉาก Props และสถานที่ในโปรเจกต์นี้
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <h3 className="font-extrabold text-base text-slate-900 flex items-center gap-2">
+                <FileJson className="w-5 h-5 text-amber-500" />
+                <span>📂 นำเข้าข้อมูลไฟล์ 989 Ai Prompt JSON</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsImportModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 text-sm font-bold p-1 rounded"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-500 leading-relaxed">
+              วางข้อความ JSON จาก AI หรือจากโปรเจกต์เดิมได้ทันที (ระบบมี <strong>Auto-Cleaner</strong> ตัดข้อความเกริ่นนำ เช่น <em>&quot;นี่คือโค้ด...&quot;</em> หรือบล็อก Markdown <code>```json</code> ออกให้อัตโนมัติ)
             </p>
-            <textarea
-              rows={8}
-              value={importJsonText}
-              onChange={(e) => setImportJsonText(e.target.value)}
-              placeholder="วางข้อมูล JSON ที่นี่..."
-              className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono"
-            />
+
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-bold text-slate-600">
+                  ช่องวางข้อความ JSON:
+                </label>
+                {importJsonText.trim() && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const cleaned = cleanJsonTextForDisplay(importJsonText);
+                      setImportJsonText(cleaned);
+                    }}
+                    className="text-[11px] text-cyan-600 hover:text-cyan-700 font-bold flex items-center gap-1 hover:underline cursor-pointer"
+                    title="ตัดข้อความเกริ่นนำและจัดฟอร์แมต JSON สวยงาม"
+                  >
+                    <span>🧹 ดึงและจัดเฉพาะ JSON ทันที</span>
+                  </button>
+                )}
+              </div>
+              <textarea
+                rows={10}
+                value={importJsonText}
+                onChange={(e) => setImportJsonText(e.target.value)}
+                placeholder="วางข้อมูล JSON ที่นี่... (สามารถคัดลอกคำตอบจาก ChatGPT, Claude, Gemini ที่มีข้อความเกริ่นนำมาวางได้เลยครับ)"
+                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-900 focus:outline-none focus:border-cyan-500 leading-relaxed"
+              />
+            </div>
+
             <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
               <button
                 type="button"
@@ -1624,9 +1660,10 @@ export default function NineEightNineStudioView({
                 type="button"
                 onClick={handleImportJson}
                 disabled={!importJsonText.trim()}
-                className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-900 text-xs font-extrabold disabled:opacity-50"
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-xs font-black shadow-md transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
               >
-                นำเข้าข้อมูล
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>นำเข้าข้อมูล</span>
               </button>
             </div>
           </div>

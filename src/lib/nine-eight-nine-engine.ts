@@ -384,60 +384,221 @@ export function exportSingleSceneJson(scene: ScriptScene, project: Project): str
 }
 
 /**
- * นำเข้าโปรเจกต์จากไฟล์ JSON ของ 989 Ai Prompt
+ * ซ่อมแซมและแปลง JSON Candidate
  */
-export function import989ProjectJson(jsonStr: string, currentProject: Project): Project {
-  const data = JSON.parse(jsonStr);
-  if (!data || typeof data !== 'object') {
-    throw new Error('รูปแบบไฟล์ JSON ไม่ถูกต้อง');
+export function parseJsonWithFixes(jsonCandidate: string): any {
+  let cleaned = jsonCandidate.trim();
+
+  // ลอง parse ทันที
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    // ซ่อมแซม syntax ทั่วไปที่มักพบบ่อยจาก AI
+  }
+
+  // 1. แปลง Smart Quotes (curly quotes) เป็น Regular Quotes
+  cleaned = cleaned
+    .replace(/[\u201C\u201D\u201E\u201F\u2033\u2036]/g, '"')
+    .replace(/[\u2018\u2019\u201A\u201B\u2032\u2035]/g, "'");
+
+  // 2. ลบ single-line comments // ... (ยกเว้นใน url)
+  cleaned = cleaned.replace(/(^|[^:])\/\/[^\n\r]*/g, '$1');
+
+  // 3. ลบ multi-line comments /* ... */
+  cleaned = cleaned.replace(/\/\*[\s\S]*?\*\//g, '');
+
+  // 4. ลบ trailing commas ท้าย array หรือ object เช่น , \s* ] หรือ , \s* }
+  cleaned = cleaned.replace(/,\s*([\]}])/g, '$1');
+
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    cleaned = cleaned.replace(/,\s*,+/g, ',');
+    try {
+      return JSON.parse(cleaned);
+    } catch (finalErr: any) {
+      throw new Error(
+        `ไม่สามารถแปลง JSON ได้: ${finalErr.message}\n(คำแนะนำ: โปรดตรวจสอบว่าข้อมูล JSON ไม่ถูกตัดขาดตอนปลาย)`
+      );
+    }
+  }
+}
+
+/**
+ * ฟังก์ชันทำความสะอาดและแยกเฉพาะโค้ด JSON ออกจากข้อความ AI หรือข้อความทั่วไป
+ * รองรับข้อความเกริ่นนำภาษาไทย/อังกฤษ เช่น "นี่คือโค้ด JSON..."
+ * รองรับบล็อก Markdown ```json ... ```
+ */
+export function extractAndParseJson(rawInput: string): any {
+  if (!rawInput || typeof rawInput !== 'string') {
+    throw new Error('กรุณาวางข้อความ JSON ก่อนครับ');
+  }
+
+  let text = rawInput.trim();
+
+  // 1. ลองตัด Markdown code fences ออกถ้ามี
+  const codeBlockRegex = /```(?:json)?\s*([\s\S]*?)```/gi;
+  let codeMatch = codeBlockRegex.exec(text);
+  if (codeMatch && codeMatch[1]) {
+    try {
+      return parseJsonWithFixes(codeMatch[1].trim());
+    } catch {
+      // ค้นหาต่อไป
+    }
+  }
+
+  // 2. ค้นหาตำแหน่งเริ่มต้นของ JSON ({ หรือ [)
+  const firstBrace = text.indexOf('{');
+  const firstBracket = text.indexOf('[');
+
+  let startIdx = -1;
+  let isArray = false;
+
+  if (firstBrace !== -1 && firstBracket !== -1) {
+    if (firstBrace < firstBracket) {
+      startIdx = firstBrace;
+      isArray = false;
+    } else {
+      startIdx = firstBracket;
+      isArray = true;
+    }
+  } else if (firstBrace !== -1) {
+    startIdx = firstBrace;
+    isArray = false;
+  } else if (firstBracket !== -1) {
+    startIdx = firstBracket;
+    isArray = true;
+  }
+
+  if (startIdx === -1) {
+    throw new Error(
+      'ไม่พบโครงสร้าง JSON ในข้อความที่วาง (ไม่พบเครื่องหมาย { หรือ [)\nคำแนะนำ: กรุณาคัดลอกข้อมูล JSON จาก AI ที่มีเครื่องหมาย { ... } หรือ [ ... ] มาวางครับ'
+    );
+  }
+
+  // ค้นหาตำแหน่งสิ้นสุดของ JSON (} หรือ ])
+  const lastBrace = text.lastIndexOf('}');
+  const lastBracket = text.lastIndexOf(']');
+  let endIdx = -1;
+
+  if (isArray) {
+    endIdx = lastBracket !== -1 ? lastBracket : lastBrace;
+  } else {
+    endIdx = lastBrace !== -1 ? lastBrace : lastBracket;
+  }
+
+  if (endIdx === -1 || endIdx <= startIdx) {
+    throw new Error('โครงสร้าง JSON ไม่สมบูรณ์ (ไม่พบเครื่องหมายปิด } หรือ ]) กรุณาคัดลอกโค้ดมาให้ครบถ้วนครับ');
+  }
+
+  const jsonSubstring = text.slice(startIdx, endIdx + 1);
+  return parseJsonWithFixes(jsonSubstring);
+}
+
+/**
+ * คลีนและจัดฟอร์แมต JSON สำหรับแสดงผลใน Textarea
+ */
+export function cleanJsonTextForDisplay(rawInput: string): string {
+  try {
+    const parsed = extractAndParseJson(rawInput);
+    return JSON.stringify(parsed, null, 2);
+  } catch {
+    return rawInput;
+  }
+}
+
+/**
+ * นำเข้าโปรเจกต์จากไฟล์ JSON ของ 989 Ai Prompt
+ * ฉลาดพิเศษ: รองรับข้อความแชท AI, บล็อก markdown, array ตรงๆ, และอ็อบเจกต์ทุกรูปแบบ
+ */
+export function import989ProjectJson(rawInput: string, currentProject: Project): Project {
+  const data = extractAndParseJson(rawInput);
+  if (!data || (typeof data !== 'object' && !Array.isArray(data))) {
+    throw new Error('รูปแบบข้อมูล JSON ไม่ถูกต้อง');
+  }
+
+  // รองรับหลายโครงสร้าง:
+  // 1. Full Project Object: { project: { ... }, scenes: [...], props: [...], locations: [...] }
+  // 2. Scenes Object: { scenes: [...] } หรือ { data: [...] } หรือ { items: [...] }
+  // 3. Array ของฉากโดยตรง: [ { sceneNumber: 1, ... }, { sceneNumber: 2, ... } ]
+  // 4. Single Scene Object: { sceneNumber: 1, imagePrompt: ... }
+
+  let rawScenesList: any[] = [];
+  if (Array.isArray(data)) {
+    rawScenesList = data;
+  } else if (Array.isArray(data.scenes)) {
+    rawScenesList = data.scenes;
+  } else if (Array.isArray(data.data)) {
+    rawScenesList = data.data;
+  } else if (Array.isArray(data.items)) {
+    rawScenesList = data.items;
+  } else if (Array.isArray(data.results)) {
+    rawScenesList = data.results;
+  } else if (data.sceneNumber !== undefined || data.imagePrompt !== undefined || data.videoMotionPrompt !== undefined) {
+    rawScenesList = [data];
+  } else {
+    for (const key of Object.keys(data)) {
+      if (Array.isArray(data[key]) && data[key].length > 0 && typeof data[key][0] === 'object') {
+        rawScenesList = data[key];
+        break;
+      }
+    }
   }
 
   const newProps: PropItem[] = Array.isArray(data.props) ? data.props : currentProject.props || [];
   const newLocations: LocationItem[] = Array.isArray(data.locations) ? data.locations : currentProject.locations || [];
   const newRules: string[] = Array.isArray(data.aiRules) ? data.aiRules : currentProject.aiRules || DEFAULT_989_AI_RULES;
+  const newCharacters: CharacterBible[] = Array.isArray(data.characters) ? data.characters : currentProject.characters || [];
 
   let newScenes: ScriptScene[] = currentProject.scenes || [];
-  if (Array.isArray(data.scenes) && data.scenes.length > 0) {
-    newScenes = data.scenes.map((s: any, idx: number) => {
-      const sceneNum = s.sceneNumber || idx + 1;
+  if (rawScenesList.length > 0) {
+    newScenes = rawScenesList.map((s: any, idx: number) => {
+      const sceneNum = typeof s.sceneNumber === 'number'
+        ? s.sceneNumber
+        : (parseInt(String(s.sceneNumber || s.scene || s.id || idx + 1).replace(/\D/g, ''), 10) || idx + 1);
+
       return {
-        id: `scene-989-${Date.now()}-${sceneNum}`,
+        id: s.id || `scene-989-${Date.now()}-${sceneNum}-${idx}`,
         sceneNumber: sceneNum,
-        actNumber: (s.actNumber || Math.min(4, Math.ceil((sceneNum / data.scenes.length) * 4))) as 1 | 2 | 3 | 4,
+        actNumber: (s.actNumber || Math.min(4, Math.ceil((sceneNum / Math.max(1, rawScenesList.length)) * 4))) as 1 | 2 | 3 | 4,
         title: s.title || `ฉากที่ ${sceneNum}`,
-        narration: s.narration || '',
+        narration: s.narration || s.script || s.voiceover || '',
         dialogues: Array.isArray(s.dialogues) ? s.dialogues : [],
-        sfxBgm: s.sfxBgm || '',
-        characterIds: [],
-        visualMedium: currentProject.visualMedium,
-        stylePreset: currentProject.stylePreset,
-        cameraMovement: s.cameraMovement || 'Push In',
+        sfxBgm: s.sfxBgm || s.sfx || s.bgm || '',
+        characterIds: Array.isArray(s.characterIds) ? s.characterIds : [],
+        visualMedium: currentProject.visualMedium || 'animation',
+        stylePreset: currentProject.stylePreset || 'donghua_3d',
+        cameraMovement: s.cameraMovement || s.camera_movement || s.movement || 'Push In',
         lighting: s.lighting || 'Cinematic Lighting',
-        imagePrompt: s.imagePrompt || '',
-        videoMotionPrompt: s.videoMotionPrompt || '',
-        googleFlowPrompt: s.googleFlowPrompt || '',
-        negativePrompt: s.negativePrompt || '',
-        aspectRatio: currentProject.aspectRatio,
-        estimatedDurationSec: 10,
-        createdAt: new Date().toISOString(),
+        imagePrompt: s.imagePrompt || s.image_prompt || s.prompt || '',
+        videoMotionPrompt: s.videoMotionPrompt || s.video_motion_prompt || s.motionPrompt || '',
+        googleFlowPrompt: s.googleFlowPrompt || s.google_flow_prompt || '',
+        negativePrompt: s.negativePrompt || s.negative_prompt || '',
+        aspectRatio: currentProject.aspectRatio || '16:9',
+        estimatedDurationSec: s.estimatedDurationSec || 10,
+        createdAt: s.createdAt || new Date().toISOString(),
         locationId: s.locationId,
-        locationName: s.locationName,
+        locationName: s.locationName || s.location,
         focusType: s.focus?.type || s.focusType || 'Deep Focus (ชัดลึก (ชัดทั้งภาพ))',
         focusDetail: s.focus?.detail || s.focusDetail || '',
         compositionType: s.composition?.type || s.compositionType || 'Center Frame (กึ่งกลางภาพ)',
         compositionDetail: s.composition?.detail || s.compositionDetail || '',
-        shotType: s.shotType || 'Wide Shot (WS)',
-        cameraAngle: s.cameraAngle || 'Eye-Level',
-        startTimeSec: (sceneNum - 1) * 10,
-        endTimeSec: sceneNum * 10,
+        shotType: s.shotType || s.shot_type || 'Wide Shot (WS)',
+        cameraAngle: s.cameraAngle || s.camera_angle || 'Eye-Level',
+        startTimeSec: s.startTimeSec ?? (sceneNum - 1) * 10,
+        endTimeSec: s.endTimeSec ?? sceneNum * 10,
+        propIds: Array.isArray(s.propIds) ? s.propIds : (s.props ? s.props : []),
       };
     });
+
+    newScenes.sort((a, b) => a.sceneNumber - b.sceneNumber);
   }
 
   return {
     ...currentProject,
-    title: data.project?.title || currentProject.title,
-    synopsis: data.project?.synopsis || currentProject.synopsis,
+    title: data.project?.title || data.title || currentProject.title,
+    synopsis: data.project?.synopsis || data.synopsis || currentProject.synopsis,
+    characters: newCharacters,
     props: newProps,
     locations: newLocations,
     aiRules: newRules,
